@@ -101,30 +101,35 @@ struct FeedEpisodesView: View {
           }
         }
       }
-      Group {
-        if following {
-          Button {
-            Task { await setFollowing(false) }
-          } label: {
-            Label("Following", systemImage: "checkmark").frame(maxWidth: .infinity)
+      if feed.kind != "links" {
+        Group {
+          if following {
+            Button {
+              Task { await setFollowing(false) }
+            } label: {
+              Label("Following", systemImage: "checkmark").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+          } else {
+            Button {
+              Task { await setFollowing(true) }
+            } label: {
+              Label("Follow", systemImage: "plus").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
           }
-          .buttonStyle(.bordered)
-        } else {
-          Button {
-            Task { await setFollowing(true) }
-          } label: {
-            Label("Follow", systemImage: "plus").frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.borderedProminent)
         }
+        .disabled(savingFollow)
       }
-      .disabled(savingFollow)
       Text(note).font(.footnote).foregroundStyle(.secondary)
     }
     .padding(.vertical, 4)
   }
 
   private var note: String {
+    // The Pasted links show is no subscription: each episode is a file the owner pasted or shared, downloaded and
+    // transcribed when it was added.
+    if feed.kind == "links" { return "Links you pasted or shared, each downloaded and transcribed when it was added. Nothing to follow." }
     let library =
       following
       ? "In your Library, with new episodes in Today."

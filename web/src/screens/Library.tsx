@@ -12,7 +12,8 @@ export function Library() {
   const desktop = useDesktop();
   // A show opened from the native app's search without following it is not in the library.
   const [kind, setKind] = useMediaFilter();
-  const shows = (feeds.data ?? []).filter((f) => (f.kind === "podcast" || f.kind === "youtube") && f.followed && showsKind(kind, f.kind === "youtube" ? "video" : "audio"));
+  // Pasted links holds videos and audio alike, so it stays under either filter.
+  const shows = (feeds.data ?? []).filter((f) => (f.kind === "podcast" || f.kind === "youtube" || f.kind === "links") && f.followed && (f.kind === "links" || showsKind(kind, f.kind === "youtube" ? "video" : "audio")));
   const textFor = new Set((feeds.data ?? []).filter((f) => f.kind === "text").map((f) => f.text_for_feed_id));
 
   return (
@@ -58,7 +59,7 @@ export function Library() {
                   <span className="show-tile__title">{f.title ?? "Untitled show"}</span>
                   <span className="show-tile__meta">
                     {f.is_private && <Icon name="lock" size={15} strokeWidth={2.2} label="Private feed" />}
-                    <span>{[f.episode_count === 1 ? "1 episode" : `${f.episode_count} episodes`, f.kind === "youtube" ? "YouTube" : null, textFor.has(f.id) ? "Publisher text" : null, f.auto_process ? null : "Manual"].filter(Boolean).join(" · ")}</span>
+                    <span>{[f.episode_count === 1 ? "1 episode" : `${f.episode_count} episodes`, f.kind === "youtube" ? "YouTube" : f.kind === "links" ? "One-offs" : null, textFor.has(f.id) ? "Publisher text" : null, f.auto_process ? null : "Manual"].filter(Boolean).join(" · ")}</span>
                   </span>
                   {f.last_error && <span className="error" style={{ fontSize: 15 }}>{f.last_error}</span>}
                 </a>
@@ -76,7 +77,7 @@ export function Library() {
                   <div className="list-item__title">{f.title ?? "Untitled show"}</div>
                   <div className="list-item__meta">
                     {f.is_private && <Icon name="lock" size={15} strokeWidth={2.2} label="Private feed" />}
-                    <span>{[f.episode_count === 1 ? "1 episode" : `${f.episode_count} episodes`, f.kind === "youtube" ? "YouTube" : null, textFor.has(f.id) ? "Publisher text" : null, f.auto_process ? null : "Manual"].filter(Boolean).join(" · ")}</span>
+                    <span>{[f.episode_count === 1 ? "1 episode" : `${f.episode_count} episodes`, f.kind === "youtube" ? "YouTube" : f.kind === "links" ? "One-offs" : null, textFor.has(f.id) ? "Publisher text" : null, f.auto_process ? null : "Manual"].filter(Boolean).join(" · ")}</span>
                   </div>
                   {f.last_error && <div className="error" style={{ fontSize: 15 }}>{f.last_error}</div>}
                 </div>

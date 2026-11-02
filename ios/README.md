@@ -94,7 +94,10 @@ player reads the episode every 5 s and, once the video is the recording, plays o
 "Sound only" switches at the current position. Today and the Library filter All / Podcasts / Videos (`mediaFilter`).
 The show search takes YouTube links too (`YouTubeLink`): a channel link or bare `@handle` opens the channel as a show
 (`POST /v1/feeds` resolves it), and a video link makes the video an episode of its channel's show and opens it in the
-player (`POST /v1/youtube/episodes`); the channel stays unfollowed until followed from its page.
+player (`POST /v1/youtube/episodes`); the channel stays unfollowed until followed from its page. A link to a video or
+audio file (`MediaLink`, by extension) becomes a one-off episode of the "Pasted links" show, which the server downloads
+and transcribes (`POST /v1/links/episodes`, docs/video-plan.md); the Library lists that show, and its page has nothing
+to follow. A link to a web page is refused with the server's message.
 
 ## Design notes
 

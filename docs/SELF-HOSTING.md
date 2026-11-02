@@ -125,8 +125,9 @@ TestFlight group; they type their own server's address on the login screen.
 ## 4. Shows
 
 Sign in, then search for a show or paste a feed URL (private feeds carry their credential in the URL; it is stored
-encrypted). YouTube channel links and `@handles` become shows too, and a pasted video link becomes an episode, once
-the fetcher runs. `auto_process` on a show decides whether new episodes are fetched, transcribed and summarised on
+encrypted). YouTube channel links and `@handles` become shows too, and a pasted YouTube video link becomes an episode,
+once the fetcher runs. A link straight to a video or audio file becomes a one-off episode of a "Pasted links" show,
+which the server downloads and transcribes itself; a link to a web page does not work (that would need the fetcher). `auto_process` on a show decides whether new episodes are fetched, transcribed and summarised on
 their own or only when you ask.
 
 Publishers who post the text of each episode (a second RSS feed, or a newsletter) can have it attached as a **text

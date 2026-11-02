@@ -16,9 +16,13 @@ struct LibraryView: View {
 
   /// Shows opened from search without following them aren't in the library.
   @AppStorage(MediaFilter.key) private var mediaFilter = MediaFilter.all
-  /// Podcasts and YouTube channels the owner follows, as the filter allows.
+  /// Podcasts and YouTube channels the owner follows, as the filter allows, and the Pasted links show, which holds
+  /// videos and audio alike and so stays under either filter.
   private var shows: [Feed] {
-    feeds.filter { ($0.kind == "podcast" || $0.kind == "youtube") && $0.followed != false && mediaFilter.includes($0.kind == "youtube" ? "video" : "audio") }
+    feeds.filter {
+      ($0.kind == "podcast" || $0.kind == "youtube" || $0.kind == "links") && $0.followed != false
+        && ($0.kind == "links" || mediaFilter.includes($0.kind == "youtube" ? "video" : "audio"))
+    }
   }
   private var showsWithText: Set<ULID> { Set(feeds.filter { $0.kind == "text" }.compactMap(\.textForFeedId)) }
 
@@ -85,7 +89,7 @@ struct LibraryView: View {
   private func detail(for feed: Feed) -> String {
     [
       feed.episodeCount == 1 ? "1 episode" : "\(feed.episodeCount) episodes",
-      feed.kind == "youtube" ? "YouTube" : nil,
+      feed.kind == "youtube" ? "YouTube" : feed.kind == "links" ? "One-offs" : nil,
       showsWithText.contains(feed.id) ? "Publisher text" : nil,
       feed.autoProcess ? nil : "Manual",
     ].compactMap { $0 }.joined(separator: " · ")

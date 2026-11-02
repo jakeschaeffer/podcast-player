@@ -376,6 +376,10 @@ export async function fetchAudioJob(ctx: AppContext, job: Job<{ episode_id: stri
     const bytes = await downloadToFile(res, tmp);
     if (Number.isFinite(declared) && declared > 0 && declared !== bytes) throw new Error(`download truncated: ${bytes} of ${declared} bytes`);
     const probe = await probeAudio(tmp);
+    // What the feed (or a pasted link's headers) said the file was is corrected by the file itself: the filters and
+    // "Watch video" go by media_kind, and a video that is not one would otherwise be fetchable forever.
+    if (!probe.video && ep.media_kind === "video" && !ep.youtube_id && !ep.video_url_enc) ctx.db.prepare("UPDATE episode SET media_kind = 'audio' WHERE id = ?").run(ep.id);
+    if (probe.video && ep.media_kind === "audio") ctx.db.prepare("UPDATE episode SET media_kind = 'video' WHERE id = ?").run(ep.id);
     // A feed whose only enclosure is a video: keep it as the episode's video, with its audio pulled out beside it.
     if (probe.video) {
       const asset = await storeVideoFile(ctx, ep.id, tmp);

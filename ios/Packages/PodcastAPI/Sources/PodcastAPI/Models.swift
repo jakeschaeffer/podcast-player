@@ -78,8 +78,9 @@ public struct DeviceLogin: Codable, Sendable {
 
 public struct Feed: Codable, Sendable, Identifiable, Hashable {
   public let id: ULID
-  /// "podcast"; "text" for a publisher-text feed attached to a podcast (`textForFeedId`); or "youtube" for a channel,
-  /// whose episodes are videos. Library lists podcasts and channels.
+  /// "podcast"; "text" for a publisher-text feed attached to a podcast (`textForFeedId`); "youtube" for a channel,
+  /// whose episodes are videos; or "links" for the Pasted links show, the one-off files the owner pasted (followed,
+  /// never refreshed, nothing to subscribe to). Library lists podcasts, channels and that show.
   public let kind: String
   public let textForFeedId: ULID?
   public let title: String?

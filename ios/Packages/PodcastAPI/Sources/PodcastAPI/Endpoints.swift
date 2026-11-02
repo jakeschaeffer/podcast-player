@@ -105,6 +105,16 @@ extension APIClient {
     try await send("POST", "/v1/youtube/episodes", body: ["url": url])
   }
 
+  /// A pasted link to a video or audio file becomes a one-off episode of the Pasted links show, which the server
+  /// downloads and transcribes (billed); the same link twice is the same episode. A YouTube video link is handled as
+  /// `addYouTubeVideo` would; a link to a web page is refused with a message. The title, when given, names the
+  /// episode; else the file's name, or where it came from.
+  public func addPastedLink(_ url: String, title: String? = nil) async throws -> EpisodeDetail {
+    var body = ["url": url]
+    if let title, !title.isEmpty { body["title"] = title }
+    return try await send("POST", "/v1/links/episodes", body: body)
+  }
+
   /// Fetch the recording if needed, transcribe it, align any publisher text, and summarize. Transcription bills
   /// (ElevenLabs, per audio hour), so only ever on the listener's explicit request. Idempotent.
   public func processEpisode(_ id: ULID) async throws -> EpisodeDetail {

@@ -15,7 +15,7 @@ import { NonRetryable } from "../jobs/errors.js";
 export type FeedView = {
   id: string;
   /** 'podcast' feeds have episodes with audio; 'text' feeds carry the same show's articles and attach to a podcast feed. */
-  kind: "podcast" | "text" | "youtube";
+  kind: "podcast" | "text" | "youtube" | "links";
   text_for_feed_id: string | null;
   title: string | null;
   author: string | null;
@@ -209,6 +209,8 @@ export async function refreshFeed(ctx: AppContext, feedId: string): Promise<Refr
   const feed = getFeedRow(ctx, feedId);
   if (feed.kind === "text") return refreshTextFeed(ctx, feed);
   if (feed.kind === "youtube") return refreshYouTubeFeed(ctx, feed);
+  // The Pasted links show (services/links.ts) has nothing to fetch: its episodes arrive one paste at a time.
+  if (feed.kind === "links") return { feed_id: feedId, not_modified: true, new_episodes: 0, skipped: [], enqueued_audio: 0 };
   const fetched = await fetchFeedDocument(ctx, feed, parseFeed);
   if (!fetched) return { feed_id: feedId, not_modified: true, new_episodes: 0, skipped: [], enqueued_audio: 0 };
   const { doc: parsed, url } = fetched;

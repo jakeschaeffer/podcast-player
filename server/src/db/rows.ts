@@ -5,8 +5,9 @@ export type FeedRow = {
   title: string | null; author: string | null; image_url: string | null; site_url: string | null; language: string | null;
   auto_process: number; transcriber: string; keyterms: string;
   etag: string | null; last_modified: string | null; last_refresh_at: number | null; last_error: string | null; created_at: number;
-  /** 'youtube': a channel, whose url is its public Atom feed and whose episodes are videos (docs/video-plan.md). */
-  kind: "podcast" | "text" | "youtube"; text_for_feed_id: string | null;
+  /** 'youtube': a channel, whose url is its public Atom feed and whose episodes are videos (docs/video-plan.md);
+   * 'links': the Pasted links show (services/links.ts), whose url is a placeholder and which is never refreshed. */
+  kind: "podcast" | "text" | "youtube" | "links"; text_for_feed_id: string | null;
   /** How many of the newest episodes to process on first import. */
   backfill: number;
   /** 0 for a show opened from search without subscribing: out of the library, Today, and the scheduled refresh. */
