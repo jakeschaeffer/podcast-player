@@ -54,6 +54,7 @@ server with every paid service forced off, which is the right first run. For a r
 | `ELEVENLABS_API_KEY` | your key. Without it, transcription jobs wait and nothing is billed |
 | `TEXT_MODEL` | `codex-cli` with the Codex CLI installed and signed in on that machine; `none` otherwise |
 | `SHARE_BY_NAME` | the name on share cards ("10 clips from Ada"); empty leaves just the count |
+| `VIDEO_MAX_HEIGHT` | videos the server fetches are scaled down to this height (480) before they are kept; `0` keeps them as they come |
 | `TRANSCRIPTION_BUDGET_MINUTES` | a monthly cap on automatic transcription (default 6000 minutes) |
 | `PODCASTINDEX_KEY`, `PODCASTINDEX_SECRET` | optional: show search through Podcast Index instead of the keyless iTunes API |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `EMAIL_SOURCE_QUERY` | optional: publisher emails as a text source (`pnpm --dir server gmail:auth`) |

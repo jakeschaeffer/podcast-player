@@ -37,7 +37,8 @@ changes often): `~/abs-session-venv/bin/python -m pip --python ~/yt-fetcher-venv
 
 The fetcher takes YouTube's own H.264 at up to `SNIP_MAX_HEIGHT`, 480 by default since 2026-10-31 (about 150–250 MB
 an hour; 720p is roughly twice that), and the server keeps at most `VIDEO_STORE_MAX_BYTES` (4 GB) of video, dropping
-a finished episode's video a day after it was finished and otherwise the least recently played.
+a finished episode's video a day after it was finished and otherwise the least recently played. (Files the server
+fetches itself, which YouTube does not offer in sizes, are scaled down on the server to `VIDEO_MAX_HEIGHT`, 480 too.)
 Re-encoding to HEVC here was measured on 2026-10-31 (i3-N305, software x265): 2.3× realtime at `veryfast`, and at a
 quality that keeps 720p watchable (CRF 26) the file was 424 MB an hour against the source's 452, so it was not
 worth a 25-minute wait per hour of video. The box's Intel iGPU could encode HEVC many times faster, but it would
