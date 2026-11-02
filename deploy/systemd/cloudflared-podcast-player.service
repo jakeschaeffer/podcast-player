@@ -1,0 +1,19 @@
+[Unit]
+Description=Cloudflare Tunnel for the podcast player (snip.sch.xyz)
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cloudflared-podcast
+Group=cloudflared-podcast
+ExecStart=/usr/local/bin/cloudflared --no-autoupdate --config /etc/cloudflared/podcast-player.yml tunnel run
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

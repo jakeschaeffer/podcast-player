@@ -1,0 +1,103 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/episodes/01M67T1FNKVZ1MCV3TX0SBYB5E"
+  },
+  "status": 200,
+  "body": {
+    "id": "01M67T1FNKVZ1MCV3TX0SBYB5E",
+    "feed_id": "01M67T1FNJ345Q9ZN89BSTKRZB",
+    "show_title": "Fixture Show",
+    "title": "Pricing",
+    "published_at": null,
+    "duration_ms": 120000,
+    "image_url": null,
+    "asset_id": "01M67T1FNKEV70MH2C0C7AS04F",
+    "transcript_id": "01M67T1FRG8QV38ZB6B96MBAZH",
+    "has_summary": true,
+    "processing": {
+      "audio": "ready",
+      "transcript": "ready",
+      "text": "none",
+      "summary": "ready"
+    },
+    "resume": {
+      "position_ms": 95000,
+      "speed": 1.25,
+      "finished": false,
+      "device_name": "iPhone",
+      "updated_at": 1799999999000
+    },
+    "media_kind": "audio",
+    "youtube_id": null,
+    "video": {
+      "status": "none",
+      "error": null
+    },
+    "description_html": null,
+    "link": null,
+    "text": null,
+    "chapters": {
+      "source": "ai",
+      "transcript_id": "01M67T1FRG8QV38ZB6B96MBAZH",
+      "items": [
+        {
+          "start_ms": 0,
+          "end_ms": 120000,
+          "start_word": 0,
+          "end_word": 264,
+          "title": "Why the flat fee failed",
+          "description": "Nobody upgraded for three months.",
+          "kind": "content"
+        }
+      ]
+    },
+    "asset": {
+      "id": "01M67T1FNKEV70MH2C0C7AS04F",
+      "duration_ms": 120000,
+      "mime": "audio/mpeg",
+      "bytes": 960514,
+      "audio_url": "http://pods.test/m/assets/01M67T1FNKEV70MH2C0C7AS04F?e=1800003600&d=01M67T1FRCAQQ7STJ1JH772V10&s=z6go1yRTQu3dNbs1VLtaJ5ahEQsN1MCFdgJskybXNIw",
+      "video_url": null,
+      "video_width": null,
+      "video_height": null,
+      "video_bytes": null
+    },
+    "summary": {
+      "id": "01M67T1FRP8PCVHS9APP05HQMA",
+      "preview": "The guest explains why a flat monthly fee failed and what replaced it.",
+      "takeaways": [
+        {
+          "text": "A flat fee left money on the table.",
+          "word": 0
+        }
+      ],
+      "chapters": [
+        {
+          "start_ms": 0,
+          "end_ms": 120000,
+          "start_word": 0,
+          "end_word": 264,
+          "title": "Why the flat fee failed",
+          "description": "Nobody upgraded for three months.",
+          "kind": "content"
+        }
+      ],
+      "model": "scripted",
+      "prompt_version": "v1"
+    },
+    "snip_count": 0,
+    "ad_breaks": [
+      {
+        "start_ms": 30000,
+        "end_ms": 62400,
+        "confidence": "high",
+        "sources": [
+          "publisher_gap",
+          "sponsor_phrase"
+        ],
+        "cue": "this episode is brought to you by"
+      }
+    ]
+  }
+}

@@ -1,0 +1,116 @@
+# Snip selection evals
+
+Cases, fixtures, and results for function 2 ([spec](../../docs/core/02-snip-selection.md)). Fixtures are gitignored because they contain the owner's listening history and private-feed content.
+
+## What is here
+
+| Path | Contents | In git |
+| --- | --- | --- |
+| `fixtures/readwise/` | The owner's 1,016 podcast highlights exported from Readwise on October 21, 2026: 671 unique Snipd snips with transcript text and a start offset in seconds, plus 199 older Airr quotes. See its README for the field inventory | no |
+| `cases/` | Eval cases in the format below, derived from the Readwise snips once the matching episodes are transcribed | no (private text); the generator script will be |
+| `results/` | Dated scorecards per selector version | no |
+
+## What the Readwise export says about snip length
+
+Word counts of the transcript part of the owner's Snipd snips (deduplicated, 644 snips): min 43, p25 272, median 394, p75 587, p90 702, max 1,315. At typical speech rates that is a median of roughly 2.5 minutes and a p75 near 4 minutes, with a downward trend by year (median 579 words in 2023, 272 in 2026). Two consequences for the selector:
+
+1. The 30 to 180 second automatic window is at or below the owner's historical median. Treat the ceiling as a tuning parameter the eval decides, not a fixed rule; a 240 second ceiling is the first alternative to measure.
+2. Snipd snips often end mid-sentence because Snipd cuts at the button press. The owner's instruction for building cases: **assume the button was pressed within the last sentence of the Readwise snip.**
+
+## Turning a Readwise snip into a case
+
+For each Snipd snip whose episode is in the library with a transcript:
+
+1. Align the snip's transcript text to our word-timed transcript (fuzzy match on normalized words; the Readwise `location` start offset narrows the search to a window of about ±90 seconds).
+2. `ideal_start_word` and `ideal_end_word` come from the alignment. `acceptable_start_ms` spans from one sentence before to one sentence after the aligned start; `acceptable_end_ms` spans the aligned last sentence.
+3. Generate several anchors per snip inside the last aligned sentence (at 25%, 50%, 75%, and 100% of the way through it, plus 3 seconds after its end for reaction delay). Each anchor is a case with `heard_from_ms = 0` unless the owner's listening history says otherwise.
+4. Tag the case with the show, the year, the snip's word count bucket, and whether the snip ends mid-sentence.
+
+Scores to report per selector version: start hit, end hit, both ("no edit needed"), IoU, over- and under-capture, fallback rate, latency, and the same for the fixed 60 s, 90 s, 180 s, and 240 s baselines. Group by word-count bucket, because the heuristic's duration preference and the owner's actual habit differ.
+
+## Baseline recorded October 21, 2026
+
+Built by `pnpm --dir server eval:snips:build` and scored by `pnpm --dir server eval:snips:run` (with `--model`, `--version vN` scores a start-picker prompt version other than the active one, and the app's Prompts screen runs the same model eval on any version); the full scorecard with per-group tables is `results/2026-10-21T18-26-10-selection.md`.
+
+Inputs: 116 Stratechery snips from Readwise, 11 without transcript text, 2 below the 70% alignment coverage bar, 1 unalignable, leaving 102 snips across 53 episodes, each with 5 anchors (25%, 50%, 75%, 100% of the last sentence, and 3 seconds after it): 510 cases. Transcribing the 62 matching episodes (32.4 hours) cost $7.44.
+
+| Method | Start hit | End hit | Both (no edit) | Mean IoU | Median duration s |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| fixed-60 | 5% | 80% | 4% | 0.63 | 60 |
+| fixed-90 | 33% | 80% | 27% | 0.77 | 90 |
+| fixed-180 | 6% | 80% | 5% | 0.51 | 180 |
+| fixed-240 | 0% | 80% | 0% | 0.40 | 240 |
+| heuristic-180 | 16% | 85% | 13% | 0.67 | 71 |
+| heuristic-t90 | 13% | 84% | 11% | 0.69 | 94 |
+| snap-90 | 36% | 93% | 34% | 0.75 | 90 |
+| snap-100 | 15% | 93% | 14% | 0.72 | 100 |
+
+What it says:
+
+- **Ends are mostly solved deterministically.** Every sentence-aware method hits the acceptable end range 85 to 93% of the time, including taps 3 seconds after the idea ended, which the fixed methods always miss.
+- **Starts are the problem, and the scoring rules hurt.** The scored heuristic (speaker turn, question, framing, pause, continuation penalty) finds an acceptable start 16% of the time. Dropping the scoring and simply snapping to the sentence start nearest 90 seconds back (`snap-90`) gets 36%, the best deterministic result. Stratechery is a monologue, so the turn and question signals never fire and the continuation penalty steers away from starts that begin with "And" or "But", which are common in this prose.
+- **The owner's Stratechery spans are tightly clustered around 90 seconds** (p25 75 s, median 88 s, p75 99 s; only 7% exceed 180 s). This is why `fixed-90` beats everything except `snap-90` and why `snap-100` is far worse than `snap-90`. The clustering most likely reflects Snipd's automatic length rather than deliberate choices, which is the main caveat on this set: it measures agreement with Snipd's behaviour on snips the owner kept, not an independent human ideal. The spec's 40 hand-labelled taps are still needed, and the model-assisted option should be judged against those.
+- **The 180 second ceiling is not the constraint for this show.** Raising it to 240 or 300 seconds changed nothing.
+- **Nothing deterministic approaches the 80% "no edit" target.** The best is 34%. The remaining gap is a judgment about where an idea starts, which is the case for the model step described in the spec.
+
+Proposed next change to the production selector, pending the owner's call: make the sentence-snapped length prior the primary rule and use the scored signals only to break ties, then measure again.
+
+### Model-assisted selection, same day
+
+`pnpm --dir server eval:snips:run --model --concurrency 5` scored the Codex-backed span picker (the production picker in `server/src/services/spanPicker.ts`, Codex CLI default model at low reasoning effort, 90 s timeout) on the same 510 cases. Full scorecard: `results/2026-10-21T19-19-35-selection.md`. Every one of the 510 picks came back valid; none timed out or failed. The run took 692 s with five calls in flight, about 10 s per call.
+
+| Method | Start hit | End hit | Both (no edit) | Mean IoU | Median duration s | p95 latency ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| fixed-90 | 33% | 80% | 27% | 0.77 | 90 | 0 |
+| heuristic-180 | 16% | 85% | 13% | 0.67 | 71 | 0 |
+| snap-90 | 36% | 93% | 34% | 0.75 | 90 | 0 |
+| model-180 (codex/low) | 24% | 68% | 18% | 0.65 | 73 | 10140 |
+
+What it says:
+
+- **The model as prompted does not beat the deterministic snap.** It finds an acceptable start more often than the scored heuristic (24% vs 16%) but less often than the 90 s snap (36%), and it loses most on the end: it was free to choose among the three latest sentence ends and picked an earlier one in a third of cases, while this ground truth always ends at the tap. Fixing the end to the latest eligible sentence and letting the model choose only the start is the obvious next prompt to test.
+- **It adapts length where fixed priors cannot.** On snips under 200 words it reaches 30% (every fixed and snapped method: 0 to 10%), and it is the only method with any hits on 400 to 700 word snips. On the dominant 200 to 400 word bucket it scores 17% against the snap's 49%.
+- **Cost of the judgment call:** about 10 s of latency per snip on the subscription path, and roughly 15 to 20k tokens per call of which most is the CLI's own overhead. A direct API would cut latency to a few seconds.
+- **The caveat from above applies with more force here.** The model picks tighter "one idea" starts (median under-capture 10.7 s against the labels); whether that is worse than Snipd's roughly-90-seconds behaviour is exactly what the owner's hand-labelled taps would settle.
+
+### Selector version 2, same day
+
+The recommended shape became the production selector (`select_v2`): latest sentence end with a speaker-aware interjection skip, default start nearest 90 s back, the scored signals only inside an optional band (zero in production), and the model offered at most three candidate starts either side of the default with the end fixed. The scorer now judges boundaries on the first and last selected words rather than the padded clip edges, which had been costing the production path hits for the 200 ms lead-in that the prototype did not add.
+
+| Method | Start hit | End hit | Both (no edit) | Mean IoU | Median duration s |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| fixed-90 | 33% | 80% | 27% | 0.77 | 90 |
+| scored-v1 (old default) | 19% | 93% | 17% | 0.67 | 70 |
+| snap-90-band15 (signals inside a 15 s band) | 27% | 93% | 25% | 0.74 | 90 |
+| snap-90 (new default) | 36% | 93% | 35% | 0.75 | 90 |
+| snap-90 + model start pick (Codex, low effort) | 29% | 93% | 27% | 0.73 | 92 |
+
+The band variant confirms the earlier reading: letting the signals decide even among near-target candidates costs ten points on this corpus.
+
+The start-only model step, measured on the same 510 cases (`results/2026-10-21T20-25-51-selection.md`, 532 s for 510 calls at five in flight, median 4.8 s and p95 7.4 s per call, every pick valid): it moved the start away from the snap default in 357 cases, mostly earlier (238), gaining 42 start hits and losing 81. Net, it turns 35% no-edit into 27%. Against these labels the model's judgment about where an idea begins disagrees with Snipd's roughly-90-second habit more often than it agrees, and the deterministic snap is the better production default. Model-assisted selection is therefore off by default (`SELECTION_MODEL=off`) while summaries keep using the model; the picker stays wired for the day there is a human-labelled set to judge it on. The honest reading is that this corpus cannot tell whether the model's tighter starts are worse for the owner, only that they differ from what Snipd produced.
+
+## Case format
+
+```json
+{
+  "id": "stratechery-2026-10-20-readwise-1015677674-a50",
+  "transcript_fixture": "fixtures/transcripts/<asset_id>.transcript.json",
+  "anchor_ms": 1122000, "heard_from_ms": 0,
+  "label": { "idea": "<readwise title or first sentence>", "ideal_start_word": 3011, "ideal_end_word": 3104, "acceptable_start_ms": [1079000, 1090000], "acceptable_end_ms": [1115000, 1122000] },
+  "source": { "readwise_highlight_id": 1015677674, "snipd_url": "https://share.snipd.com/snip/…", "anchor_position": 0.5 },
+  "tags": ["show:stratechery", "year:2026", "words:200-400", "ends-mid-sentence"]
+}
+```
+
+### Same cases, publisher-text transcripts, same day
+
+With Updates and Articles now served from publisher text aligned by forced alignment, the cases were rebuilt against those transcripts (`pnpm --dir server eval:snips:build --transcript-source text`, scored with `--cases-dir cases-text`). On the 465 cases that exist in both sets:
+
+| Method | ASR transcripts: no edit | Publisher-text transcripts: no edit | Start hit (ASR → text) | End hit (ASR → text) |
+| --- | ---: | ---: | --- | --- |
+| fixed-90 | 26% | 32% | 33% → 37% | 80% → 82% |
+| snap-90 (default) | 34% | 39% | 36% → 41% | 93% → 95% |
+| snap-90 with signals in a 15 s band | 26% | 32% | 28% → 34% | 93% → 95% |
+| scored v1 | 18% | 15% | 20% → 15% | 93% → 95% |
+
+Every sentence-aware method gains about five points on the cleaner text, and so does the fixed baseline, which means some of the gain is in the labels: the acceptable ranges are built from sentence boundaries, and the publisher's punctuation gives better ones than ASR's. The one loser is the old scored heuristic, whose continuation penalty fires more often on text where sentences really do start with "And" and "But".

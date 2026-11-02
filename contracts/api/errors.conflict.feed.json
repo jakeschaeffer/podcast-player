@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/v1/feeds",
+    "body": {
+      "url": "https://feeds.example.com/hardfork.xml"
+    }
+  },
+  "status": 409,
+  "body": {
+    "error": {
+      "code": "conflict",
+      "message": "feed already added",
+      "feed_id": "01M5ZXP5GRZGF9KEEJ69EH34D0"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/evals/titles/runs/2026-10-20T12-00-00"
+  },
+  "status": 200,
+  "body": {
+    "run": {
+      "id": "2026-10-20T12-00-00",
+      "eval": "titles",
+      "version": "v2",
+      "run_at": 1792497600000,
+      "status": "done",
+      "score": {
+        "passed": 1,
+        "n": 2,
+        "rate": 0.5,
+        "margin": 0.40547134519913386
+      },
+      "progress": null,
+      "error": null
+    },
+    "cases": [
+      {
+        "id": "rw-2",
+        "pass": false,
+        "score": 2,
+        "expected": "Flat fee, nobody upgraded",
+        "actual": "Why pricing is hard",
+        "note": "That nobody upgraded."
+      },
+      {
+        "id": "rw-1",
+        "pass": true,
+        "score": 5,
+        "expected": "Flat fee, nobody upgraded",
+        "actual": "A flat fee nobody upgraded from",
+        "note": null
+      }
+    ]
+  }
+}

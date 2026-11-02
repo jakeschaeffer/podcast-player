@@ -1,0 +1,1644 @@
+{
+  "family": "summary",
+  "version": "snip_summary_validation_v1",
+  "reference": ["server/src/core/summary/input.ts","server/src/core/summary/snip.ts","server/src/core/summary/names.ts"],
+  "style": {"title_max":60,"summary_max":320,"max_sentences":3},
+  "transcripts": {
+    "short": {
+      "language": "eng",
+      "word_count": 65,
+      "segments": [
+        {
+          "s": 800,
+          "e": 5440,
+          "spk": "S1",
+          "w0": 0,
+          "words": [
+            [800,1140,"Welcome"],
+            [1200,1540,"back."],
+            [1900,2240,"Today"],
+            [2300,2640,"Marcus"],
+            [2700,3040,"Webb"],
+            [3100,3440,"joins"],
+            [3500,3840,"us"],
+            [3900,4240,"to"],
+            [4300,4640,"talk"],
+            [4700,5040,"about"],
+            [5100,5440,"pricing."]
+          ]
+        },
+        {
+          "s": 6400,
+          "e": 8740,
+          "spk": "S1",
+          "w0": 11,
+          "words": [
+            [6400,6740,"So"],
+            [6800,7140,"what"],
+            [7200,7540,"did"],
+            [7600,7940,"you"],
+            [8000,8340,"try"],
+            [8400,8740,"first?"]
+          ]
+        },
+        {
+          "s": 10300,
+          "e": 21640,
+          "spk": "S2",
+          "w0": 17,
+          "words": [
+            [10300,10640,"The"],
+            [10700,11040,"first"],
+            [11100,11440,"thing"],
+            [11500,11840,"we"],
+            [11900,12240,"tried"],
+            [12300,12640,"was"],
+            [12700,13040,"a"],
+            [13100,13440,"flat"],
+            [13500,13840,"monthly"],
+            [13900,14240,"fee"],
+            [14300,14640,"for"],
+            [14700,15040,"everyone."],
+            [15400,15740,"It"],
+            [15800,16140,"felt"],
+            [16200,16540,"simple"],
+            [16600,16940,"and"],
+            [17000,17340,"fair."],
+            [17700,18040,"We"],
+            [18100,18440,"ran"],
+            [18500,18840,"it"],
+            [18900,19240,"for"],
+            [19300,19640,"three"],
+            [19700,20040,"months"],
+            [20100,20440,"and"],
+            [20500,20840,"almost"],
+            [20900,21240,"nobody"],
+            [21300,21640,"upgraded."]
+          ]
+        },
+        {"s":22400,"e":22740,"spk":"S1","w0":44,"words":[[22400,22740,"Right."]]},
+        {
+          "s": 23400,
+          "e": 31640,
+          "spk": "S2",
+          "w0": 45,
+          "words": [
+            [23400,23740,"So"],
+            [23800,24140,"we"],
+            [24200,24540,"switched"],
+            [24600,24940,"to"],
+            [25000,25340,"usage"],
+            [25400,25740,"based"],
+            [25800,26140,"pricing"],
+            [26200,26540,"and"],
+            [26600,26940,"revenue"],
+            [27000,27340,"doubled"],
+            [27400,27740,"in"],
+            [27800,28140,"a"],
+            [28200,28540,"quarter."],
+            [28900,29240,"José"],
+            [29300,29640,"on"],
+            [29700,30040,"our"],
+            [30100,30440,"team"],
+            [30500,30840,"saw"],
+            [30900,31240,"it"],
+            [31300,31640,"first."]
+          ]
+        }
+      ],
+      "events": []
+    },
+    "long": {
+      "language": "eng",
+      "word_count": 517,
+      "segments": [
+        {
+          "s": 2513,
+          "e": 4053,
+          "spk": "S1",
+          "w0": 0,
+          "words": [[2513,2853,"Half"],[2913,3253,"the"],[3313,3653,"product"],[3713,4053,"the."]]
+        },
+        {
+          "s": 6291,
+          "e": 13431,
+          "spk": "S2",
+          "w0": 4,
+          "words": [
+            [6291,6631,"Dropped"],
+            [6691,7031,"product"],
+            [7091,7431,"and"],
+            [7491,7831,"team"],
+            [7891,8231,"right"],
+            [8291,8631,"team"],
+            [8691,9031,"and"],
+            [9091,9431,"team"],
+            [9491,9831,"difference"],
+            [9891,10231,"away"],
+            [10291,10631,"the"],
+            [10691,11031,"and"],
+            [11091,11431,"dropped"],
+            [11491,11831,"team"],
+            [11891,12231,"version"],
+            [12291,12631,"the"],
+            [12691,13031,"customers"],
+            [13091,13431,"away."]
+          ]
+        },
+        {
+          "s": 15300,
+          "e": 22440,
+          "spk": "S1",
+          "w0": 22,
+          "words": [
+            [15300,15640,"Noticed"],
+            [15700,16040,"by"],
+            [16100,16440,"of"],
+            [16500,16840,"noticed"],
+            [16900,17240,"team"],
+            [17300,17640,"dropped"],
+            [17700,18040,"latency"],
+            [18100,18440,"team"],
+            [18500,18840,"difference"],
+            [18900,19240,"latency"],
+            [19300,19640,"customers"],
+            [19700,20040,"a"],
+            [20100,20440,"right"],
+            [20500,20840,"shipped"],
+            [20900,21240,"half"],
+            [21300,21640,"right"],
+            [21700,22040,"dropped"],
+            [22100,22440,"dropped."]
+          ]
+        },
+        {
+          "s": 23525,
+          "e": 27365,
+          "spk": "S2",
+          "w0": 40,
+          "words": [
+            [23525,23865,"Noticed"],
+            [23925,24265,"because"],
+            [24325,24665,"of"],
+            [24725,25065,"half."],
+            [25425,25765,"Latency"],
+            [25825,26165,"product"],
+            [26225,26565,"new"],
+            [26625,26965,"latency"],
+            [27025,27365,"dropped."]
+          ]
+        },
+        {
+          "s": 29076,
+          "e": 38816,
+          "spk": "S2",
+          "w0": 49,
+          "words": [
+            [29076,29416,"Of"],
+            [29476,29816,"latency"],
+            [29876,30216,"the"],
+            [30276,30616,"shipped"],
+            [30676,31016,"half"],
+            [31076,31416,"half"],
+            [31476,31816,"the"],
+            [31876,32216,"away"],
+            [32276,32616,"new"],
+            [32676,33016,"noticed"],
+            [33076,33416,"team."],
+            [33776,34116,"The"],
+            [34176,34516,"new"],
+            [34576,34916,"difference"],
+            [34976,35316,"right."],
+            [35676,36016,"The"],
+            [36076,36416,"because"],
+            [36476,36816,"because"],
+            [36876,37216,"the"],
+            [37276,37616,"right"],
+            [37676,38016,"and"],
+            [38076,38416,"new"],
+            [38476,38816,"version."]
+          ]
+        },
+        {
+          "s": 41421,
+          "e": 46561,
+          "spk": "S1",
+          "w0": 72,
+          "words": [
+            [41421,41761,"The"],
+            [41821,42161,"dropped"],
+            [42221,42561,"a"],
+            [42621,42961,"the"],
+            [43021,43361,"latency"],
+            [43421,43761,"latency"],
+            [43821,44161,"new"],
+            [44221,44561,"noticed"],
+            [44621,44961,"and"],
+            [45021,45361,"by"],
+            [45421,45761,"new"],
+            [45821,46161,"the"],
+            [46221,46561,"team."]
+          ]
+        },
+        {
+          "s": 47485,
+          "e": 56525,
+          "spk": "S2",
+          "w0": 85,
+          "words": [
+            [47485,47825,"The"],
+            [47885,48225,"version"],
+            [48285,48625,"half"],
+            [48685,49025,"difference"],
+            [49085,49425,"of"],
+            [49485,49825,"and"],
+            [49885,50225,"latency"],
+            [50285,50625,"product"],
+            [50685,51025,"of"],
+            [51085,51425,"noticed."],
+            [51785,52125,"The"],
+            [52185,52525,"new"],
+            [52585,52925,"team"],
+            [52985,53325,"away"],
+            [53385,53725,"shipped"],
+            [53785,54125,"because"],
+            [54185,54525,"product"],
+            [54585,54925,"team"],
+            [54985,55325,"because"],
+            [55385,55725,"away"],
+            [55785,56125,"the"],
+            [56185,56525,"the?"]
+          ]
+        },
+        {
+          "s": 57318,
+          "e": 65258,
+          "spk": "S1",
+          "w0": 107,
+          "words": [
+            [57318,57658,"Latency"],
+            [57718,58058,"shipped"],
+            [58118,58458,"new"],
+            [58518,58858,"a"],
+            [58918,59258,"half"],
+            [59318,59658,"right"],
+            [59718,60058,"because"],
+            [60118,60458,"team"],
+            [60518,60858,"new"],
+            [60918,61258,"difference"],
+            [61318,61658,"version"],
+            [61718,62058,"right"],
+            [62118,62458,"away"],
+            [62518,62858,"version"],
+            [62918,63258,"shipped"],
+            [63318,63658,"shipped"],
+            [63718,64058,"half"],
+            [64118,64458,"latency"],
+            [64518,64858,"a"],
+            [64918,65258,"dropped."]
+          ]
+        },
+        {
+          "s": 66895,
+          "e": 81435,
+          "spk": "S2",
+          "w0": 127,
+          "words": [
+            [66895,67235,"Product"],
+            [67295,67635,"the"],
+            [67695,68035,"because"],
+            [68095,68435,"the"],
+            [68495,68835,"a"],
+            [68895,69235,"version"],
+            [69295,69635,"because"],
+            [69695,70035,"of"],
+            [70095,70435,"difference"],
+            [70495,70835,"new"],
+            [70895,71235,"noticed"],
+            [71295,71635,"version"],
+            [71695,72035,"team."],
+            [72395,72735,"Difference"],
+            [72795,73135,"a"],
+            [73195,73535,"dropped"],
+            [73595,73935,"because"],
+            [73995,74335,"of"],
+            [74395,74735,"away"],
+            [74795,75135,"a"],
+            [75195,75535,"the"],
+            [75595,75935,"team."],
+            [76295,76635,"Noticed"],
+            [76695,77035,"and"],
+            [77095,77435,"the"],
+            [77495,77835,"away"],
+            [77895,78235,"customers"],
+            [78295,78635,"the"],
+            [78695,79035,"a"],
+            [79095,79435,"product"],
+            [79495,79835,"customers"],
+            [79895,80235,"difference"],
+            [80295,80635,"dropped"],
+            [80695,81035,"because"],
+            [81095,81435,"the."]
+          ]
+        },
+        {
+          "s": 84033,
+          "e": 85173,
+          "spk": "S1",
+          "w0": 162,
+          "words": [[84033,84373,"Dropped"],[84433,84773,"dropped"],[84833,85173,"half."]]
+        },
+        {
+          "s": 88245,
+          "e": 104785,
+          "spk": "S2",
+          "w0": 165,
+          "words": [
+            [88245,88585,"The"],
+            [88645,88985,"a"],
+            [89045,89385,"dropped"],
+            [89445,89785,"product"],
+            [89845,90185,"customers"],
+            [90245,90585,"shipped"],
+            [90645,90985,"the"],
+            [91045,91385,"difference"],
+            [91445,91785,"of"],
+            [91845,92185,"the"],
+            [92245,92585,"dropped."],
+            [92945,93285,"Because"],
+            [93345,93685,"away"],
+            [93745,94085,"the"],
+            [94145,94485,"version"],
+            [94545,94885,"the"],
+            [94945,95285,"of"],
+            [95345,95685,"the"],
+            [95745,96085,"new"],
+            [96145,96485,"difference"],
+            [96545,96885,"away"],
+            [96945,97285,"the"],
+            [97345,97685,"away"],
+            [97745,98085,"right"],
+            [98145,98485,"new"],
+            [98545,98885,"product"],
+            [98945,99285,"away"],
+            [99345,99685,"right"],
+            [99745,100085,"team."],
+            [100445,100785,"Team"],
+            [100845,101185,"dropped"],
+            [101245,101585,"version"],
+            [101645,101985,"difference"],
+            [102045,102385,"right"],
+            [102445,102785,"away"],
+            [102845,103185,"product"],
+            [103245,103585,"noticed"],
+            [103645,103985,"difference"],
+            [104045,104385,"the"],
+            [104445,104785,"team?"]
+          ]
+        },
+        {
+          "s": 106150,
+          "e": 116690,
+          "spk": "S2",
+          "w0": 205,
+          "words": [
+            [106150,106490,"Latency"],
+            [106550,106890,"of"],
+            [106950,107290,"new"],
+            [107350,107690,"customers"],
+            [107750,108090,"version"],
+            [108150,108490,"by"],
+            [108550,108890,"latency."],
+            [109250,109590,"Difference"],
+            [109650,109990,"product"],
+            [110050,110390,"product"],
+            [110450,110790,"the"],
+            [110850,111190,"version"],
+            [111250,111590,"dropped"],
+            [111650,111990,"a"],
+            [112050,112390,"of"],
+            [112450,112790,"version"],
+            [112850,113190,"difference"],
+            [113250,113590,"team."],
+            [113950,114290,"Product"],
+            [114350,114690,"of"],
+            [114750,115090,"and"],
+            [115150,115490,"half"],
+            [115550,115890,"latency"],
+            [115950,116290,"noticed"],
+            [116350,116690,"the."]
+          ]
+        },
+        {
+          "s": 119736,
+          "e": 135876,
+          "spk": "S1",
+          "w0": 230,
+          "words": [
+            [119736,120076,"The"],
+            [120136,120476,"new"],
+            [120536,120876,"and"],
+            [120936,121276,"dropped"],
+            [121336,121676,"because"],
+            [121736,122076,"because"],
+            [122136,122476,"team"],
+            [122536,122876,"the"],
+            [122936,123276,"and"],
+            [123336,123676,"a"],
+            [123736,124076,"and"],
+            [124136,124476,"a?"],
+            [124836,125176,"Away"],
+            [125236,125576,"latency"],
+            [125636,125976,"team"],
+            [126036,126376,"difference"],
+            [126436,126776,"the"],
+            [126836,127176,"noticed"],
+            [127236,127576,"version"],
+            [127636,127976,"because"],
+            [128036,128376,"difference"],
+            [128436,128776,"of"],
+            [128836,129176,"new"],
+            [129236,129576,"right"],
+            [129636,129976,"a"],
+            [130036,130376,"noticed"],
+            [130436,130776,"by"],
+            [130836,131176,"product"],
+            [131236,131576,"noticed."],
+            [131936,132276,"Because"],
+            [132336,132676,"team"],
+            [132736,133076,"a"],
+            [133136,133476,"a"],
+            [133536,133876,"half"],
+            [133936,134276,"version"],
+            [134336,134676,"right"],
+            [134736,135076,"customers"],
+            [135136,135476,"the"],
+            [135536,135876,"the."]
+          ]
+        },
+        {
+          "s": 136874,
+          "e": 148214,
+          "spk": "S1",
+          "w0": 269,
+          "words": [
+            [136874,137214,"Difference"],
+            [137274,137614,"dropped"],
+            [137674,138014,"new"],
+            [138074,138414,"and."],
+            [138774,139114,"The"],
+            [139174,139514,"shipped"],
+            [139574,139914,"team"],
+            [139974,140314,"version."],
+            [140674,141014,"Customers"],
+            [141074,141414,"latency"],
+            [141474,141814,"half"],
+            [141874,142214,"dropped"],
+            [142274,142614,"the"],
+            [142674,143014,"shipped"],
+            [143074,143414,"difference"],
+            [143474,143814,"product"],
+            [143874,144214,"the"],
+            [144274,144614,"new"],
+            [144674,145014,"away"],
+            [145074,145414,"customers"],
+            [145474,145814,"away"],
+            [145874,146214,"and"],
+            [146274,146614,"team"],
+            [146674,147014,"of"],
+            [147074,147414,"new"],
+            [147474,147814,"by"],
+            [147874,148214,"latency."]
+          ]
+        },
+        {
+          "s": 149582,
+          "e": 157122,
+          "spk": "S1",
+          "w0": 296,
+          "words": [
+            [149582,149922,"Because"],
+            [149982,150322,"by"],
+            [150382,150722,"dropped"],
+            [150782,151122,"right"],
+            [151182,151522,"of"],
+            [151582,151922,"dropped"],
+            [151982,152322,"right"],
+            [152382,152722,"and"],
+            [152782,153122,"of"],
+            [153182,153522,"customers"],
+            [153582,153922,"noticed"],
+            [153982,154322,"customers"],
+            [154382,154722,"noticed"],
+            [154782,155122,"away"],
+            [155182,155522,"and"],
+            [155582,155922,"product"],
+            [155982,156322,"new"],
+            [156382,156722,"the"],
+            [156782,157122,"new."]
+          ]
+        },
+        {
+          "s": 159443,
+          "e": 164983,
+          "spk": "S1",
+          "w0": 315,
+          "words": [
+            [159443,159783,"The"],
+            [159843,160183,"by"],
+            [160243,160583,"customers"],
+            [160643,160983,"customers"],
+            [161043,161383,"away"],
+            [161443,161783,"the"],
+            [161843,162183,"by"],
+            [162243,162583,"shipped"],
+            [162643,162983,"away"],
+            [163043,163383,"dropped"],
+            [163443,163783,"because"],
+            [163843,164183,"difference"],
+            [164243,164583,"dropped"],
+            [164643,164983,"version."]
+          ]
+        },
+        {
+          "s": 167210,
+          "e": 176950,
+          "spk": "S1",
+          "w0": 329,
+          "words": [
+            [167210,167550,"Shipped"],
+            [167610,167950,"the"],
+            [168010,168350,"the"],
+            [168410,168750,"and"],
+            [168810,169150,"the"],
+            [169210,169550,"customers"],
+            [169610,169950,"and"],
+            [170010,170350,"version"],
+            [170410,170750,"difference"],
+            [170810,171150,"and"],
+            [171210,171550,"away"],
+            [171610,171950,"right"],
+            [172010,172350,"half."],
+            [172710,173050,"Of"],
+            [173110,173450,"new"],
+            [173510,173850,"the"],
+            [173910,174250,"customers."],
+            [174610,174950,"Team"],
+            [175010,175350,"version"],
+            [175410,175750,"away"],
+            [175810,176150,"the"],
+            [176210,176550,"latency"],
+            [176610,176950,"half."]
+          ]
+        },
+        {
+          "s": 179569,
+          "e": 197209,
+          "spk": "S2",
+          "w0": 352,
+          "words": [
+            [179569,179909,"Right"],
+            [179969,180309,"right"],
+            [180369,180709,"new"],
+            [180769,181109,"the"],
+            [181169,181509,"product"],
+            [181569,181909,"product"],
+            [181969,182309,"noticed"],
+            [182369,182709,"noticed"],
+            [182769,183109,"noticed"],
+            [183169,183509,"the"],
+            [183569,183909,"dropped"],
+            [183969,184309,"dropped"],
+            [184369,184709,"customers"],
+            [184769,185109,"the."],
+            [185469,185809,"Latency"],
+            [185869,186209,"the"],
+            [186269,186609,"the"],
+            [186669,187009,"the"],
+            [187069,187409,"difference"],
+            [187469,187809,"and"],
+            [187869,188209,"new"],
+            [188269,188609,"the"],
+            [188669,189009,"new"],
+            [189069,189409,"the"],
+            [189469,189809,"latency."],
+            [190169,190509,"A"],
+            [190569,190909,"shipped"],
+            [190969,191309,"dropped"],
+            [191369,191709,"team."],
+            [192069,192409,"Product"],
+            [192469,192809,"away"],
+            [192869,193209,"version"],
+            [193269,193609,"the"],
+            [193669,194009,"customers"],
+            [194069,194409,"half"],
+            [194469,194809,"shipped"],
+            [194869,195209,"the"],
+            [195269,195609,"away"],
+            [195669,196009,"by"],
+            [196069,196409,"of"],
+            [196469,196809,"half"],
+            [196869,197209,"customers."]
+          ]
+        },
+        {
+          "s": 199207,
+          "e": 216947,
+          "spk": "S1",
+          "w0": 394,
+          "words": [
+            [199207,199547,"And"],
+            [199607,199947,"noticed"],
+            [200007,200347,"dropped"],
+            [200407,200747,"shipped"],
+            [200807,201147,"the"],
+            [201207,201547,"and"],
+            [201607,201947,"by"],
+            [202007,202347,"the"],
+            [202407,202747,"away"],
+            [202807,203147,"the"],
+            [203207,203547,"latency"],
+            [203607,203947,"the"],
+            [204007,204347,"of"],
+            [204407,204747,"new"],
+            [204807,205147,"because"],
+            [205207,205547,"of"],
+            [205607,205947,"of"],
+            [206007,206347,"of"],
+            [206407,206747,"difference."],
+            [207107,207447,"Of"],
+            [207507,207847,"noticed"],
+            [207907,208247,"latency"],
+            [208307,208647,"customers"],
+            [208707,209047,"product"],
+            [209107,209447,"customers"],
+            [209507,209847,"latency"],
+            [209907,210247,"new"],
+            [210307,210647,"of"],
+            [210707,211047,"shipped"],
+            [211107,211447,"difference"],
+            [211507,211847,"the."],
+            [212207,212547,"Latency"],
+            [212607,212947,"dropped"],
+            [213007,213347,"difference"],
+            [213407,213747,"and"],
+            [213807,214147,"noticed"],
+            [214207,214547,"the"],
+            [214607,214947,"half"],
+            [215007,215347,"customers"],
+            [215407,215747,"team"],
+            [215807,216147,"customers"],
+            [216207,216547,"new"],
+            [216607,216947,"version."]
+          ]
+        },
+        {
+          "s": 217902,
+          "e": 223742,
+          "spk": "S1",
+          "w0": 437,
+          "words": [
+            [217902,218242,"The"],
+            [218302,218642,"the"],
+            [218702,219042,"latency"],
+            [219102,219442,"a."],
+            [219802,220142,"Dropped"],
+            [220202,220542,"dropped"],
+            [220602,220942,"latency"],
+            [221002,221342,"right"],
+            [221402,221742,"the"],
+            [221802,222142,"away"],
+            [222202,222542,"and"],
+            [222602,222942,"customers"],
+            [223002,223342,"a"],
+            [223402,223742,"half."]
+          ]
+        },
+        {
+          "s": 226218,
+          "e": 234158,
+          "spk": "S2",
+          "w0": 451,
+          "words": [
+            [226218,226558,"Difference"],
+            [226618,226958,"product"],
+            [227018,227358,"away"],
+            [227418,227758,"the"],
+            [227818,228158,"shipped"],
+            [228218,228558,"new"],
+            [228618,228958,"and"],
+            [229018,229358,"latency"],
+            [229418,229758,"a"],
+            [229818,230158,"of"],
+            [230218,230558,"of"],
+            [230618,230958,"the"],
+            [231018,231358,"by"],
+            [231418,231758,"of"],
+            [231818,232158,"away"],
+            [232218,232558,"away"],
+            [232618,232958,"and"],
+            [233018,233358,"the"],
+            [233418,233758,"version"],
+            [233818,234158,"the."]
+          ]
+        },
+        {
+          "s": 236682,
+          "e": 255622,
+          "spk": "S1",
+          "w0": 471,
+          "words": [
+            [236682,237022,"Dropped"],
+            [237082,237422,"the"],
+            [237482,237822,"shipped"],
+            [237882,238222,"difference"],
+            [238282,238622,"customers"],
+            [238682,239022,"away"],
+            [239082,239422,"the"],
+            [239482,239822,"of"],
+            [239882,240222,"product"],
+            [240282,240622,"and"],
+            [240682,241022,"right"],
+            [241082,241422,"by"],
+            [241482,241822,"by"],
+            [241882,242222,"the"],
+            [242282,242622,"latency."],
+            [242982,243322,"Noticed"],
+            [243382,243722,"new"],
+            [243782,244122,"because"],
+            [244182,244522,"by"],
+            [244582,244922,"dropped"],
+            [244982,245322,"the"],
+            [245382,245722,"and"],
+            [245782,246122,"team"],
+            [246182,246522,"the"],
+            [246582,246922,"shipped"],
+            [246982,247322,"away"],
+            [247382,247722,"latency."],
+            [248082,248422,"The"],
+            [248482,248822,"because"],
+            [248882,249222,"half"],
+            [249282,249622,"team"],
+            [249682,250022,"half"],
+            [250082,250422,"the"],
+            [250482,250822,"the"],
+            [250882,251222,"away"],
+            [251282,251622,"team"],
+            [251682,252022,"by"],
+            [252082,252422,"customers"],
+            [252482,252822,"dropped"],
+            [252882,253222,"the"],
+            [253282,253622,"version"],
+            [253682,254022,"product"],
+            [254082,254422,"team"],
+            [254482,254822,"the"],
+            [254882,255222,"product"],
+            [255282,255622,"the."]
+          ]
+        }
+      ],
+      "events": []
+    }
+  },
+  "input": [
+    {
+      "transcript": "short",
+      "start_word": 0,
+      "end_word": 65,
+      "expect": {
+        "excerpt": [
+          {
+            "id": 0,
+            "speaker": "S1",
+            "start_word": 0,
+            "end_word": 2,
+            "start_ms": 800,
+            "end_ms": 1540,
+            "text": "Welcome back.",
+            "word_count": 2
+          },
+          {
+            "id": 1,
+            "speaker": "S1",
+            "start_word": 2,
+            "end_word": 11,
+            "start_ms": 1900,
+            "end_ms": 5440,
+            "text": "Today Marcus Webb joins us to talk about pricing.",
+            "word_count": 9
+          },
+          {
+            "id": 2,
+            "speaker": "S1",
+            "start_word": 11,
+            "end_word": 17,
+            "start_ms": 6400,
+            "end_ms": 8740,
+            "text": "So what did you try first?",
+            "word_count": 6
+          },
+          {
+            "id": 3,
+            "speaker": "S2",
+            "start_word": 17,
+            "end_word": 29,
+            "start_ms": 10300,
+            "end_ms": 15040,
+            "text": "The first thing we tried was a flat monthly fee for everyone.",
+            "word_count": 12
+          },
+          {
+            "id": 4,
+            "speaker": "S2",
+            "start_word": 29,
+            "end_word": 34,
+            "start_ms": 15400,
+            "end_ms": 17340,
+            "text": "It felt simple and fair.",
+            "word_count": 5
+          },
+          {
+            "id": 5,
+            "speaker": "S2",
+            "start_word": 34,
+            "end_word": 44,
+            "start_ms": 17700,
+            "end_ms": 21640,
+            "text": "We ran it for three months and almost nobody upgraded.",
+            "word_count": 10
+          },
+          {
+            "id": 6,
+            "speaker": "S1",
+            "start_word": 44,
+            "end_word": 45,
+            "start_ms": 22400,
+            "end_ms": 22740,
+            "text": "Right.",
+            "word_count": 1
+          },
+          {
+            "id": 7,
+            "speaker": "S2",
+            "start_word": 45,
+            "end_word": 58,
+            "start_ms": 23400,
+            "end_ms": 28540,
+            "text": "So we switched to usage based pricing and revenue doubled in a quarter.",
+            "word_count": 13
+          },
+          {
+            "id": 8,
+            "speaker": "S2",
+            "start_word": 58,
+            "end_word": 65,
+            "start_ms": 28900,
+            "end_ms": 31640,
+            "text": "José on our team saw it first.",
+            "word_count": 7
+          }
+        ],
+        "preceding": []
+      }
+    },
+    {
+      "transcript": "short",
+      "start_word": 12,
+      "end_word": 50,
+      "expect": {
+        "excerpt": [
+          {
+            "id": 0,
+            "speaker": "S1",
+            "start_word": 12,
+            "end_word": 17,
+            "start_ms": 6800,
+            "end_ms": 8740,
+            "text": "what did you try first?",
+            "word_count": 5
+          },
+          {
+            "id": 1,
+            "speaker": "S2",
+            "start_word": 17,
+            "end_word": 29,
+            "start_ms": 10300,
+            "end_ms": 15040,
+            "text": "The first thing we tried was a flat monthly fee for everyone.",
+            "word_count": 12
+          },
+          {
+            "id": 2,
+            "speaker": "S2",
+            "start_word": 29,
+            "end_word": 34,
+            "start_ms": 15400,
+            "end_ms": 17340,
+            "text": "It felt simple and fair.",
+            "word_count": 5
+          },
+          {
+            "id": 3,
+            "speaker": "S2",
+            "start_word": 34,
+            "end_word": 44,
+            "start_ms": 17700,
+            "end_ms": 21640,
+            "text": "We ran it for three months and almost nobody upgraded.",
+            "word_count": 10
+          },
+          {
+            "id": 4,
+            "speaker": "S1",
+            "start_word": 44,
+            "end_word": 45,
+            "start_ms": 22400,
+            "end_ms": 22740,
+            "text": "Right.",
+            "word_count": 1
+          },
+          {
+            "id": 5,
+            "speaker": "S2",
+            "start_word": 45,
+            "end_word": 50,
+            "start_ms": 23400,
+            "end_ms": 25340,
+            "text": "So we switched to usage",
+            "word_count": 5
+          }
+        ],
+        "preceding": [
+          {
+            "id": 0,
+            "speaker": "S1",
+            "start_word": 0,
+            "end_word": 2,
+            "start_ms": 800,
+            "end_ms": 1540,
+            "text": "Welcome back.",
+            "word_count": 2
+          },
+          {
+            "id": 1,
+            "speaker": "S1",
+            "start_word": 2,
+            "end_word": 11,
+            "start_ms": 1900,
+            "end_ms": 5440,
+            "text": "Today Marcus Webb joins us to talk about pricing.",
+            "word_count": 9
+          }
+        ]
+      }
+    },
+    {
+      "transcript": "short",
+      "start_word": 15,
+      "end_word": 16,
+      "expect": {
+        "excerpt": [
+          {
+            "id": 0,
+            "speaker": "S1",
+            "start_word": 15,
+            "end_word": 16,
+            "start_ms": 8000,
+            "end_ms": 8340,
+            "text": "try",
+            "word_count": 1
+          }
+        ],
+        "preceding": [
+          {
+            "id": 0,
+            "speaker": "S1",
+            "start_word": 0,
+            "end_word": 2,
+            "start_ms": 800,
+            "end_ms": 1540,
+            "text": "Welcome back.",
+            "word_count": 2
+          },
+          {
+            "id": 1,
+            "speaker": "S1",
+            "start_word": 2,
+            "end_word": 11,
+            "start_ms": 1900,
+            "end_ms": 5440,
+            "text": "Today Marcus Webb joins us to talk about pricing.",
+            "word_count": 9
+          }
+        ]
+      }
+    },
+    {
+      "transcript": "short",
+      "start_word": 30,
+      "end_word": 65,
+      "expect": {
+        "excerpt": [
+          {
+            "id": 0,
+            "speaker": "S2",
+            "start_word": 30,
+            "end_word": 34,
+            "start_ms": 15800,
+            "end_ms": 17340,
+            "text": "felt simple and fair.",
+            "word_count": 4
+          },
+          {
+            "id": 1,
+            "speaker": "S2",
+            "start_word": 34,
+            "end_word": 44,
+            "start_ms": 17700,
+            "end_ms": 21640,
+            "text": "We ran it for three months and almost nobody upgraded.",
+            "word_count": 10
+          },
+          {
+            "id": 2,
+            "speaker": "S1",
+            "start_word": 44,
+            "end_word": 45,
+            "start_ms": 22400,
+            "end_ms": 22740,
+            "text": "Right.",
+            "word_count": 1
+          },
+          {
+            "id": 3,
+            "speaker": "S2",
+            "start_word": 45,
+            "end_word": 58,
+            "start_ms": 23400,
+            "end_ms": 28540,
+            "text": "So we switched to usage based pricing and revenue doubled in a quarter.",
+            "word_count": 13
+          },
+          {
+            "id": 4,
+            "speaker": "S2",
+            "start_word": 58,
+            "end_word": 65,
+            "start_ms": 28900,
+            "end_ms": 31640,
+            "text": "José on our team saw it first.",
+            "word_count": 7
+          }
+        ],
+        "preceding": [
+          {
+            "id": 2,
+            "speaker": "S1",
+            "start_word": 11,
+            "end_word": 17,
+            "start_ms": 6400,
+            "end_ms": 8740,
+            "text": "So what did you try first?",
+            "word_count": 6
+          },
+          {
+            "id": 3,
+            "speaker": "S2",
+            "start_word": 17,
+            "end_word": 29,
+            "start_ms": 10300,
+            "end_ms": 15040,
+            "text": "The first thing we tried was a flat monthly fee for everyone.",
+            "word_count": 12
+          }
+        ]
+      }
+    },
+    {
+      "transcript": "long",
+      "start_word": 100,
+      "end_word": 260,
+      "expect": {
+        "excerpt": [
+          {
+            "id": 0,
+            "speaker": "S2",
+            "start_word": 100,
+            "end_word": 107,
+            "start_ms": 53785,
+            "end_ms": 56525,
+            "text": "because product team because away the the?",
+            "word_count": 7
+          },
+          {
+            "id": 1,
+            "speaker": "S1",
+            "start_word": 107,
+            "end_word": 127,
+            "start_ms": 57318,
+            "end_ms": 65258,
+            "text": "Latency shipped new a half right because team new difference version right away version shipped shipped half latency a dropped.",
+            "word_count": 20
+          },
+          {
+            "id": 2,
+            "speaker": "S2",
+            "start_word": 127,
+            "end_word": 140,
+            "start_ms": 66895,
+            "end_ms": 72035,
+            "text": "Product the because the a version because of difference new noticed version team.",
+            "word_count": 13
+          },
+          {
+            "id": 3,
+            "speaker": "S2",
+            "start_word": 140,
+            "end_word": 149,
+            "start_ms": 72395,
+            "end_ms": 75935,
+            "text": "Difference a dropped because of away a the team.",
+            "word_count": 9
+          },
+          {
+            "id": 4,
+            "speaker": "S2",
+            "start_word": 149,
+            "end_word": 162,
+            "start_ms": 76295,
+            "end_ms": 81435,
+            "text": "Noticed and the away customers the a product customers difference dropped because the.",
+            "word_count": 13
+          },
+          {
+            "id": 5,
+            "speaker": "S1",
+            "start_word": 162,
+            "end_word": 165,
+            "start_ms": 84033,
+            "end_ms": 85173,
+            "text": "Dropped dropped half.",
+            "word_count": 3
+          },
+          {
+            "id": 6,
+            "speaker": "S2",
+            "start_word": 165,
+            "end_word": 176,
+            "start_ms": 88245,
+            "end_ms": 92585,
+            "text": "The a dropped product customers shipped the difference of the dropped.",
+            "word_count": 11
+          },
+          {
+            "id": 7,
+            "speaker": "S2",
+            "start_word": 176,
+            "end_word": 194,
+            "start_ms": 92945,
+            "end_ms": 100085,
+            "text": "Because away the version the of the new difference away the away right new product away right team.",
+            "word_count": 18
+          },
+          {
+            "id": 8,
+            "speaker": "S2",
+            "start_word": 194,
+            "end_word": 205,
+            "start_ms": 100445,
+            "end_ms": 104785,
+            "text": "Team dropped version difference right away product noticed difference the team?",
+            "word_count": 11
+          },
+          {
+            "id": 9,
+            "speaker": "S2",
+            "start_word": 205,
+            "end_word": 212,
+            "start_ms": 106150,
+            "end_ms": 108890,
+            "text": "Latency of new customers version by latency.",
+            "word_count": 7
+          },
+          {
+            "id": 10,
+            "speaker": "S2",
+            "start_word": 212,
+            "end_word": 223,
+            "start_ms": 109250,
+            "end_ms": 113590,
+            "text": "Difference product product the version dropped a of version difference team.",
+            "word_count": 11
+          },
+          {
+            "id": 11,
+            "speaker": "S2",
+            "start_word": 223,
+            "end_word": 230,
+            "start_ms": 113950,
+            "end_ms": 116690,
+            "text": "Product of and half latency noticed the.",
+            "word_count": 7
+          },
+          {
+            "id": 12,
+            "speaker": "S1",
+            "start_word": 230,
+            "end_word": 242,
+            "start_ms": 119736,
+            "end_ms": 124476,
+            "text": "The new and dropped because because team the and a and a?",
+            "word_count": 12
+          },
+          {
+            "id": 13,
+            "speaker": "S1",
+            "start_word": 242,
+            "end_word": 259,
+            "start_ms": 124836,
+            "end_ms": 131576,
+            "text": "Away latency team difference the noticed version because difference of new right a noticed by product noticed.",
+            "word_count": 17
+          },
+          {
+            "id": 14,
+            "speaker": "S1",
+            "start_word": 259,
+            "end_word": 260,
+            "start_ms": 131936,
+            "end_ms": 132276,
+            "text": "Because",
+            "word_count": 1
+          }
+        ],
+        "preceding": [
+          {
+            "id": 7,
+            "speaker": "S1",
+            "start_word": 72,
+            "end_word": 85,
+            "start_ms": 41421,
+            "end_ms": 46561,
+            "text": "The dropped a the latency latency new noticed and by new the team.",
+            "word_count": 13
+          },
+          {
+            "id": 8,
+            "speaker": "S2",
+            "start_word": 85,
+            "end_word": 95,
+            "start_ms": 47485,
+            "end_ms": 51425,
+            "text": "The version half difference of and latency product of noticed.",
+            "word_count": 10
+          }
+        ]
+      }
+    },
+    {
+      "transcript": "long",
+      "start_word": 0,
+      "end_word": 40,
+      "expect": {
+        "excerpt": [
+          {
+            "id": 0,
+            "speaker": "S1",
+            "start_word": 0,
+            "end_word": 4,
+            "start_ms": 2513,
+            "end_ms": 4053,
+            "text": "Half the product the.",
+            "word_count": 4
+          },
+          {
+            "id": 1,
+            "speaker": "S2",
+            "start_word": 4,
+            "end_word": 22,
+            "start_ms": 6291,
+            "end_ms": 13431,
+            "text": "Dropped product and team right team and team difference away the and dropped team version the customers away.",
+            "word_count": 18
+          },
+          {
+            "id": 2,
+            "speaker": "S1",
+            "start_word": 22,
+            "end_word": 40,
+            "start_ms": 15300,
+            "end_ms": 22440,
+            "text": "Noticed by of noticed team dropped latency team difference latency customers a right shipped half right dropped dropped.",
+            "word_count": 18
+          }
+        ],
+        "preceding": []
+      }
+    }
+  ],
+  "validation": {
+    "input": {
+      "excerpt": [
+        {
+          "id": 0,
+          "speaker": "S2",
+          "start_word": 18,
+          "end_word": 29,
+          "start_ms": 10700,
+          "end_ms": 15040,
+          "text": "first thing we tried was a flat monthly fee for everyone.",
+          "word_count": 11
+        },
+        {
+          "id": 1,
+          "speaker": "S2",
+          "start_word": 29,
+          "end_word": 34,
+          "start_ms": 15400,
+          "end_ms": 17340,
+          "text": "It felt simple and fair.",
+          "word_count": 5
+        },
+        {
+          "id": 2,
+          "speaker": "S2",
+          "start_word": 34,
+          "end_word": 44,
+          "start_ms": 17700,
+          "end_ms": 21640,
+          "text": "We ran it for three months and almost nobody upgraded.",
+          "word_count": 10
+        },
+        {
+          "id": 3,
+          "speaker": "S1",
+          "start_word": 44,
+          "end_word": 45,
+          "start_ms": 22400,
+          "end_ms": 22740,
+          "text": "Right.",
+          "word_count": 1
+        },
+        {
+          "id": 4,
+          "speaker": "S2",
+          "start_word": 45,
+          "end_word": 58,
+          "start_ms": 23400,
+          "end_ms": 28540,
+          "text": "So we switched to usage based pricing and revenue doubled in a quarter.",
+          "word_count": 13
+        },
+        {
+          "id": 5,
+          "speaker": "S2",
+          "start_word": 58,
+          "end_word": 65,
+          "start_ms": 28900,
+          "end_ms": 31640,
+          "text": "José on our team saw it first.",
+          "word_count": 7
+        }
+      ],
+      "context": {
+        "show_title": "Pricing Talk",
+        "episode_title": "Flat fees",
+        "preceding": [
+          {
+            "id": 1,
+            "speaker": "S1",
+            "start_word": 2,
+            "end_word": 11,
+            "start_ms": 1900,
+            "end_ms": 5440,
+            "text": "Today Marcus Webb joins us to talk about pricing.",
+            "word_count": 9
+          },
+          {
+            "id": 2,
+            "speaker": "S1",
+            "start_word": 11,
+            "end_word": 17,
+            "start_ms": 6400,
+            "end_ms": 8740,
+            "text": "So what did you try first?",
+            "word_count": 6
+          }
+        ]
+      }
+    },
+    "cases": [
+      {
+        "name": "valid",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "The guest says almost nobody upgraded under a flat fee. Usage based pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": []
+      },
+      {
+        "name": "title over 60",
+        "output": {
+          "title": "A flat monthly fee that almost nobody ever upgraded from, in the end",
+          "summary": "The guest says almost nobody upgraded under a flat fee. Usage based pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": ["title is 68 characters; max 60"]
+      },
+      {
+        "name": "title at 60 counted in UTF-16 units",
+        "output": {
+          "title": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🙂",
+          "summary": "The guest says almost nobody upgraded under a flat fee. Usage based pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": []
+      },
+      {
+        "name": "summary over 320",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "The guest says pricing matters a great deal to everyone involved here. The guest says pricing matters a great deal to everyone involved here. The guest says pricing matters a great deal to everyone involved here. The guest says pricing matters a great deal to everyone involved here. The guest says pricing matters a great deal to everyone involved here. ",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": [
+          "summary is 354 characters; max 320",
+          "summary has 5 sentences; max 3",
+          "summary has 5 sentences but only 2 claims"
+        ]
+      },
+      {
+        "name": "four sentences",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "The guest tried a flat fee. Nobody upgraded. They switched. Revenue doubled.",
+          "claims": [
+            {"text":"c","sentence_ids":[1]},
+            {"text":"c","sentence_ids":[2]},
+            {"text":"c","sentence_ids":[3]},
+            {"text":"c","sentence_ids":[0]}
+          ]
+        },
+        "expect": ["summary has 4 sentences; max 3"]
+      },
+      {
+        "name": "refers to this clip",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "In this clip the guest explains the flat fee.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": ["summary refers to \"this clip\""]
+      },
+      {
+        "name": "refers to this excerpt in the title",
+        "output": {
+          "title": "In this excerpt: flat fees",
+          "summary": "The guest says almost nobody upgraded under a flat fee. Usage based pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": ["summary refers to \"this clip\""]
+      },
+      {
+        "name": "cites a missing sentence",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "The guest says almost nobody upgraded under a flat fee. Usage based pricing doubled revenue.",
+          "claims": [{"text":"x","sentence_ids":[99]},{"text":"y","sentence_ids":[1]}]
+        },
+        "expect": ["claim 1 cites sentence ids not in the excerpt: 99"]
+      },
+      {
+        "name": "fewer claims than sentences",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "The guest says almost nobody upgraded under a flat fee. Usage based pricing doubled revenue.",
+          "claims": [{"text":"x","sentence_ids":[1]}]
+        },
+        "expect": ["summary has 2 sentences but only 1 claims"]
+      },
+      {
+        "name": "unsupported name",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "Sarah says almost nobody upgraded under a flat fee. Usage pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": ["names not found in the excerpt or metadata: Sarah"]
+      },
+      {
+        "name": "name from the excerpt is fine",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "The guest says José saw it first. Usage pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": []
+      },
+      {
+        "name": "name from the preceding context is not allowed",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "Marcus says nobody upgraded. Usage pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": ["names not found in the excerpt or metadata: Marcus"]
+      },
+      {
+        "name": "title case title skips the name check on the title",
+        "output": {
+          "title": "Why Flat Fees Fail",
+          "summary": "The guest says almost nobody upgraded under a flat fee. Usage based pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": []
+      },
+      {
+        "name": "sentence-initial name with a verb of saying",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "Priya said nobody upgraded. Usage pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": ["names not found in the excerpt or metadata: Priya"]
+      },
+      {
+        "name": "empty title",
+        "output": {
+          "title": " ",
+          "summary": "The guest says almost nobody upgraded under a flat fee. Usage based pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": ["title is empty"]
+      },
+      {
+        "name": "non-breaking space in summary",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "The guest says almost nobody upgraded. Usage pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": []
+      },
+      {
+        "name": "curly apostrophe name",
+        "output": {
+          "title": "A flat fee nobody upgraded from",
+          "summary": "The guest’s team at O’Neill saw it. Usage pricing doubled revenue.",
+          "claims": [{"text":"Nobody upgraded.","sentence_ids":[1]},{"text":"Revenue doubled.","sentence_ids":[3]}]
+        },
+        "expect": []
+      }
+    ]
+  },
+  "fallback_title": [
+    {
+      "excerpt_texts": ["The first thing we tried was a flat monthly fee for everyone."],
+      "expect": "The first thing we tried was a flat…"
+    },
+    {"excerpt_texts":["Right."],"expect":"Right."},
+    {
+      "excerpt_texts": ["So, we switched to usage based pricing and, frankly,"],
+      "expect": "So, we switched to usage based pricing and…"
+    },
+    {"excerpt_texts":["One two three four five six seven eight"],"expect":"One two three four five six seven eight"},
+    {
+      "excerpt_texts": ["One two three four five six seven, eight nine"],
+      "expect": "One two three four five six seven, eight…"
+    },
+    {
+      "excerpt_texts": [
+        "first thing we tried was a flat monthly fee for everyone.",
+        "It felt simple and fair.",
+        "We ran it for three months and almost nobody upgraded.",
+        "Right.",
+        "So we switched to usage based pricing and revenue doubled in a quarter.",
+        "José on our team saw it first."
+      ],
+      "expect": "first thing we tried was a flat monthly…"
+    }
+  ],
+  "count_sentences": [
+    {"text":"One thing. Another thing? Yes!","expect":3},
+    {"text":"Costs rose 3.5 percent last year.","expect":1},
+    {"text":"He said “stop.” Then he left.","expect":2},
+    {"text":"No terminal punctuation","expect":1},
+    {"text":"Dr. Smith arrived. He sat.","expect":3},
+    {"text":"Wait… what? OK.","expect":2}
+  ],
+  "unsupported_names": [
+    {"texts":["Marcus explains the fee."],"allowed":["The guest explains the fee."],"expect":["Marcus"]},
+    {"texts":["The guest says Marcus left."],"allowed":["Marcus left the company.","host guest"],"expect":[]},
+    {"texts":["Why Flat Fees Fail"],"allowed":[""],"expect":["Flat","Fees","Fail"]},
+    {"texts":["The host and the Guest agree."],"allowed":["host guest"],"expect":[]},
+    {"texts":["Élodie said yes."],"allowed":["no names here"],"expect":["Élodie"]}
+  ],
+  "is_title_case": [
+    {"title":"Why Flat Fees Fail","expect":true},
+    {"title":"Why flat fees fail","expect":false},
+    {"title":"The Art of the Deal","expect":false},
+    {"title":"A","expect":false},
+    {"title":"iPhone Sales Rise","expect":false}
+  ]
+}

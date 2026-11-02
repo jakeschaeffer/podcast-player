@@ -1,0 +1,33 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/v1/feeds",
+    "body": {
+      "url": "https://feeds.example.com/hardfork.xml",
+      "auto_process": false,
+      "backfill": 0,
+      "followed": false
+    }
+  },
+  "status": 201,
+  "body": {
+    "id": "01M5ZXP5GRZGF9KEEJ69EH34D0",
+    "kind": "podcast",
+    "text_for_feed_id": null,
+    "title": null,
+    "author": null,
+    "image_url": null,
+    "site_url": null,
+    "language": null,
+    "is_private": false,
+    "auto_process": false,
+    "transcriber": "elevenlabs",
+    "keyterms": [],
+    "backfill": 0,
+    "last_refresh_at": null,
+    "last_error": null,
+    "episode_count": 0,
+    "created_at": 1800000000000,
+    "followed": false
+  }
+}

@@ -1,0 +1,3 @@
+# snip owns the podcast-player checkout and runs its service (deploy/README.md). The owner and their sessions log in
+# as snip with the Mac's key; controlling that one service is the only thing they may do as root.
+snip ALL=(root) NOPASSWD: /usr/bin/systemctl restart podcast-player, /usr/bin/systemctl restart podcast-player.service, /usr/bin/systemctl start podcast-player, /usr/bin/systemctl start podcast-player.service, /usr/bin/systemctl stop podcast-player, /usr/bin/systemctl stop podcast-player.service

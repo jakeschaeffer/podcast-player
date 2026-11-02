@@ -1,0 +1,55 @@
+{
+  "snip-summary": {
+    "active": "v3",
+    "versions": {
+      "v1": {
+        "created_at": "2026-10-21T22:14:39.000Z",
+        "sha256": "e9187806a672b29dda841e16a0eb2b6c2a30c5c3dbc25b94119d550d5e85bbb0"
+      },
+      "v2": {
+        "created_at": "2026-10-26T17:48:21.275Z",
+        "sha256": "4f716d70be19e6ec3659cbdde1b40483c767c2911e11bd1ee52586d99819911d"
+      },
+      "v3": {
+        "created_at": "2026-10-29T16:14:14.000Z",
+        "sha256": "4d96fdb78f991abbf6844ecb89964890ad636781443141ba973c85de853fe690"
+      }
+    }
+  },
+  "episode-summary": {
+    "active": "v1",
+    "versions": {
+      "v1": {
+        "created_at": "2026-10-21T22:14:39.000Z",
+        "sha256": "ae303fee093a9af21b3425519212bda8b0500b66caa72733e0a3203c6edf68cc"
+      }
+    }
+  },
+  "span-picker": {
+    "active": "v1",
+    "versions": {
+      "v1": {
+        "created_at": "2026-10-21T22:14:39.000Z",
+        "sha256": "9574f3c406ffb2c1413cc723156bb85dd3a097854cf935ce7de8780a74ef8945"
+      }
+    }
+  },
+  "speakers": {
+    "active": "v1",
+    "versions": {
+      "v1": {
+        "created_at": "2026-10-29T16:40:26.000Z",
+        "sha256": "b86176a5b96d7ec981a154d707df5153a254dda5a0e43f3a69245793c6b6fae7"
+      }
+    }
+  },
+  "title-judge": {
+    "active": "v1",
+    "versions": {
+      "v1": {
+        "created_at": "2026-10-29T16:42:22.000Z",
+        "sha256": "583abc383f3a925b0ea76b92c90f00ef484becf4df453e256631fecc7333f491"
+      }
+    }
+  }
+}

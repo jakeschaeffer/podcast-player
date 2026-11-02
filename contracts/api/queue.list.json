@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/queue"
+  },
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "01M67P22HKRYCDKC4007Q988N6",
+        "feed_id": "01M67P22HJRDWJXRJ6MSH42ZSY",
+        "show_title": "Fixture Show",
+        "title": "Pricing",
+        "published_at": null,
+        "duration_ms": 120000,
+        "image_url": null,
+        "asset_id": "01M67P22HKDPJX7ENH18XBQ8CD",
+        "transcript_id": "01M67P22P7SYBMASEN4XXXZRCB",
+        "has_summary": true,
+        "processing": {
+          "audio": "ready",
+          "transcript": "ready",
+          "text": "none",
+          "summary": "ready"
+        },
+        "resume": {
+          "position_ms": 95000,
+          "speed": 1.25,
+          "finished": false,
+          "device_name": "iPhone",
+          "updated_at": 1799999999000
+        },
+        "media_kind": "audio",
+        "youtube_id": null,
+        "video": {
+          "status": "none",
+          "error": null
+        }
+      }
+    ]
+  }
+}

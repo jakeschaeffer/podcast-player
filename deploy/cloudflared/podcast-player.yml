@@ -1,0 +1,10 @@
+# Cloudflare tunnel "podcast-player". Installed as /etc/cloudflared/podcast-player.yml; the credentials
+# file is secret and never committed (see deploy/README.md).
+tunnel: <tunnel id>   # printed by `cloudflared tunnel create podcast-player`
+credentials-file: /etc/cloudflared/podcast-player.json
+metrics: 127.0.0.1:20432
+
+ingress:
+  - hostname: snip.sch.xyz
+    service: http://127.0.0.1:4350
+  - service: http_status:404

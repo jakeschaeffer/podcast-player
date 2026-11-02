@@ -1,0 +1,107 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/prompts"
+  },
+  "status": 200,
+  "body": [
+    {
+      "name": "snip-summary",
+      "label": "Snip summary",
+      "active": "v3",
+      "in_use": true,
+      "eval": {
+        "id": "titles",
+        "label": "Titles"
+      },
+      "versions": [
+        {
+          "version": "v3",
+          "created_at": 1793290454000,
+          "active": true,
+          "score": null
+        },
+        {
+          "version": "v2",
+          "created_at": 1793036901275,
+          "active": false,
+          "score": {
+            "passed": 1,
+            "n": 2,
+            "rate": 0.5,
+            "margin": 0.40547134519913386
+          }
+        },
+        {
+          "version": "v1",
+          "created_at": 1792620879000,
+          "active": false,
+          "score": null
+        }
+      ]
+    },
+    {
+      "name": "episode-summary",
+      "label": "Episode summary",
+      "active": "v1",
+      "in_use": true,
+      "eval": null,
+      "versions": [
+        {
+          "version": "v1",
+          "created_at": 1792620879000,
+          "active": true,
+          "score": null
+        }
+      ]
+    },
+    {
+      "name": "span-picker",
+      "label": "Snip start",
+      "active": "v1",
+      "in_use": false,
+      "eval": {
+        "id": "selection",
+        "label": "Starts"
+      },
+      "versions": [
+        {
+          "version": "v1",
+          "created_at": 1792620879000,
+          "active": true,
+          "score": null
+        }
+      ]
+    },
+    {
+      "name": "speakers",
+      "label": "Speakers",
+      "active": "v1",
+      "in_use": true,
+      "eval": null,
+      "versions": [
+        {
+          "version": "v1",
+          "created_at": 1793292026000,
+          "active": true,
+          "score": null
+        }
+      ]
+    },
+    {
+      "name": "title-judge",
+      "label": "Title judge (evals)",
+      "active": "v1",
+      "in_use": true,
+      "eval": null,
+      "versions": [
+        {
+          "version": "v1",
+          "created_at": 1793292142000,
+          "active": true,
+          "score": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "request": {
+    "method": "PUT",
+    "url": "/v1/playback/01M61KWF197PXCCKQ7SFCTJ346",
+    "body": {
+      "position_ms": 95000,
+      "speed": 1.25,
+      "playing": true,
+      "finished": false,
+      "seq": 1,
+      "observed_at": 1799999999000
+    }
+  },
+  "status": 200,
+  "body": {
+    "accepted": true,
+    "position_ms": 95000,
+    "speed": 1.25,
+    "playing": true,
+    "finished": false,
+    "seq": 1,
+    "updated_at": 1800000000000
+  }
+}

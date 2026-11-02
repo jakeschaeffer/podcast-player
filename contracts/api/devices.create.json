@@ -1,0 +1,23 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/v1/devices",
+    "body": {
+      "name": "iPhone",
+      "platform": "ios",
+      "password": "hunter2"
+    }
+  },
+  "status": 201,
+  "body": {
+    "device": {
+      "id": "01M61KWF9B1SP8CR79XY9DHH4Y",
+      "name": "iPhone",
+      "platform": "ios",
+      "created_at": 1800000000000,
+      "last_seen_at": null,
+      "revoked_at": null
+    },
+    "token": "pp_mUgE044GHnoBOAGT3z-tQKYkG1HSJAPY"
+  }
+}

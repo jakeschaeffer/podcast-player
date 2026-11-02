@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/episodes/01M61KWF18PFNRH6Y6WK70TX7H/share"
+  },
+  "status": 200,
+  "body": {
+    "share_url": "http://pods.test/e/k3rskn7qmrb7lyb3hmqk",
+    "state": "active",
+    "snip_count": 1,
+    "created_at": 1800000000000
+  }
+}

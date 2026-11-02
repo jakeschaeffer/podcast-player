@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/health"
+  },
+  "status": 200,
+  "body": {
+    "ok": true,
+    "jobs": {
+      "queued": 1,
+      "running": 0,
+      "done": 9,
+      "failed": 1,
+      "deferred": 1
+    }
+  }
+}

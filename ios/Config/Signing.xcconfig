@@ -1,0 +1,19 @@
+// Who signs the app, what it is called, and where a fresh install starts. Your own values go in Local.xcconfig
+// (gitignored; copy Local.xcconfig.example). These defaults build and run in the simulator and nothing else.
+DEVELOPMENT_TEAM =
+CODE_SIGN_STYLE = Automatic
+// The app is $(ORG_IDENTIFIER).Snip and its Live Activity $(ORG_IDENTIFIER).Snip.LiveActivity. Fixed once a phone
+// has it installed: the Keychain token and the background download session are keyed by the bundle id.
+ORG_IDENTIFIER = com.example
+PRODUCT_BUNDLE_IDENTIFIER = $(ORG_IDENTIFIER).Snip
+
+// The server the login screen starts with. Empty: the field waits to be typed. `//` starts a comment in xcconfig,
+// hence the $(). Debug builds start on the local dev server (scripts/dev-server.sh), so the simulator never plays a
+// real server's episodes, and queues paid transcription, by accident; a Debug build can still sign in anywhere.
+// Local.xcconfig sets the Release value as PODCAST_SERVER_URL[config=Release]: a later unconditional assignment
+// would override the Debug one below.
+PODCAST_SERVER_URL =
+PODCAST_SERVER_URL[config=Debug] = http:/$()/localhost:8080
+
+// Per-machine values (not committed): team, org id, and the server release builds start on.
+#include? "Local.xcconfig"

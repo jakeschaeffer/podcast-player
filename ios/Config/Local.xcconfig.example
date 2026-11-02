@@ -1,0 +1,12 @@
+// Copy to Local.xcconfig (gitignored). docs/SELF-HOSTING.md walks through each value.
+
+// Xcode → Settings → Accounts → your Apple ID → the Team list. Needed for a phone; the simulator builds without it.
+DEVELOPMENT_TEAM = YOURTEAMID
+// A reverse-DNS prefix you own: the app becomes $(ORG_IDENTIFIER).Snip. Pick it once; changing it later loses the
+// Keychain token and in-flight downloads on every phone that has the app.
+ORG_IDENTIFIER = com.example
+
+// The server a fresh install of a release build offers on the login screen. Leave it out to start blank. `//` is a
+// comment in xcconfig, hence the $(). Keep the [config=Release]: an unconditional value here overrides
+// Signing.xcconfig's Debug-only http://localhost:8080, and the simulator would then play your real episodes.
+// PODCAST_SERVER_URL[config=Release] = https:/$()/snip.example.com

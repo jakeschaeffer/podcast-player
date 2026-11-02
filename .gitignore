@@ -1,0 +1,23 @@
+# Secrets and per-machine values (docs/SELF-HOSTING.md): never committed
+/.env.local
+/.env.server.local
+/ios/Config/Local.xcconfig
+/ios/scripts/local.env
+/deploy/local.env
+CLAUDE.local.md
+
+# dependencies and build output
+node_modules/
+dist/
+
+# runtime data: database and media
+/data/
+
+# eval fixtures and cases contain the owner's audio, transcripts, and private-feed content; results are aggregate and kept
+evals/**/fixtures/
+evals/**/cases/
+evals/**/cases-text/
+# per-case result rows and model caches are large and regenerable; the markdown scorecards are kept
+evals/**/results/*.json
+evals/**/results/*.jsonl
+evals/**/results/*-cache.jsonl

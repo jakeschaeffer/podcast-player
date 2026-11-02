@@ -1,0 +1,23 @@
+[Unit]
+Description=Snip home fetcher: brings YouTube videos the owner asked for to the podcast player's server
+After=network-online.target
+
+[Service]
+# Installed as a user service on the home box (fetcher/README.md): ~/.config/systemd/user/snip-fetcher.service
+ExecStart=%h/snip-fetcher/snip_fetcher.py --loop
+# The podcast player's address, as the home box reaches it.
+Environment=SNIP_SERVER=https://snip.example.com
+# A box that cannot resolve the server's name (a tailnet name without MagicDNS, say) connects by address instead,
+# still verifying the certificate as the name above:
+# Environment=SNIP_SERVER_IP=100.x.y.z
+Environment=SNIP_TOKEN_FILE=%h/.config/snip-fetcher/token
+Environment=SNIP_WORK_DIR=%h/snip-fetcher/work
+Environment=SNIP_YTDLP=%h/yt-fetcher-venv/bin/yt-dlp
+Environment=SNIP_FFMPEG=%h/snip-fetcher/ffmpeg
+# yt-dlp prefers a JavaScript runtime for YouTube; with deno at ~/snip-fetcher/deno, add:
+# Environment=SNIP_JS_RUNTIME=deno:%h/snip-fetcher/deno
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target

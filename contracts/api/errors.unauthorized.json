@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/feeds"
+  },
+  "status": 401,
+  "body": {
+    "error": {
+      "code": "unauthorized",
+      "message": "authentication required"
+    }
+  }
+}

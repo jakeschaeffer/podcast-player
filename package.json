@@ -1,0 +1,10 @@
+{
+  "name": "podcast-player",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Personal podcast player with one-tap snips, transcripts, and public clip links",
+  "scripts": {
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

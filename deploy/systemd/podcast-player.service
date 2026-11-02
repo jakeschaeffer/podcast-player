@@ -1,0 +1,23 @@
+[Unit]
+Description=Podcast player server (API and worker) behind snip.sch.xyz
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# snip owns the checkout and may restart this unit through sudo (deploy/sudoers/snip-podcast-player); nothing runs as root.
+User=snip
+Group=snip
+NoNewPrivileges=true
+WorkingDirectory=/home/snip/repos/podcast-player/server
+# The same command as `pnpm dev`: the env files hold the secrets and PUBLIC_BASE_URL.
+ExecStart=/usr/bin/node --env-file-if-exists=../.env.local --env-file-if-exists=../.env.server.local --import tsx src/index.ts --role all
+Environment=HOME=/home/snip
+# The worker runs the Codex CLI for summaries, installed for snip in /home/snip/.local/bin (its auth is in /home/snip/.codex).
+Environment=PATH=/home/snip/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

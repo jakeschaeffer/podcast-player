@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "PATCH",
+    "url": "/v1/snips/01M61KWFEHCQ9DGQZ624AN4EV8",
+    "body": {
+      "start_ms": 40000,
+      "end_ms": 90000
+    }
+  },
+  "status": 400,
+  "body": {
+    "error": {
+      "code": "bad_request",
+      "message": "if_revision is required when moving boundaries"
+    }
+  }
+}

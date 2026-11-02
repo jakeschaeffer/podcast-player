@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "PATCH",
+    "url": "/v1/snips/01M61KWFEHCQ9DGQZ624AN4EV8",
+    "body": {
+      "start_ms": 41000,
+      "end_ms": 90000,
+      "if_revision": "01M61KWFEH9X8DNPG0WZ958E9F"
+    }
+  },
+  "status": 409,
+  "body": {
+    "error": {
+      "code": "conflict",
+      "message": "snip was edited elsewhere; reload and retry"
+    }
+  }
+}
