@@ -1,9 +1,10 @@
 # Video: plan (2026-10-31)
 
-**Status (2026-11-01):** done and deployed: server foundation, YouTube channels as shows, the home fetcher on TrueNAS
+**Status (2026-11-02):** done and deployed: server foundation, YouTube channels as shows, the home fetcher on TrueNAS
 (480p), captions as transcripts, web and iOS playback, full-screen landscape video on iOS, one snip thread per
-episode with an audio/video mark, pruning (a day after finishing, 4 GB cap), iOS offline downloads, and pasting a
-channel or video link. Still open: SponsorBlock, hybrid caption timing.
+episode with an audio/video mark, pruning (a day after finishing, 4 GB cap), iOS offline downloads, pasting a
+channel or video link, one-off links to video files (below), and the iOS share sheet. Still open: SponsorBlock,
+hybrid caption timing, page links through the fetcher.
 
 Goal: watch videos as well as listen to podcasts, with everything the app already does for audio (transcripts,
 ad skipping, snips, Up next), plus downloads for offline. Built on master in ordinary PRs, each tried against the
@@ -67,6 +68,32 @@ Your place comes along when the two recordings are within a second of each other
 device's place is copied, the newest observed place wins, and a device still playing the old recording keeps the current
 one up to date. Equal length is strong evidence and not proof, so a place can land slightly off. Recordings of different
 lengths keep their own places, because the same time in another cut is a different moment.
+
+## One-off links (2026-11-02)
+
+A link to a video or audio **file** (a direct MP4 from an X post, a talk on someone's CDN), pasted into the show
+search on either client or shared into the iOS app, becomes a one-off episode: `POST /v1/links/episodes {url}`
+(`server/src/services/links.ts`). Decisions:
+
+- **Where they live: one show, "Pasted links"** (`feed.kind = 'links'`), made on the first paste. Per-site shows
+  ("video.twimg.com") would be titled after CDNs and never have a second episode. The show is followed, so its
+  episodes sit in Library and Today like any show's, and is never refreshed (its url is a placeholder; a refresh is a
+  no-op); its page offers nothing to follow or unfollow. Deleting it is allowed and it comes back on the next paste.
+- **Default processing: download, then transcribe.** The server fetches the file itself (the `fetch_audio` job, which
+  keeps a video with its audio pulled out beside it, as for a feed's video enclosure) and queues transcription at
+  once, which bills ElevenLabs at the usual rate. No home fetcher is involved. The same link twice is the same
+  episode (asked for again if the download failed).
+- **What the link may be.** The server reads the link's headers first (one byte, by range) and refuses, before any
+  row is made, a web page ("that is a web page, not a video file…"), a feed, and anything that is not video, audio
+  or an untyped download; the clients show that message. So an `x.com/.../status/...` link does not work: getting
+  the file out of a page needs yt-dlp, which only the home fetcher has. Supporting page links means giving the
+  fetcher's wanted list a `url` beside `youtube_id` and letting it run yt-dlp on any site; not done. A YouTube video
+  link given here is handled as `POST /v1/youtube/episodes`.
+- **Title**: the file's name when it reads like one, else "Video from <host>"; the clients may send a `title`
+  (the share sheet sends what the sharing app offers). The link itself is the episode's show notes and `link`.
+- **Clients**: the show search tells a file link by its extension (`web/src/lib/links.ts`, `MediaLink` in the iOS
+  PodcastAPI package) and offers "Add this video"; a link without an extension looks like a feed address, and the
+  feed card offers the one-off as a second choice. The iOS share sheet (ios/README.md) sends any non-channel link here.
 
 ## Server work
 

@@ -5,9 +5,11 @@ import SwiftUI
 /// Find a show and open it. Typing searches the public directory (Apple Podcasts, or Podcast Index when the server has
 /// its keys); pasting a feed address opens that address directly, which is how private feeds are added. A YouTube
 /// channel link (or a bare @handle) opens the channel as a show; a YouTube video link makes the video an episode and
-/// opens it in the player. Opening a show the server doesn't have creates it unfollowed: its episodes play (and can
-/// be transcribed and snipped), but it stays out of Library and Today until followed from its page. An unfollowed
-/// show is always manual, so browsing never bills.
+/// opens it in the player; a link to a video or audio file (`MediaLink`) becomes a one-off episode of the Pasted links
+/// show, which the server downloads and transcribes, and opens in the player too. Opening a show the server doesn't
+/// have creates it unfollowed: its episodes play (and can be transcribed and snipped), but it stays out of Library and
+/// Today until followed from its page. An unfollowed show is always manual, so browsing never bills; a one-off bills
+/// its transcription when added.
 struct AddShowView: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerEngine.self) private var engine
@@ -29,8 +31,9 @@ struct AddShowView: View {
 
   private var trimmed: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
   private var youtube: YouTubeLink? { YouTubeLink.parse(query) }
-  private var feedURL: String? { youtube == nil ? FeedAddress.parse(query) : nil }
-  private var searchable: Bool { youtube == nil && feedURL == nil && trimmed.count >= 2 }
+  private var mediaURL: String? { youtube == nil ? MediaLink.parse(query) : nil }
+  private var feedURL: String? { youtube == nil && mediaURL == nil ? FeedAddress.parse(query) : nil }
+  private var searchable: Bool { youtube == nil && mediaURL == nil && feedURL == nil && trimmed.count >= 2 }
 
   var body: some View {
     List {
@@ -67,6 +70,21 @@ struct AddShowView: View {
           }
           .disabled(opening != nil)
         }
+      } else if let mediaURL {
+        Section("Video link") {
+          Text(mediaURL).font(.callout)
+          Text("The file becomes a one-off episode of Pasted links: the server downloads it and transcribes it, and it opens in the player meanwhile. A link to a web page (an X post, say) won't do; paste the video file's own address.")
+            .font(.caption).foregroundStyle(.secondary)
+          Button {
+            addLink(mediaURL)
+          } label: {
+            HStack {
+              Text("Add this video")
+              if opening == mediaURL { Spacer(); ProgressView() }
+            }
+          }
+          .disabled(opening != nil)
+        }
       } else if let feedURL {
         Section("Feed address") {
           Text(feedURL).font(.callout)
@@ -81,9 +99,19 @@ struct AddShowView: View {
             }
           }
           .disabled(opening != nil)
+          // A media link without a file extension looks like a feed address; this is its way in.
+          Button {
+            addLink(feedURL)
+          } label: {
+            HStack {
+              Text("Not a feed? Add it as a one-off video").foregroundStyle(Color.secondary)
+              if opening == "link:\(feedURL)" { Spacer(); ProgressView() }
+            }
+          }
+          .disabled(opening != nil)
         }
       } else if !searchable {
-        Text("Find a show by name, or paste the address of its RSS feed, a YouTube channel, or a YouTube video.").foregroundStyle(.secondary)
+        Text("Find a show by name, or paste the address of its RSS feed, a YouTube channel or video, or a video file.").foregroundStyle(.secondary)
       } else if let results {
         if results.results.isEmpty {
           Text("No shows match “\(trimmed)”.").foregroundStyle(.secondary)
@@ -108,7 +136,7 @@ struct AddShowView: View {
       }
     }
     .searchable(
-      text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search shows, or paste a feed or YouTube link"
+      text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search shows, or paste a feed, YouTube or video link"
     )
     .searchFocused($focused)
     .textInputAutocapitalization(.never)
@@ -157,6 +185,23 @@ struct AddShowView: View {
       defer { opening = nil }
       do {
         let episode = try await model.api.addYouTubeVideo(url)
+        error = nil
+        engine.open(episode.id)
+        showPlayer = true
+      } catch {
+        self.error = error.localizedDescription
+      }
+    }
+  }
+
+  /// A pasted file link becomes a one-off episode on the server, which downloads and transcribes it; the player opens
+  /// on it meanwhile. The server says why when the link is a page rather than a file.
+  private func addLink(_ url: String) {
+    opening = url == feedURL ? "link:\(url)" : url
+    Task {
+      defer { opening = nil }
+      do {
+        let episode = try await model.api.addPastedLink(url)
         error = nil
         engine.open(episode.id)
         showPlayer = true

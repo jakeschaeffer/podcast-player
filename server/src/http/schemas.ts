@@ -18,7 +18,7 @@ export const CreateDeviceBody = Type.Object({
 export const CreateDeviceResponse = Type.Object({ device: DeviceSchema, token: Type.String({ description: "Bearer token; shown once" }) });
 
 export const FeedSchema = Type.Object({
-  id: Id, kind: Type.Union([Type.Literal("podcast"), Type.Literal("text"), Type.Literal("youtube")], { description: "'youtube': a channel, whose episodes are videos" }), text_for_feed_id: Nullable(Id), title: Nullable(Type.String()), author: Nullable(Type.String()), image_url: Nullable(Type.String()), site_url: Nullable(Type.String()), language: Nullable(Type.String()),
+  id: Id, kind: Type.Union([Type.Literal("podcast"), Type.Literal("text"), Type.Literal("youtube"), Type.Literal("links")], { description: "'youtube': a channel, whose episodes are videos; 'links': the Pasted links show, one-off files the owner pasted (POST /v1/links/episodes), followed and never refreshed" }), text_for_feed_id: Nullable(Id), title: Nullable(Type.String()), author: Nullable(Type.String()), image_url: Nullable(Type.String()), site_url: Nullable(Type.String()), language: Nullable(Type.String()),
   is_private: Type.Boolean(), auto_process: Type.Boolean(), transcriber: Type.String(), keyterms: Type.Array(Type.String()), backfill: Type.Integer(),
   last_refresh_at: Nullable(Type.Integer()), last_error: Nullable(Type.String()), episode_count: Type.Integer(), created_at: Type.Integer(),
   followed: Type.Boolean({ description: "In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule" }),

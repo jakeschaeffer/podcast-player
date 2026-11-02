@@ -391,7 +391,7 @@
                         "type": "string"
                       },
                       "kind": {
-                        "description": "'youtube': a channel, whose episodes are videos",
+                        "description": "'youtube': a channel, whose episodes are videos; 'links': the Pasted links show, one-off files the owner pasted (POST /v1/links/episodes), followed and never refreshed",
                         "anyOf": [
                           {
                             "type": "string",
@@ -409,6 +409,12 @@
                             "type": "string",
                             "enum": [
                               "youtube"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "links"
                             ]
                           }
                         ]
@@ -645,7 +651,7 @@
                       "type": "string"
                     },
                     "kind": {
-                      "description": "'youtube': a channel, whose episodes are videos",
+                      "description": "'youtube': a channel, whose episodes are videos; 'links': the Pasted links show, one-off files the owner pasted (POST /v1/links/episodes), followed and never refreshed",
                       "anyOf": [
                         {
                           "type": "string",
@@ -663,6 +669,12 @@
                           "type": "string",
                           "enum": [
                             "youtube"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "links"
                           ]
                         }
                       ]
@@ -871,7 +883,7 @@
                       "type": "string"
                     },
                     "kind": {
-                      "description": "'youtube': a channel, whose episodes are videos",
+                      "description": "'youtube': a channel, whose episodes are videos; 'links': the Pasted links show, one-off files the owner pasted (POST /v1/links/episodes), followed and never refreshed",
                       "anyOf": [
                         {
                           "type": "string",
@@ -889,6 +901,12 @@
                           "type": "string",
                           "enum": [
                             "youtube"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "links"
                           ]
                         }
                       ]
@@ -1116,7 +1134,7 @@
                       "type": "string"
                     },
                     "kind": {
-                      "description": "'youtube': a channel, whose episodes are videos",
+                      "description": "'youtube': a channel, whose episodes are videos; 'links': the Pasted links show, one-off files the owner pasted (POST /v1/links/episodes), followed and never refreshed",
                       "anyOf": [
                         {
                           "type": "string",
@@ -1134,6 +1152,12 @@
                           "type": "string",
                           "enum": [
                             "youtube"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "links"
                           ]
                         }
                       ]
@@ -12694,6 +12718,944 @@
                               }
                             ]
                           }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/links/episodes": {
+      "post": {
+        "summary": "A pasted link to a video or audio file becomes a one-off episode of the Pasted links show (kind 'links': made on first use, followed, never refreshed); the server downloads the file and transcribes it, which bills. The same link twice is the same episode. A YouTube video link is handled as POST /v1/youtube/episodes; a link to a web page (an x.com post, say) is refused, since its file would need the home fetcher. 201 with the episode",
+        "tags": [
+          "video"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "minLength": 1,
+                    "maxLength": 2048,
+                    "type": "string"
+                  },
+                  "title": {
+                    "minLength": 1,
+                    "maxLength": 300,
+                    "description": "The episode's title; else the file's name when it reads like one, else where the file came from",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "feed_id",
+                    "show_title",
+                    "title",
+                    "published_at",
+                    "duration_ms",
+                    "image_url",
+                    "asset_id",
+                    "transcript_id",
+                    "has_summary",
+                    "processing",
+                    "resume",
+                    "media_kind",
+                    "youtube_id",
+                    "video",
+                    "description_html",
+                    "link",
+                    "text",
+                    "chapters",
+                    "asset",
+                    "summary",
+                    "snip_count",
+                    "ad_breaks"
+                  ],
+                  "properties": {
+                    "id": {
+                      "minLength": 26,
+                      "maxLength": 26,
+                      "description": "ULID",
+                      "type": "string"
+                    },
+                    "feed_id": {
+                      "minLength": 26,
+                      "maxLength": 26,
+                      "description": "ULID",
+                      "type": "string"
+                    },
+                    "show_title": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "published_at": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "duration_ms": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "image_url": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "asset_id": {
+                      "anyOf": [
+                        {
+                          "minLength": 26,
+                          "maxLength": 26,
+                          "description": "ULID",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "transcript_id": {
+                      "anyOf": [
+                        {
+                          "minLength": 26,
+                          "maxLength": 26,
+                          "description": "ULID",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "has_summary": {
+                      "type": "boolean"
+                    },
+                    "processing": {
+                      "type": "object",
+                      "required": [
+                        "audio",
+                        "transcript",
+                        "text",
+                        "summary"
+                      ],
+                      "properties": {
+                        "audio": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "queued"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "running"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "deferred"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            }
+                          ]
+                        },
+                        "transcript": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "queued"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "running"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "deferred"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            }
+                          ]
+                        },
+                        "text": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "queued"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "running"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "deferred"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            }
+                          ]
+                        },
+                        "summary": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "queued"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "running"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "deferred"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "resume": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "position_ms",
+                            "speed",
+                            "finished",
+                            "device_name",
+                            "updated_at"
+                          ],
+                          "properties": {
+                            "position_ms": {
+                              "minimum": 0,
+                              "description": "milliseconds",
+                              "type": "integer"
+                            },
+                            "speed": {
+                              "type": "number"
+                            },
+                            "finished": {
+                              "type": "boolean"
+                            },
+                            "device_name": {
+                              "type": "string"
+                            },
+                            "updated_at": {
+                              "description": "When the position was observed: the reporting device's observed_at, else when the server received it",
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "media_kind": {
+                      "description": "'video' when the episode is a video (a channel's, or a feed's video enclosure)",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "audio"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "video"
+                          ]
+                        }
+                      ]
+                    },
+                    "youtube_id": {
+                      "anyOf": [
+                        {
+                          "description": "The YouTube video the episode is, or the one its show notes link",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "video": {
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "error"
+                      ],
+                      "properties": {
+                        "status": {
+                          "description": "none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error",
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "available"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "requested"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            }
+                          ]
+                        },
+                        "error": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "description_html": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "link": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "text": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "source",
+                            "kind",
+                            "word_count",
+                            "sections",
+                            "aligned_transcript_id"
+                          ],
+                          "properties": {
+                            "id": {
+                              "minLength": 26,
+                              "maxLength": 26,
+                              "description": "ULID",
+                              "type": "string"
+                            },
+                            "source": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "word_count": {
+                              "type": "integer"
+                            },
+                            "sections": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "title",
+                                  "start_ms",
+                                  "start_word"
+                                ],
+                                "properties": {
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "start_ms": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "start_word": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            },
+                            "aligned_transcript_id": {
+                              "anyOf": [
+                                {
+                                  "minLength": 26,
+                                  "maxLength": 26,
+                                  "description": "ULID",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "chapters": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "source",
+                            "transcript_id",
+                            "items"
+                          ],
+                          "properties": {
+                            "source": {
+                              "description": "Whose chapters: aligned publisher text, the feed's chapters, show-notes timestamps, or the summary model (in that order of preference)",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "publisher"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "feed"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "shownotes"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ai"
+                                  ]
+                                }
+                              ]
+                            },
+                            "transcript_id": {
+                              "anyOf": [
+                                {
+                                  "minLength": 26,
+                                  "maxLength": 26,
+                                  "description": "ULID",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "start_ms",
+                                  "end_ms",
+                                  "start_word",
+                                  "end_word",
+                                  "title",
+                                  "description",
+                                  "kind"
+                                ],
+                                "properties": {
+                                  "start_ms": {
+                                    "minimum": 0,
+                                    "description": "milliseconds",
+                                    "type": "integer"
+                                  },
+                                  "end_ms": {
+                                    "minimum": 0,
+                                    "description": "milliseconds",
+                                    "type": "integer"
+                                  },
+                                  "start_word": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "end_word": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "kind": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "asset": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "duration_ms",
+                            "mime",
+                            "bytes",
+                            "audio_url",
+                            "video_url",
+                            "video_width",
+                            "video_height",
+                            "video_bytes"
+                          ],
+                          "properties": {
+                            "id": {
+                              "minLength": 26,
+                              "maxLength": 26,
+                              "description": "ULID",
+                              "type": "string"
+                            },
+                            "duration_ms": {
+                              "minimum": 0,
+                              "description": "milliseconds",
+                              "type": "integer"
+                            },
+                            "mime": {
+                              "type": "string"
+                            },
+                            "bytes": {
+                              "type": "integer"
+                            },
+                            "audio_url": {
+                              "description": "Signed, expiring; supports Range",
+                              "type": "string"
+                            },
+                            "video_url": {
+                              "anyOf": [
+                                {
+                                  "description": "The recording's video file (MP4) on the same timeline, signed and expiring; null for audio",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "video_width": {
+                              "anyOf": [
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "video_height": {
+                              "anyOf": [
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "video_bytes": {
+                              "anyOf": [
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "summary": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "preview",
+                            "takeaways",
+                            "chapters",
+                            "model",
+                            "prompt_version"
+                          ],
+                          "properties": {
+                            "id": {
+                              "minLength": 26,
+                              "maxLength": 26,
+                              "description": "ULID",
+                              "type": "string"
+                            },
+                            "preview": {
+                              "type": "string"
+                            },
+                            "takeaways": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "text",
+                                  "word"
+                                ],
+                                "properties": {
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "word": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            },
+                            "chapters": {
+                              "type": "array",
+                              "items": {}
+                            },
+                            "model": {
+                              "type": "string"
+                            },
+                            "prompt_version": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "snip_count": {
+                      "type": "integer"
+                    },
+                    "ad_breaks": {
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "start_ms",
+                          "end_ms",
+                          "confidence",
+                          "sources",
+                          "cue"
+                        ],
+                        "properties": {
+                          "start_ms": {
+                            "minimum": 0,
+                            "description": "milliseconds",
+                            "type": "integer"
+                          },
+                          "end_ms": {
+                            "minimum": 0,
+                            "description": "milliseconds",
+                            "type": "integer"
+                          },
+                          "confidence": {
+                            "description": "high when two signals agree, medium when one does",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "high"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "medium"
+                                ]
+                              }
+                            ]
+                          },
+                          "sources": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "publisher_gap"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "sponsor_phrase"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ad_chapter"
+                                  ]
+                                }
+                              ]
+                            }
+                          },
+                          "cue": {
+                            "anyOf": [
+                              {
+                                "description": "The sponsor phrase heard in the break, normalized",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "feed_id": {
+                          "description": "On a 409 from POST /v1/feeds: the feed that already has this URL",
+                          "type": "string"
                         }
                       }
                     }

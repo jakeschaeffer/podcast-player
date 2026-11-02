@@ -9,6 +9,7 @@ import { registerDevicesRoutes } from "./routes/devices.js";
 import { registerEpisodesRoutes } from "./routes/episodes.js";
 import { registerFeedsRoutes } from "./routes/feeds.js";
 import { registerJobsRoutes } from "./routes/jobs.js";
+import { registerLinksRoutes } from "./routes/links.js";
 import { registerPromptsRoutes } from "./routes/prompts.js";
 import { registerMediaRoutes } from "./routes/media.js";
 import { registerPlaybackRoutes } from "./routes/playback.js";
@@ -68,6 +69,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   registerFeedsRoutes(app, ctx);
   registerEpisodesRoutes(app, ctx);
   registerVideoRoutes(app, ctx);
+  registerLinksRoutes(app, ctx);
   registerPlaybackRoutes(app, ctx);
   registerSnipsRoutes(app, ctx);
   registerJobsRoutes(app, ctx);
