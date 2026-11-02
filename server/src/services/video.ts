@@ -26,7 +26,7 @@ import { normalize } from "../core/transcript/normalize.js";
 import type { AudioAssetRow, EpisodeRow } from "../db/rows.js";
 import { DeferJob, NonRetryable } from "../jobs/errors.js";
 import { PRIORITY, type Job } from "../jobs/queue.js";
-import { probeAudio } from "../lib/ffprobe.js";
+import { probeAudio, type AudioProbe } from "../lib/ffprobe.js";
 import { hashFile } from "../lib/hash.js";
 import { newId } from "../lib/ids.js";
 import { downloadToFile, redact, safeFetch } from "../lib/safeFetch.js";
@@ -161,9 +161,11 @@ export function videoFailed(ctx: AppContext, episodeId: string, message: string)
  */
 export async function storeVideoFile(ctx: AppContext, episodeId: string, tmpPath: string): Promise<AudioAssetRow> {
   const ep = getEpisodeRow(ctx, episodeId);
-  const probe = await probeAudio(tmpPath);
+  let probe = await probeAudio(tmpPath);
   if (!probe.video) throw badRequest("the file is not a video");
   if (probe.mime !== "video/mp4") throw badRequest(`only MP4 video is accepted (this is ${probe.mime})`);
+  ({ path: tmpPath, probe } = await downscaleIfTall(ctx, tmpPath, probe));
+  const picture = probe.video!;
   const videoSha = await hashFile(tmpPath);
   const already = ctx.db.prepare("SELECT * FROM audio_asset WHERE episode_id = ? AND video_sha256 = ?").get(episodeId, videoSha) as AudioAssetRow | undefined;
   if (already) {
@@ -188,7 +190,7 @@ export async function storeVideoFile(ctx: AppContext, episodeId: string, tmpPath
       await rename(tmpPath, videoPath);
       ctx.db
         .prepare("UPDATE audio_asset SET video_path = ?, video_sha256 = ?, video_bytes = ?, video_width = ?, video_height = ?, video_last_played_at = ? WHERE id = ?")
-        .run(videoPath, videoSha, probe.bytes, probe.video.width, probe.video.height, ctx.now(), dropped.id);
+        .run(videoPath, videoSha, probe.bytes, picture.width, picture.height, ctx.now(), dropped.id);
       settle(ctx, ep, dropped);
       ctx.log("video restored", { episode_id: ep.id, asset_id: dropped.id, video_bytes: probe.bytes });
       await pruneVideosToCap(ctx);
@@ -201,7 +203,7 @@ export async function storeVideoFile(ctx: AppContext, episodeId: string, tmpPath
     const asset: AudioAssetRow = {
       id: newId(), episode_id: ep.id, sha256: audioSha, bytes: audio.bytes, duration_ms: audio.duration_ms, mime: audio.mime, path: audioPath,
       transcript_id: null, summary_id: null, pinned: 0, created_at: ctx.now(),
-      video_path: videoPath, video_sha256: videoSha, video_bytes: probe.bytes, video_width: probe.video.width, video_height: probe.video.height, video_last_played_at: null,
+      video_path: videoPath, video_sha256: videoSha, video_bytes: probe.bytes, video_width: picture.width, video_height: picture.height, video_last_played_at: null,
     };
     ctx.db
       .prepare(
@@ -213,13 +215,44 @@ export async function storeVideoFile(ctx: AppContext, episodeId: string, tmpPath
     // Publisher text is timed against one recording, and this one has its own timeline.
     const texts = ctx.db.prepare("SELECT id FROM episode_text WHERE episode_id = ?").pluck().all(ep.id) as string[];
     for (const textId of texts) ctx.queue.enqueue("align_text", `align_text:${textId}`, { text_id: textId }, { priority: PRIORITY.catalog, rerun: true });
-    ctx.log("video stored", { episode_id: ep.id, asset_id: asset.id, video_bytes: probe.bytes, size: `${probe.video.width}x${probe.video.height}`, duration_ms: audio.duration_ms });
+    ctx.log("video stored", { episode_id: ep.id, asset_id: asset.id, video_bytes: probe.bytes, size: `${picture.width}x${picture.height}`, duration_ms: audio.duration_ms });
     await fetchFeedChapters(ctx, ep.id);
     await pruneVideosToCap(ctx);
     return asset;
   } catch (err) {
     await rm(audioTmp, { force: true });
     await rm(tmpPath, { force: true });
+    throw err;
+  }
+}
+
+/**
+ * A video taller than `VIDEO_MAX_HEIGHT` (480 by default, the home fetcher's limit too) is scaled down before it is
+ * kept: a 4K file from a CDN is five to ten times the size of a 480p one and no better on a phone, and the store's
+ * cap (4 GB) would hold three of them. The shorter side becomes the limit, so portrait video is treated alike.
+ * H.264 at a quality that stays watchable, the audio stream untouched when it is AAC (so the audio pulled out
+ * beside it is the same as the original's). Software x264 on a small server runs near realtime for 4K, which is why
+ * this happens in the fetch job, under its heartbeat, and politely (`nice`). The original is deleted.
+ */
+async function downscaleIfTall(ctx: AppContext, path: string, probe: AudioProbe): Promise<{ path: string; probe: AudioProbe }> {
+  const limit = ctx.config.videoMaxHeight;
+  if (!probe.video || limit <= 0 || Math.min(probe.video.width, probe.video.height) <= limit) return { path, probe };
+  const scale = probe.video.width >= probe.video.height ? `scale=-2:${limit}` : `scale=${limit}:-2`;
+  const out = join(ctx.paths.tmp, `${newId()}.480.mp4`);
+  const started = Date.now();
+  try {
+    await execFileAsync(
+      "nice",
+      ["-n", "10", "ffmpeg", "-v", "error", "-y", "-i", path, "-vf", scale, "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-movflags", "+faststart", ...(probe.codec === "aac" ? ["-c:a", "copy"] : ["-c:a", "aac", "-b:a", "128k"]), "-f", "mp4", out],
+      { maxBuffer: 1024 * 1024 },
+    );
+    const after = await probeAudio(out);
+    if (!after.video) throw new Error("the downscaled file has no picture");
+    await rm(path, { force: true });
+    ctx.log("video downscaled", { from: `${probe.video.width}x${probe.video.height}`, to: `${after.video.width}x${after.video.height}`, bytes_before: probe.bytes, bytes_after: after.bytes, elapsed_ms: Date.now() - started });
+    return { path: out, probe: after };
+  } catch (err) {
+    await rm(out, { force: true });
     throw err;
   }
 }

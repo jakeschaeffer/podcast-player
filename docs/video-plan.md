@@ -114,10 +114,15 @@ search on either client or shared into the iOS app, becomes a one-off episode: `
    finished episode's video is dropped a day after the finished report, unless it is played again meanwhile; and
    the store is kept under `VIDEO_STORE_MAX_BYTES` (4 GB), the least recently played first, sparing anything fetched
    in the last day. The audio is always kept, so transcripts and snips never break when a video is dropped, and
-   "Watch video" fetches it again. No transcoding: measured on the NAS, software HEVC was slow and hardly smaller
-   than YouTube's own encode at a watchable quality (fetcher/README.md); the fetcher's `SNIP_MAX_HEIGHT` is the
-   size lever (720p ≈ 350–450 MB an hour, 480p about half; 480 is the default since 2026-10-31, so the 4 GB cap
-   holds about 20 hours).
+   "Watch video" fetches it again. No transcoding on the NAS: measured there, software HEVC was slow and hardly
+   smaller than YouTube's own encode at a watchable quality (fetcher/README.md); the fetcher's `SNIP_MAX_HEIGHT` is
+   the size lever (720p ≈ 350–450 MB an hour, 480p about half; 480 is the default since 2026-10-31, so the 4 GB cap
+   holds about 20 hours). Files the server fetches itself (one-off links, a feed's own video) come as they are, so
+   since 2026-11-02 the server scales any video taller than `VIDEO_MAX_HEIGHT` (480, the fetcher's limit) down
+   before keeping it, H.264 at a watchable quality with the audio stream untouched: a 4K one-off (1.1 GB for 50 min)
+   lands at 480p like everything else. Software x264 on the VPS runs about realtime for 4K, inside the fetch job
+   under its heartbeat, at low priority. The fetcher is never involved in one-offs: they do not need yt-dlp, and
+   the home box being off should not hold them up.
 6. **Snips from a video**: the clip stays an `mp3` as now, and an `mp4` with a poster is cut beside it so the public
    pages play the picture and link previews can (`og:video`). The cut needs the video on disk: a snip whose video has
    gone stays audio-only until the same recording is fetched again (an hourly sweep then cuts it).

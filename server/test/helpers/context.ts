@@ -18,6 +18,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     publicBaseUrl: "http://pods.test",
     shareByName: "Jake",
     videoStoreMaxBytes: 4 * 1024 ** 3,
+    videoMaxHeight: 480,
     timezone: "UTC",
     elevenLabsApiKey: null,
     transcriptionCentsPerHour: 22,

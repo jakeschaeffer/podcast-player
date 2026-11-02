@@ -17,6 +17,8 @@ export type Config = {
   shareByName: string;
   /** How much video the server keeps at most; the least recently played goes first (services/video.ts). */
   videoStoreMaxBytes: number;
+  /** A video the server fetches itself is scaled down to this many pixels on its shorter side when taller; 0 keeps it as it is. */
+  videoMaxHeight: number;
   /** IANA timezone for the daily refresh window. */
   timezone: string;
   elevenLabsApiKey: string | null;
@@ -61,6 +63,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     publicBaseUrl: (env.PUBLIC_BASE_URL ?? `http://127.0.0.1:${port}`).replace(/\/+$/, ""),
     shareByName: env.SHARE_BY_NAME ?? "",
     videoStoreMaxBytes: Number(env.VIDEO_STORE_MAX_BYTES ?? 4 * 1024 ** 3),
+    videoMaxHeight: Number(env.VIDEO_MAX_HEIGHT ?? 480),
     timezone: env.TIMEZONE ?? "UTC",
     elevenLabsApiKey: env.ELEVENLABS_API_KEY ?? null,
     transcriptionCentsPerHour: Number(env.TRANSCRIPTION_CENTS_PER_HOUR ?? 22),

@@ -29,6 +29,8 @@ In production the server runs as a systemd service behind nginx (`../deploy/READ
 | `SELECTION_MODEL` | `on` lets the text model adjust snip starts; off keeps selection deterministic (the measured default) | `off` |
 | `PUBLIC_BASE_URL` | Origin used in share and media URLs (`https://snip.example.com` in production). The login cookie's `Secure` flag follows the request's scheme, not this value | `http://127.0.0.1:PORT` |
 | `SHARE_BY_NAME` | The name on share cards and public pages ("10 clips from Jake"); empty leaves just the count | empty |
+| `VIDEO_STORE_MAX_BYTES` | How much video the server keeps on disk; the least recently played is dropped first (docs/video-plan.md) | 4 GB |
+| `VIDEO_MAX_HEIGHT` | A video taller than this on its shorter side is scaled down (H.264, x264 `veryfast`) before it is kept: a 4K one-off becomes 480p like the fetcher's YouTube files. `0` keeps files as they come | `480` |
 | `DATA_DIR` | Holds `app.db` and `media/` | `./data` |
 | `HOST`, `PORT` | Listen address | `127.0.0.1`, `8080` |
 | `REFRESH_INTERVAL_MINUTES` | How often the worker refreshes every feed; `0` disables (use cron with `POST /v1/refresh-runs`) | `30` |
