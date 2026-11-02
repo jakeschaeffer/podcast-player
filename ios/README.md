@@ -64,7 +64,7 @@ access to every build, so an upload reaches the phone once processing finishes. 
 
 | Done | Next |
 | --- | --- |
-| Login (Keychain token per server), Today, Library, show search and browsing a show without following it, feed episodes (paged), YouTube channels and single videos by pasted link, player (resume, scrub, skip 15/30, speed, chapters, Up next with drag ordering and auto-advance, open paused), follow-along transcript with text size, karaoke read-along sideways, video (inline, and full screen sideways with the controls over it), lock screen, Live Activity and remote commands, signed-URL renewal, playback reports with `observed_at` and an offline outbox, downloads for offline playing; snips: create (offline outbox), card with ETag polling and in-place title edits, clip and share, Snips tab, per-episode snips sheet, editor (title, In/Out by word tap or ±1/±5 s, preview, `if_revision`; span rules pass `span_points_v1`), Prompts screens (updated 2026-11-01) | `NWPathMonitor` flushes, `beginBackgroundTask` on background; snip search, revoke/restore, delete; SponsorBlock; video clips on public pages |
+| Login (Keychain token per server), Today, Library, show search and browsing a show without following it, feed episodes (paged), YouTube channels and single videos by pasted link, one-off links to media files, the share sheet (a video link becomes an episode, a channel is followed), player (resume, scrub, skip 15/30, speed, chapters, Up next with drag ordering and auto-advance, open paused), follow-along transcript with text size, karaoke read-along sideways, video (inline, and full screen sideways with the controls over it), lock screen, Live Activity and remote commands, signed-URL renewal, playback reports with `observed_at` and an offline outbox, downloads for offline playing; snips: create (offline outbox), card with ETag polling and in-place title edits, clip and share, Snips tab, per-episode snips sheet, editor (title, In/Out by word tap or ±1/±5 s, preview, `if_revision`; span rules pass `span_points_v1`), Prompts screens (updated 2026-11-01) | `NWPathMonitor` flushes, `beginBackgroundTask` on background; snip search, revoke/restore, delete; SponsorBlock; video clips on public pages |
 
 ## Downloads
 
@@ -98,6 +98,19 @@ player (`POST /v1/youtube/episodes`); the channel stays unfollowed until followe
 audio file (`MediaLink`, by extension) becomes a one-off episode of the "Pasted links" show, which the server downloads
 and transcribes (`POST /v1/links/episodes`, docs/video-plan.md); the Library lists that show, and its page has nothing
 to follow. A link to a web page is refused with the server's message.
+
+## Share sheet
+
+The app appears in the iOS share sheet (`SnipShare/`, a share extension, bundle `$(ORG_IDENTIFIER).Snip.Share`): a link
+shared from the YouTube app, Safari or anywhere else goes to the server the app is signed in to. A YouTube channel is
+followed (`POST /v1/feeds`; one the library already has is followed from then on); any other link becomes an episode
+with the default processing, `POST /v1/links/episodes`: a YouTube video of its channel's show, fetched at home, or a
+media file as a one-off of "Pasted links", downloaded by the server; both transcribed. The sheet says what was made
+(or the server's reason, as for a page link) and closes by itself. The extension is its own process with none of the
+app's state, so `SharedSession` (PodcastAPI) keeps the current server in the Keychain beside the token, in the app's
+own access group, which both targets' entitlements name (`Config/Snip.entitlements`, `Config/SnipShare.entitlements`);
+the app writes it at launch and on sign-in. Nothing in the developer portal is needed for that group; `testflight.sh`
+mints the extension's App Store profile like the Live Activity's.
 
 ## Design notes
 

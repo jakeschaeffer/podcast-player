@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // App Store Connect setup for Snip, through the ASC REST API (no Xcode account needed). Idempotent:
-//   node ios/scripts/asc.mjs ensure-profile   # register the bundle id and mint + install an App Store profile
+//   node ios/scripts/asc.mjs ensure-profile [bundle id]   # register the bundle id and mint + install an App Store profile
 //   node ios/scripts/asc.mjs app              # print the app record's id, if it exists
 // Your team's values come from scripts/local.env (gitignored; copy local.env.example): the key id and issuer of an
 // App Store Connect API key with the App Manager role, whose .p8 sits at ~/.appstoreconnect/private_keys/AuthKey_<id>.p8.
@@ -57,7 +57,7 @@ async function bundleId(identifier) {
   return made.data.id;
 }
 
-/** `ensure-profile [bundle id]`: the app's App Store profile, or an extension's (`<bundle id>.LiveActivity`). */
+/** `ensure-profile [bundle id]`: the app's App Store profile, or an extension's (`<bundle id>.LiveActivity`, `<bundle id>.Share`). */
 async function ensureProfile() {
   const identifier = process.argv[3] ?? BUNDLE_ID;
   const PROFILE_NAME = `AS ${identifier}`;

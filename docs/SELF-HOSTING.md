@@ -117,8 +117,8 @@ or nothing. The phone keeps the server it signed in with.
 3. An Apple Distribution certificate on the Mac (Xcode → Settings → Accounts → Manage Certificates).
 4. `cp ios/scripts/local.env.example ios/scripts/local.env` with your team, org id, key id and issuer.
 
-The script registers the bundle ids, mints App Store profiles named `AS <bundle id>`, makes an internal TestFlight
-group "Owner" with the account holder in it, and uploads. Internal testing needs no review; the build reaches your
+The script registers the bundle ids (the app, its Live Activity and its share extension), mints App Store profiles
+named `AS <bundle id>`, makes an internal TestFlight group "Owner" with the account holder in it, and uploads. Internal testing needs no review; the build reaches your
 phone once processing finishes, and expires after 90 days. To let someone else use your build, add them to a
 TestFlight group; they type their own server's address on the login screen.
 
