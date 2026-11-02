@@ -61,6 +61,8 @@ final class AppModel {
     let parts = Self.connect(to: server)
     (serverURL, tokens, api, reporter, engine, snips, downloads) = (server, parts.tokens, parts.api, parts.reporter, parts.engine, parts.snips, parts.downloads)
     signedIn = parts.tokens.load() != nil
+    // The share sheet reads the server from the Keychain (SharedSession); a build from before it wrote nothing there.
+    if signedIn { SharedSession.rememberServer(server) }
     listenForDeliveredSnips()
     wireQueue()
     wireLiveActivity()
@@ -80,6 +82,7 @@ final class AppModel {
     downloads.invalidate()
     let parts = Self.connect(to: server)
     parts.tokens.save(login.token)
+    SharedSession.rememberServer(server)
     (serverURL, tokens, api, reporter, engine, snips, downloads) = (server, parts.tokens, parts.api, parts.reporter, parts.engine, parts.snips, parts.downloads)
     listenForDeliveredSnips()
     wireQueue()
@@ -91,6 +94,7 @@ final class AppModel {
     engine.pause()
     liveActivity.end()
     tokens.clear()
+    SharedSession.forgetServer()
     signedIn = false
   }
 

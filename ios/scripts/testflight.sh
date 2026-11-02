@@ -1,6 +1,7 @@
 #!/bin/bash
 # Archive Snip, sign it for the App Store and upload it to TestFlight, headless: manual signing with the account's
-# Apple Distribution certificate and an App Store profile minted through the API (scripts/asc.mjs), then altool.
+# Apple Distribution certificate and App Store profiles minted through the API (scripts/asc.mjs): one each for the
+# app, its Live Activity and its share extension. Then altool.
 #   ios/scripts/testflight.sh
 # Your team, org id and App Store Connect key come from scripts/local.env (gitignored; copy local.env.example).
 # TestFlight builds expire after 90 days; rerun this to replace one.
@@ -14,11 +15,13 @@ for v in TEAM_ID ORG_IDENTIFIER ASC_KEY_ID ASC_ISSUER; do
 done
 APP_BUNDLE_ID="$ORG_IDENTIFIER.Snip"
 EXTENSION_BUNDLE_ID="$APP_BUNDLE_ID.LiveActivity"
+SHARE_BUNDLE_ID="$APP_BUNDLE_ID.Share"
 export SNIP_BUNDLE_ID="$APP_BUNDLE_ID" SNIP_ASC_KEY_ID="$ASC_KEY_ID" SNIP_ASC_ISSUER="$ASC_ISSUER"
 
 node scripts/asc.mjs app >/dev/null  # fails early with instructions when the app record is missing
 PROFILE=$(node scripts/asc.mjs ensure-profile)
 EXTENSION_PROFILE=$(node scripts/asc.mjs ensure-profile "$EXTENSION_BUNDLE_ID")  # the Live Activity widget
+SHARE_PROFILE=$(node scripts/asc.mjs ensure-profile "$SHARE_BUNDLE_ID")  # the share sheet extension
 node scripts/asc.mjs ensure-beta-group >/dev/null  # internal group "Owner": every build reaches your phone
 BUILD=$(date -u +%y%m%d%H%M)  # always increasing, which App Store Connect requires
 OUT="${TMPDIR:-/tmp}/snip-testflight-$BUILD"
@@ -30,7 +33,7 @@ xcodebuild archive \
   -destination 'generic/platform=iOS' -archivePath "$OUT/Snip.xcarchive" \
   CURRENT_PROJECT_VERSION="$BUILD" DEVELOPMENT_TEAM="$TEAM_ID" ORG_IDENTIFIER="$ORG_IDENTIFIER" \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" \
-  SNIP_APP_PROFILE="$PROFILE" SNIP_EXTENSION_PROFILE="$EXTENSION_PROFILE" \
+  SNIP_APP_PROFILE="$PROFILE" SNIP_EXTENSION_PROFILE="$EXTENSION_PROFILE" SNIP_SHARE_PROFILE="$SHARE_PROFILE" \
   -quiet
 
 cat > "$OUT/ExportOptions.plist" <<PLIST
@@ -44,6 +47,7 @@ cat > "$OUT/ExportOptions.plist" <<PLIST
   <key>provisioningProfiles</key><dict>
     <key>$APP_BUNDLE_ID</key><string>$PROFILE</string>
     <key>$EXTENSION_BUNDLE_ID</key><string>$EXTENSION_PROFILE</string>
+    <key>$SHARE_BUNDLE_ID</key><string>$SHARE_PROFILE</string>
   </dict>
   <key>uploadSymbols</key><true/>
 </dict></plist>

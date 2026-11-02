@@ -37,7 +37,14 @@ bundle id are in ../CLAUDE.local.md and the gitignored `Config/Local.xcconfig` a
   `$(ORG_IDENTIFIER).Snip.LiveActivity`, embedded in the app). What both sides must agree on (the activity's state,
   the buttons' `LiveActivityIntent`s) lives in `Packages/SnipActivity`, which both link; the intents run in the app's
   process through `PlaybackActivityControl.handler`. `testflight.sh` mints an App Store profile for each bundle and
-  passes them as `SNIP_APP_PROFILE` / `SNIP_EXTENSION_PROFILE`.
+  passes them as `SNIP_APP_PROFILE` / `SNIP_EXTENSION_PROFILE` / `SNIP_SHARE_PROFILE`.
+- **Share sheet** is a third target, `SnipShare/` (bundle `$(ORG_IDENTIFIER).Snip.Share`, a share extension embedded
+  in the app). It runs in its own process with none of the app's state and no DEBUG dev-auth, so it reads the server
+  and the device token from the Keychain through the app's access group (`Config/*.entitlements` name
+  `$(AppIdentifierPrefix)$(ORG_IDENTIFIER).Snip` on both targets; `SharedSession` in PodcastAPI), then calls the
+  server itself: a channel link is followed (`POST /v1/feeds`), any other link becomes an episode
+  (`POST /v1/links/episodes`). In the simulator, share a page from Safari to try it; the app must have been opened
+  signed in once, since it writes the server to the Keychain at launch.
 - **Nothing of one deployment in the code.** Identifiers derive from the bundle id (`TokenStore.defaultService`,
   `DownloadStore.sessionIdentifier`); the default server comes from Info.plist through the xcconfigs. A hostname,
   team or account that belongs to the owner goes in the gitignored files above, not in a Swift file, a script or a doc.
