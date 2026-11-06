@@ -127,7 +127,8 @@ function toListItem(ctx: AppContext, ep: EpisodeRow, feed: Pick<FeedRow, "title"
     transcript_id: asset?.transcript_id ?? null,
     has_summary: asset?.summary_id !== null && asset?.summary_id !== undefined,
     processing: {
-      audio: jobState(ctx, `fetch_audio:${ep.id}`, asset !== null),
+      // A channel's video has no audio job: its recording comes through fetch_video, so that job's failure is this one's.
+      audio: jobState(ctx, fromHomeFetcher(ep) ? `fetch_video:${ep.id}` : `fetch_audio:${ep.id}`, asset !== null),
       transcript: asset ? jobState(ctx, `transcribe:${asset.id}`, (ctx.db.prepare("SELECT 1 FROM transcript WHERE audio_asset_id = ? AND source IN ('asr', 'captions')").get(asset.id) ?? null) !== null) : "none",
       text: textState(ctx, ep.id, asset),
       summary: asset ? jobState(ctx, `summarize_episode:${asset.id}`, asset.summary_id !== null) : "none",

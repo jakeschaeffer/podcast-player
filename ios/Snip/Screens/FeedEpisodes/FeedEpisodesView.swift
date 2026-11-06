@@ -63,6 +63,9 @@ struct FeedEpisodesView: View {
           .onAppear { if ep.id == episodes.last?.id, next != nil { Task { await loadMore() } } }
         }
         if loading { ProgressView().frame(maxWidth: .infinity) }
+        if let more = feed.moreVideos, feed.kind == "youtube", loaded, !loading, next == nil, !episodes.isEmpty {
+          moreVideosRow(more)
+        }
       }
     }
     .listSectionSpacing(24)
@@ -88,6 +91,44 @@ struct FeedEpisodesView: View {
       if feed.episodeCount != count { await reload() }
     }
     .refreshable { await reload() }
+    // A channel's older videos: the home fetcher lists them, so look again until it has, then show what it found.
+    .task(id: feed.moreVideos?.status == "requested") {
+      guard feed.moreVideos?.status == "requested" else { return }
+      while !Task.isCancelled {
+        try? await Task.sleep(for: .seconds(5))
+        guard !Task.isCancelled, let fresh = try? await model.api.feed(feed.id) else { continue }
+        feed = fresh
+        if fresh.moreVideos?.status != "requested" {
+          await reload()
+          return
+        }
+      }
+    }
+  }
+
+  @ViewBuilder private func moreVideosRow(_ more: MoreVideos) -> some View {
+    switch more.status {
+    case "ended":
+      Text("That’s every video on this channel.").foregroundStyle(.secondary)
+    case "requested":
+      HStack(spacing: 8) {
+        ProgressView()
+        Text("Getting the next 15…").foregroundStyle(.secondary)
+      }
+    default:
+      if let problem = more.error {
+        Text("Couldn’t list more videos: \(problem)").font(.footnote).foregroundStyle(.red)
+      }
+      Button("More videos") {
+        Task {
+          do {
+            feed = try await model.api.moreVideos(feed.id)
+          } catch {
+            self.error = error.localizedDescription
+          }
+        }
+      }
+    }
   }
 
   private var header: some View {

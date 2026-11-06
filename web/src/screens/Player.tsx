@@ -18,6 +18,7 @@ import { TranscriptView } from "../player/TranscriptView";
 import { VideoSurface } from "../player/VideoSurface";
 import { describeError } from "../api/client";
 import { requestVideo } from "../api/video";
+import { VideoDetails } from "./VideoDetails";
 import { UpNext } from "../player/UpNext";
 import { snipOutbox } from "../snips/outbox";
 import { clipPlayer } from "../snips/clipPlayer";
@@ -159,6 +160,8 @@ export function Player({ episodeId }: { episodeId: string }) {
       toast(describeError(e));
     }
   }
+
+  if (p.status === "details" && episode) return <VideoDetails episode={episode} artwork={artwork} onFetch={watchVideo} />;
 
   return (
     <div className={`screen screen--full player${p.video ? " player--video" : ""}${sheetOpen ? (wide ? " player--docked" : " player--card") : ""}`}>

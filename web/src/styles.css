@@ -750,3 +750,13 @@ img { display: block; }
   .screen--compose .editor__head-mid { align-items: flex-start; }
   .screen--compose .textarea { font-size: 18px; padding: 18px 20px; }
 }
+
+/* A channel's video before it is fetched: its details, and Fetch. */
+.video-details { display: flex; flex-direction: column; gap: 12px; }
+.video-details__title { font-size: 22px; line-height: 1.25; margin: 0; }
+.video-details__fetch { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.video-details__fetch .empty { padding: 0; text-align: left; font-size: 15px; }
+.video-details__notes { font-size: 16px; line-height: 1.45; overflow-wrap: anywhere; }
+.video-details__notes a { color: var(--accent, inherit); }
+.video-details__heading { font-size: 17px; margin: 8px 0 4px; }
+.video-details__chapters { margin: 0; padding-left: 22px; font-size: 15px; line-height: 1.6; }

@@ -23,7 +23,7 @@ import { reportPlayback } from "./reporter";
  *
  * Reports go out every 15 s while playing and at once on pause, seek, hide, and unload.
  */
-export type PlayerStatus = "idle" | "loading" | "preparing" | "ready" | "error";
+export type PlayerStatus = "idle" | "loading" | "details" | "preparing" | "ready" | "error";
 
 export interface PlayerState {
   /** The recording is playing through the video element (it has a picture, and video is wanted). */
@@ -161,7 +161,14 @@ export class PlayerEngine {
   }
 
   /** Read the episode again and go on from the same spot: for when its recording has changed (its video arrived). */
-  reload(): Promise<void> {
+  async reload(): Promise<void> {
+    // A channel's video that was only being looked at has arrived: now there is something to play.
+    if (this.state.status === "details" && this.state.episodeId) {
+      const id = this.state.episodeId;
+      const ep = await unwrap(api.GET("/v1/episodes/{id}", { params: { path: { id } } }));
+      if (this.state.episodeId === id && ep.asset) this.attach(ep, false);
+      return;
+    }
     return this.renewSource({ resume: this.state.playing });
   }
 
@@ -251,6 +258,11 @@ export class PlayerEngine {
     try {
       let ep = await unwrap(api.GET("/v1/episodes/{id}", { params: { path: { id: episodeId } } }));
       if (token !== this.openToken) return;
+      // A channel's video opens on its details: the download is hours of the home connection, and only Fetch asks for it.
+      if (!ep.asset && ep.media_kind === "video" && ep.youtube_id) {
+        this.set({ status: "details", episode: ep, durationMs: ep.duration_ms ?? 0 });
+        return;
+      }
       if (!ep.asset) {
         ep = await unwrap(api.POST("/v1/episodes/{id}/audio", { params: { path: { id: episodeId } } }));
         if (token !== this.openToken) return;

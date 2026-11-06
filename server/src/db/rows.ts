@@ -12,6 +12,8 @@ export type FeedRow = {
   backfill: number;
   /** 0 for a show opened from search without subscribing: out of the library, Today, and the scheduled refresh. */
   followed: number;
+  /** A channel's older videos, listed by the home fetcher on the owner's request (services/channelVideos.ts). */
+  listing_wanted: number; listing_offset: number; listing_ended: number; listing_error: string | null;
 };
 
 export type EpisodeRow = {
@@ -24,6 +26,8 @@ export type EpisodeRow = {
   media_kind: "audio" | "video"; youtube_id: string | null;
   /** A feed's own video file, when the episode has an audio enclosure too. */
   video_url_enc: Buffer | null;
+  /** When the home fetcher sent the video's details; when to try its captions again, and how many tries so far. */
+  metadata_at: number | null; captions_retry_at: number | null; captions_tries: number;
 };
 
 export type AudioAssetRow = {

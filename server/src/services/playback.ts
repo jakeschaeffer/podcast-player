@@ -58,8 +58,9 @@ export function reportPlayback(ctx: AppContext, deviceId: string, assetId: strin
   if (current && current !== assetId && carryPlace(ctx, assetId, current, deviceId) && report.finished) scheduleVideoPrune(ctx, current);
   if (report.playing && asset.transcript_id === null) {
     // Shows in manual mode (auto_process off) are only transcribed on request or when a snip needs it.
-    const feed = ctx.db.prepare("SELECT f.auto_process FROM episode e JOIN feed f ON f.id = e.feed_id WHERE e.id = ?").get(asset.episode_id) as { auto_process: number } | undefined;
-    if (feed?.auto_process === 1) ctx.queue.enqueue("transcribe", `transcribe:${assetId}`, { asset_id: assetId }, { priority: PRIORITY.play });
+    // Captions due another try will be the transcript for free, so playing does not bill for one meanwhile.
+    const feed = ctx.db.prepare("SELECT f.auto_process, e.captions_retry_at FROM episode e JOIN feed f ON f.id = e.feed_id WHERE e.id = ?").get(asset.episode_id) as { auto_process: number; captions_retry_at: number | null } | undefined;
+    if (feed?.auto_process === 1 && feed.captions_retry_at === null) ctx.queue.enqueue("transcribe", `transcribe:${assetId}`, { asset_id: assetId }, { priority: PRIORITY.play });
   }
   const state = ctx.db.prepare("SELECT * FROM playback_state WHERE device_id = ? AND audio_asset_id = ?").get(deviceId, assetId) as PlaybackStateRow;
   return { accepted: true, state };

@@ -22,6 +22,7 @@ export const FeedSchema = Type.Object({
   is_private: Type.Boolean(), auto_process: Type.Boolean(), transcriber: Type.String(), keyterms: Type.Array(Type.String()), backfill: Type.Integer(),
   last_refresh_at: Nullable(Type.Integer()), last_error: Nullable(Type.String()), episode_count: Type.Integer(), created_at: Type.Integer(),
   followed: Type.Boolean({ description: "In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule" }),
+  more_videos: Type.Object({ status: Type.Union([Type.Literal("idle"), Type.Literal("requested"), Type.Literal("failed"), Type.Literal("ended")]), error: Nullable(Type.String()) }, { description: "A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video" }),
 });
 export const AddFeedBody = Type.Object({
   url: Type.String({ description: "Feed URL. Private feeds carry their credential in the URL; it is encrypted at rest and never returned." }),
@@ -57,6 +58,8 @@ export const EpisodeListItemSchema = Type.Object({
     error: Nullable(Type.String()),
   }),
 });
+export const WantedListingSchema = Type.Object({ feed_id: Id, channel_id: Type.String(), offset: Type.Integer(), count: Type.Integer() });
+export const WantedDetailsSchema = Type.Object({ episode_id: Id, youtube_id: Type.String(), title: Type.String() });
 export const WantedVideoSchema = Type.Object({ episode_id: Id, youtube_id: Type.String(), title: Type.String(), show_title: Nullable(Type.String()), requested_at: Type.Integer() });
 export const ChapterSchema = Type.Object({ start_ms: Ms, end_ms: Ms, start_word: Type.Integer(), end_word: Type.Integer(), title: Type.String(), description: Type.String(), kind: Type.String() });
 export const EpisodeDetailSchema = Type.Composite([

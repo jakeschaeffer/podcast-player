@@ -246,6 +246,11 @@ export interface paths {
                             created_at: number;
                             /** @description In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule */
                             followed: boolean;
+                            /** @description A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video */
+                            more_videos: {
+                                status: "idle" | "requested" | "failed" | "ended";
+                                error: string | null;
+                            };
                         }[];
                     };
                 };
@@ -309,6 +314,11 @@ export interface paths {
                             created_at: number;
                             /** @description In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule */
                             followed: boolean;
+                            /** @description A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video */
+                            more_videos: {
+                                status: "idle" | "requested" | "failed" | "ended";
+                                error: string | null;
+                            };
                         };
                     };
                 };
@@ -383,6 +393,11 @@ export interface paths {
                             created_at: number;
                             /** @description In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule */
                             followed: boolean;
+                            /** @description A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video */
+                            more_videos: {
+                                status: "idle" | "requested" | "failed" | "ended";
+                                error: string | null;
+                            };
                         };
                     };
                 };
@@ -482,6 +497,11 @@ export interface paths {
                             created_at: number;
                             /** @description In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule */
                             followed: boolean;
+                            /** @description A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video */
+                            more_videos: {
+                                status: "idle" | "requested" | "failed" | "ended";
+                                error: string | null;
+                            };
                         };
                     };
                 };
@@ -2150,6 +2170,564 @@ export interface paths {
                                 /** @description On a 409 from POST /v1/feeds: the feed that already has this URL */
                                 feed_id?: string;
                             };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/feeds/{id}/more-videos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for the channel's next fifteen older videos. The home fetcher lists them; nothing is downloaded. Asking again before they arrive is the same request. 202 with the feed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description ULID */
+                            id: string;
+                            /** @description 'youtube': a channel, whose episodes are videos; 'links': the Pasted links show, one-off files the owner pasted (POST /v1/links/episodes), followed and never refreshed */
+                            kind: "podcast" | "text" | "youtube" | "links";
+                            text_for_feed_id: string | null;
+                            title: string | null;
+                            author: string | null;
+                            image_url: string | null;
+                            site_url: string | null;
+                            language: string | null;
+                            is_private: boolean;
+                            auto_process: boolean;
+                            transcriber: string;
+                            keyterms: string[];
+                            backfill: number;
+                            last_refresh_at: number | null;
+                            last_error: string | null;
+                            episode_count: number;
+                            created_at: number;
+                            /** @description In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule */
+                            followed: boolean;
+                            /** @description A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video */
+                            more_videos: {
+                                status: "idle" | "requested" | "failed" | "ended";
+                                error: string | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: {
+                                code: string;
+                                message: string;
+                                /** @description On a 409 from POST /v1/feeds: the feed that already has this URL */
+                                feed_id?: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/video/listings/wanted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** For the home fetcher: channels whose owner asked for more videos */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                /** @description ULID */
+                                feed_id: string;
+                                channel_id: string;
+                                offset: number;
+                                count: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/feeds/{id}/videos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** For the home fetcher: a page of the channel's videos, newest first. Those the library lacks become episodes, with nothing downloaded */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        videos: {
+                            youtube_id: string;
+                            title: string;
+                            duration_ms?: number | null;
+                            thumbnail_url?: string | null;
+                            published_at?: number | null;
+                        }[];
+                        ended: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            added: number;
+                            wanted: number;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: {
+                                code: string;
+                                message: string;
+                                /** @description On a 409 from POST /v1/feeds: the feed that already has this URL */
+                                feed_id?: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/feeds/{id}/videos/failed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** For the home fetcher: the channel could not be listed; the apps show the message */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description ULID */
+                            id: string;
+                            /** @description 'youtube': a channel, whose episodes are videos; 'links': the Pasted links show, one-off files the owner pasted (POST /v1/links/episodes), followed and never refreshed */
+                            kind: "podcast" | "text" | "youtube" | "links";
+                            text_for_feed_id: string | null;
+                            title: string | null;
+                            author: string | null;
+                            image_url: string | null;
+                            site_url: string | null;
+                            language: string | null;
+                            is_private: boolean;
+                            auto_process: boolean;
+                            transcriber: string;
+                            keyterms: string[];
+                            backfill: number;
+                            last_refresh_at: number | null;
+                            last_error: string | null;
+                            episode_count: number;
+                            created_at: number;
+                            /** @description In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule */
+                            followed: boolean;
+                            /** @description A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video */
+                            more_videos: {
+                                status: "idle" | "requested" | "failed" | "ended";
+                                error: string | null;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/video/metadata/wanted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** For the home fetcher: channel videos whose details have not come yet, the most recently listed first */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                /** @description ULID */
+                                episode_id: string;
+                                youtube_id: string;
+                                title: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/episodes/{id}/video/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** For the home fetcher: a video's details. Only what is sent changes; `unavailable` says the video cannot be read and stops the asking */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        title?: string;
+                        description?: string | null;
+                        duration_ms?: number | null;
+                        thumbnail_url?: string | null;
+                        published_at?: number | null;
+                        chapters?: {
+                            start_ms: number;
+                            title: string;
+                        }[];
+                        unavailable?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description ULID */
+                            id: string;
+                            /** @description ULID */
+                            feed_id: string;
+                            show_title: string | null;
+                            title: string;
+                            published_at: number | null;
+                            duration_ms: number | null;
+                            image_url: string | null;
+                            asset_id: string | null;
+                            transcript_id: string | null;
+                            has_summary: boolean;
+                            processing: {
+                                audio: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                transcript: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                text: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                summary: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                            };
+                            resume: {
+                                /** @description milliseconds */
+                                position_ms: number;
+                                speed: number;
+                                finished: boolean;
+                                device_name: string;
+                                /** @description When the position was observed: the reporting device's observed_at, else when the server received it */
+                                updated_at: number;
+                            } | null;
+                            /** @description 'video' when the episode is a video (a channel's, or a feed's video enclosure) */
+                            media_kind: "audio" | "video";
+                            youtube_id: string | null;
+                            video: {
+                                /** @description none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error */
+                                status: "none" | "available" | "requested" | "ready" | "failed";
+                                error: string | null;
+                            };
+                            description_html: string | null;
+                            link: string | null;
+                            text: {
+                                /** @description ULID */
+                                id: string;
+                                source: string;
+                                kind: string | null;
+                                word_count: number;
+                                sections: {
+                                    title: string;
+                                    start_ms: number | null;
+                                    start_word: number | null;
+                                }[];
+                                aligned_transcript_id: string | null;
+                            } | null;
+                            chapters: {
+                                /** @description Whose chapters: aligned publisher text, the feed's chapters, show-notes timestamps, or the summary model (in that order of preference) */
+                                source: "publisher" | "feed" | "shownotes" | "ai";
+                                transcript_id: string | null;
+                                items: {
+                                    /** @description milliseconds */
+                                    start_ms: number;
+                                    /** @description milliseconds */
+                                    end_ms: number;
+                                    start_word: number | null;
+                                    end_word: number | null;
+                                    title: string;
+                                    description: string | null;
+                                    kind: string;
+                                }[];
+                            } | null;
+                            asset: {
+                                /** @description ULID */
+                                id: string;
+                                /** @description milliseconds */
+                                duration_ms: number;
+                                mime: string;
+                                bytes: number;
+                                /** @description Signed, expiring; supports Range */
+                                audio_url: string;
+                                video_url: string | null;
+                                video_width: number | null;
+                                video_height: number | null;
+                                video_bytes: number | null;
+                            } | null;
+                            summary: {
+                                /** @description ULID */
+                                id: string;
+                                preview: string;
+                                takeaways: {
+                                    text: string;
+                                    word: number;
+                                }[];
+                                chapters: unknown[];
+                                model: string;
+                                prompt_version: string;
+                            } | null;
+                            snip_count: number;
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            ad_breaks: {
+                                /** @description milliseconds */
+                                start_ms: number;
+                                /** @description milliseconds */
+                                end_ms: number;
+                                /** @description high when two signals agree, medium when one does */
+                                confidence: "high" | "medium";
+                                sources: ("publisher_gap" | "sponsor_phrase" | "ad_chapter")[];
+                                cue: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/video/captions/wanted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** For the home fetcher: videos here whose captions failed earlier and are due another try */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                /** @description ULID */
+                                episode_id: string;
+                                youtube_id: string;
+                                title: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/episodes/{id}/video/captions/later": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** For the home fetcher: the video arrived but fetching its captions failed. Nothing is transcribed; the captions are wanted again later. retry_at null: no more tries */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            retry_at: number | null;
                         };
                     };
                 };

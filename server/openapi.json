@@ -381,7 +381,8 @@
                       "last_error",
                       "episode_count",
                       "created_at",
-                      "followed"
+                      "followed",
+                      "more_videos"
                     ],
                     "properties": {
                       "id": {
@@ -529,6 +530,54 @@
                       "followed": {
                         "description": "In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule",
                         "type": "boolean"
+                      },
+                      "more_videos": {
+                        "description": "A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video",
+                        "type": "object",
+                        "required": [
+                          "status",
+                          "error"
+                        ],
+                        "properties": {
+                          "status": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "idle"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "requested"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "failed"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "ended"
+                                ]
+                              }
+                            ]
+                          },
+                          "error": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
                       }
                     }
                   }
@@ -641,7 +690,8 @@
                     "last_error",
                     "episode_count",
                     "created_at",
-                    "followed"
+                    "followed",
+                    "more_videos"
                   ],
                   "properties": {
                     "id": {
@@ -789,6 +839,54 @@
                     "followed": {
                       "description": "In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule",
                       "type": "boolean"
+                    },
+                    "more_videos": {
+                      "description": "A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video",
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "error"
+                      ],
+                      "properties": {
+                        "status": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "idle"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "requested"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ended"
+                              ]
+                            }
+                          ]
+                        },
+                        "error": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     }
                   }
                 }
@@ -873,7 +971,8 @@
                     "last_error",
                     "episode_count",
                     "created_at",
-                    "followed"
+                    "followed",
+                    "more_videos"
                   ],
                   "properties": {
                     "id": {
@@ -1021,6 +1120,54 @@
                     "followed": {
                       "description": "In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule",
                       "type": "boolean"
+                    },
+                    "more_videos": {
+                      "description": "A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video",
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "error"
+                      ],
+                      "properties": {
+                        "status": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "idle"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "requested"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ended"
+                              ]
+                            }
+                          ]
+                        },
+                        "error": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     }
                   }
                 }
@@ -1124,7 +1271,8 @@
                     "last_error",
                     "episode_count",
                     "created_at",
-                    "followed"
+                    "followed",
+                    "more_videos"
                   ],
                   "properties": {
                     "id": {
@@ -1272,6 +1420,54 @@
                     "followed": {
                       "description": "In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule",
                       "type": "boolean"
+                    },
+                    "more_videos": {
+                      "description": "A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video",
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "error"
+                      ],
+                      "properties": {
+                        "status": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "idle"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "requested"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ended"
+                              ]
+                            }
+                          ]
+                        },
+                        "error": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     }
                   }
                 }
@@ -9867,6 +10063,1905 @@
                           "type": "string"
                         }
                       }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/feeds/{id}/more-videos": {
+      "post": {
+        "summary": "Ask for the channel's next fifteen older videos. The home fetcher lists them; nothing is downloaded. Asking again before they arrive is the same request. 202 with the feed",
+        "tags": [
+          "video"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "text_for_feed_id",
+                    "title",
+                    "author",
+                    "image_url",
+                    "site_url",
+                    "language",
+                    "is_private",
+                    "auto_process",
+                    "transcriber",
+                    "keyterms",
+                    "backfill",
+                    "last_refresh_at",
+                    "last_error",
+                    "episode_count",
+                    "created_at",
+                    "followed",
+                    "more_videos"
+                  ],
+                  "properties": {
+                    "id": {
+                      "minLength": 26,
+                      "maxLength": 26,
+                      "description": "ULID",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "description": "'youtube': a channel, whose episodes are videos; 'links': the Pasted links show, one-off files the owner pasted (POST /v1/links/episodes), followed and never refreshed",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "podcast"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "text"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "youtube"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "links"
+                          ]
+                        }
+                      ]
+                    },
+                    "text_for_feed_id": {
+                      "anyOf": [
+                        {
+                          "minLength": 26,
+                          "maxLength": 26,
+                          "description": "ULID",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "title": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "author": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "image_url": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "site_url": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "language": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "is_private": {
+                      "type": "boolean"
+                    },
+                    "auto_process": {
+                      "type": "boolean"
+                    },
+                    "transcriber": {
+                      "type": "string"
+                    },
+                    "keyterms": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "backfill": {
+                      "type": "integer"
+                    },
+                    "last_refresh_at": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "last_error": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "episode_count": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "integer"
+                    },
+                    "followed": {
+                      "description": "In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule",
+                      "type": "boolean"
+                    },
+                    "more_videos": {
+                      "description": "A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video",
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "error"
+                      ],
+                      "properties": {
+                        "status": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "idle"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "requested"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ended"
+                              ]
+                            }
+                          ]
+                        },
+                        "error": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "feed_id": {
+                          "description": "On a 409 from POST /v1/feeds: the feed that already has this URL",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/video/listings/wanted": {
+      "get": {
+        "summary": "For the home fetcher: channels whose owner asked for more videos",
+        "tags": [
+          "video"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "feed_id",
+                          "channel_id",
+                          "offset",
+                          "count"
+                        ],
+                        "properties": {
+                          "feed_id": {
+                            "minLength": 26,
+                            "maxLength": 26,
+                            "description": "ULID",
+                            "type": "string"
+                          },
+                          "channel_id": {
+                            "type": "string"
+                          },
+                          "offset": {
+                            "type": "integer"
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/feeds/{id}/videos": {
+      "put": {
+        "summary": "For the home fetcher: a page of the channel's videos, newest first. Those the library lacks become episodes, with nothing downloaded",
+        "tags": [
+          "video"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "videos",
+                  "ended"
+                ],
+                "properties": {
+                  "videos": {
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "youtube_id",
+                        "title"
+                      ],
+                      "properties": {
+                        "youtube_id": {
+                          "maxLength": 11,
+                          "type": "string"
+                        },
+                        "title": {
+                          "maxLength": 1000,
+                          "type": "string"
+                        },
+                        "duration_ms": {
+                          "anyOf": [
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "thumbnail_url": {
+                          "anyOf": [
+                            {
+                              "maxLength": 2048,
+                              "pattern": "^https://",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "published_at": {
+                          "anyOf": [
+                            {
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "ended": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "added",
+                    "wanted"
+                  ],
+                  "properties": {
+                    "added": {
+                      "type": "integer"
+                    },
+                    "wanted": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "feed_id": {
+                          "description": "On a 409 from POST /v1/feeds: the feed that already has this URL",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/feeds/{id}/videos/failed": {
+      "post": {
+        "summary": "For the home fetcher: the channel could not be listed; the apps show the message",
+        "tags": [
+          "video"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "text_for_feed_id",
+                    "title",
+                    "author",
+                    "image_url",
+                    "site_url",
+                    "language",
+                    "is_private",
+                    "auto_process",
+                    "transcriber",
+                    "keyterms",
+                    "backfill",
+                    "last_refresh_at",
+                    "last_error",
+                    "episode_count",
+                    "created_at",
+                    "followed",
+                    "more_videos"
+                  ],
+                  "properties": {
+                    "id": {
+                      "minLength": 26,
+                      "maxLength": 26,
+                      "description": "ULID",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "description": "'youtube': a channel, whose episodes are videos; 'links': the Pasted links show, one-off files the owner pasted (POST /v1/links/episodes), followed and never refreshed",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "podcast"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "text"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "youtube"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "links"
+                          ]
+                        }
+                      ]
+                    },
+                    "text_for_feed_id": {
+                      "anyOf": [
+                        {
+                          "minLength": 26,
+                          "maxLength": 26,
+                          "description": "ULID",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "title": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "author": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "image_url": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "site_url": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "language": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "is_private": {
+                      "type": "boolean"
+                    },
+                    "auto_process": {
+                      "type": "boolean"
+                    },
+                    "transcriber": {
+                      "type": "string"
+                    },
+                    "keyterms": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "backfill": {
+                      "type": "integer"
+                    },
+                    "last_refresh_at": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "last_error": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "episode_count": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "integer"
+                    },
+                    "followed": {
+                      "description": "In the library. An unfollowed show (opened from search) is manual, out of Today's new episodes, and not refreshed on a schedule",
+                      "type": "boolean"
+                    },
+                    "more_videos": {
+                      "description": "A YouTube channel's older videos (POST /v1/feeds/{id}/more-videos). idle: more can be asked for; requested: the home fetcher is on it; failed: see error; ended: it reached the channel's first video",
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "error"
+                      ],
+                      "properties": {
+                        "status": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "idle"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "requested"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ended"
+                              ]
+                            }
+                          ]
+                        },
+                        "error": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/video/metadata/wanted": {
+      "get": {
+        "summary": "For the home fetcher: channel videos whose details have not come yet, the most recently listed first",
+        "tags": [
+          "video"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "episode_id",
+                          "youtube_id",
+                          "title"
+                        ],
+                        "properties": {
+                          "episode_id": {
+                            "minLength": 26,
+                            "maxLength": 26,
+                            "description": "ULID",
+                            "type": "string"
+                          },
+                          "youtube_id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/episodes/{id}/video/metadata": {
+      "put": {
+        "summary": "For the home fetcher: a video's details. Only what is sent changes; `unavailable` says the video cannot be read and stops the asking",
+        "tags": [
+          "video"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "maxLength": 1000,
+                    "type": "string"
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "maxLength": 20000,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "duration_ms": {
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "thumbnail_url": {
+                    "anyOf": [
+                      {
+                        "maxLength": 2048,
+                        "pattern": "^https://",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "published_at": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "chapters": {
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "start_ms",
+                        "title"
+                      ],
+                      "properties": {
+                        "start_ms": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "title": {
+                          "maxLength": 500,
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "unavailable": {
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "feed_id",
+                    "show_title",
+                    "title",
+                    "published_at",
+                    "duration_ms",
+                    "image_url",
+                    "asset_id",
+                    "transcript_id",
+                    "has_summary",
+                    "processing",
+                    "resume",
+                    "media_kind",
+                    "youtube_id",
+                    "video",
+                    "description_html",
+                    "link",
+                    "text",
+                    "chapters",
+                    "asset",
+                    "summary",
+                    "snip_count",
+                    "ad_breaks"
+                  ],
+                  "properties": {
+                    "id": {
+                      "minLength": 26,
+                      "maxLength": 26,
+                      "description": "ULID",
+                      "type": "string"
+                    },
+                    "feed_id": {
+                      "minLength": 26,
+                      "maxLength": 26,
+                      "description": "ULID",
+                      "type": "string"
+                    },
+                    "show_title": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "published_at": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "duration_ms": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "image_url": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "asset_id": {
+                      "anyOf": [
+                        {
+                          "minLength": 26,
+                          "maxLength": 26,
+                          "description": "ULID",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "transcript_id": {
+                      "anyOf": [
+                        {
+                          "minLength": 26,
+                          "maxLength": 26,
+                          "description": "ULID",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "has_summary": {
+                      "type": "boolean"
+                    },
+                    "processing": {
+                      "type": "object",
+                      "required": [
+                        "audio",
+                        "transcript",
+                        "text",
+                        "summary"
+                      ],
+                      "properties": {
+                        "audio": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "queued"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "running"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "deferred"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            }
+                          ]
+                        },
+                        "transcript": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "queued"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "running"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "deferred"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            }
+                          ]
+                        },
+                        "text": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "queued"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "running"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "deferred"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            }
+                          ]
+                        },
+                        "summary": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "queued"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "running"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "deferred"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "resume": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "position_ms",
+                            "speed",
+                            "finished",
+                            "device_name",
+                            "updated_at"
+                          ],
+                          "properties": {
+                            "position_ms": {
+                              "minimum": 0,
+                              "description": "milliseconds",
+                              "type": "integer"
+                            },
+                            "speed": {
+                              "type": "number"
+                            },
+                            "finished": {
+                              "type": "boolean"
+                            },
+                            "device_name": {
+                              "type": "string"
+                            },
+                            "updated_at": {
+                              "description": "When the position was observed: the reporting device's observed_at, else when the server received it",
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "media_kind": {
+                      "description": "'video' when the episode is a video (a channel's, or a feed's video enclosure)",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "audio"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "video"
+                          ]
+                        }
+                      ]
+                    },
+                    "youtube_id": {
+                      "anyOf": [
+                        {
+                          "description": "The YouTube video the episode is, or the one its show notes link",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "video": {
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "error"
+                      ],
+                      "properties": {
+                        "status": {
+                          "description": "none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error",
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "available"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "requested"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            }
+                          ]
+                        },
+                        "error": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "description_html": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "link": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "text": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "source",
+                            "kind",
+                            "word_count",
+                            "sections",
+                            "aligned_transcript_id"
+                          ],
+                          "properties": {
+                            "id": {
+                              "minLength": 26,
+                              "maxLength": 26,
+                              "description": "ULID",
+                              "type": "string"
+                            },
+                            "source": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "word_count": {
+                              "type": "integer"
+                            },
+                            "sections": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "title",
+                                  "start_ms",
+                                  "start_word"
+                                ],
+                                "properties": {
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "start_ms": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "start_word": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            },
+                            "aligned_transcript_id": {
+                              "anyOf": [
+                                {
+                                  "minLength": 26,
+                                  "maxLength": 26,
+                                  "description": "ULID",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "chapters": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "source",
+                            "transcript_id",
+                            "items"
+                          ],
+                          "properties": {
+                            "source": {
+                              "description": "Whose chapters: aligned publisher text, the feed's chapters, show-notes timestamps, or the summary model (in that order of preference)",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "publisher"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "feed"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "shownotes"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ai"
+                                  ]
+                                }
+                              ]
+                            },
+                            "transcript_id": {
+                              "anyOf": [
+                                {
+                                  "minLength": 26,
+                                  "maxLength": 26,
+                                  "description": "ULID",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "start_ms",
+                                  "end_ms",
+                                  "start_word",
+                                  "end_word",
+                                  "title",
+                                  "description",
+                                  "kind"
+                                ],
+                                "properties": {
+                                  "start_ms": {
+                                    "minimum": 0,
+                                    "description": "milliseconds",
+                                    "type": "integer"
+                                  },
+                                  "end_ms": {
+                                    "minimum": 0,
+                                    "description": "milliseconds",
+                                    "type": "integer"
+                                  },
+                                  "start_word": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "end_word": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "kind": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "asset": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "duration_ms",
+                            "mime",
+                            "bytes",
+                            "audio_url",
+                            "video_url",
+                            "video_width",
+                            "video_height",
+                            "video_bytes"
+                          ],
+                          "properties": {
+                            "id": {
+                              "minLength": 26,
+                              "maxLength": 26,
+                              "description": "ULID",
+                              "type": "string"
+                            },
+                            "duration_ms": {
+                              "minimum": 0,
+                              "description": "milliseconds",
+                              "type": "integer"
+                            },
+                            "mime": {
+                              "type": "string"
+                            },
+                            "bytes": {
+                              "type": "integer"
+                            },
+                            "audio_url": {
+                              "description": "Signed, expiring; supports Range",
+                              "type": "string"
+                            },
+                            "video_url": {
+                              "anyOf": [
+                                {
+                                  "description": "The recording's video file (MP4) on the same timeline, signed and expiring; null for audio",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "video_width": {
+                              "anyOf": [
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "video_height": {
+                              "anyOf": [
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "video_bytes": {
+                              "anyOf": [
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "summary": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "preview",
+                            "takeaways",
+                            "chapters",
+                            "model",
+                            "prompt_version"
+                          ],
+                          "properties": {
+                            "id": {
+                              "minLength": 26,
+                              "maxLength": 26,
+                              "description": "ULID",
+                              "type": "string"
+                            },
+                            "preview": {
+                              "type": "string"
+                            },
+                            "takeaways": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "text",
+                                  "word"
+                                ],
+                                "properties": {
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "word": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            },
+                            "chapters": {
+                              "type": "array",
+                              "items": {}
+                            },
+                            "model": {
+                              "type": "string"
+                            },
+                            "prompt_version": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "snip_count": {
+                      "type": "integer"
+                    },
+                    "ad_breaks": {
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "start_ms",
+                          "end_ms",
+                          "confidence",
+                          "sources",
+                          "cue"
+                        ],
+                        "properties": {
+                          "start_ms": {
+                            "minimum": 0,
+                            "description": "milliseconds",
+                            "type": "integer"
+                          },
+                          "end_ms": {
+                            "minimum": 0,
+                            "description": "milliseconds",
+                            "type": "integer"
+                          },
+                          "confidence": {
+                            "description": "high when two signals agree, medium when one does",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "high"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "medium"
+                                ]
+                              }
+                            ]
+                          },
+                          "sources": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "publisher_gap"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "sponsor_phrase"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ad_chapter"
+                                  ]
+                                }
+                              ]
+                            }
+                          },
+                          "cue": {
+                            "anyOf": [
+                              {
+                                "description": "The sponsor phrase heard in the break, normalized",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/video/captions/wanted": {
+      "get": {
+        "summary": "For the home fetcher: videos here whose captions failed earlier and are due another try",
+        "tags": [
+          "video"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "episode_id",
+                          "youtube_id",
+                          "title"
+                        ],
+                        "properties": {
+                          "episode_id": {
+                            "minLength": 26,
+                            "maxLength": 26,
+                            "description": "ULID",
+                            "type": "string"
+                          },
+                          "youtube_id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/episodes/{id}/video/captions/later": {
+      "post": {
+        "summary": "For the home fetcher: the video arrived but fetching its captions failed. Nothing is transcribed; the captions are wanted again later. retry_at null: no more tries",
+        "tags": [
+          "video"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "retry_at"
+                  ],
+                  "properties": {
+                    "retry_at": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   }
                 }
