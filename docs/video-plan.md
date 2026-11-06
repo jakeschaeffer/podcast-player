@@ -127,6 +127,26 @@ search on either client or shared into the iOS app, becomes a one-off episode: `
    pages play the picture and link previews can (`og:video`). The cut needs the video on disk: a snip whose video has
    gone stays audio-only until the same recording is fetched again (an hourly sweep then cuts it).
 
+## Details first (2026-11-03)
+
+Opening a channel's video shows what is known about it at once, and starts nothing: **Fetch** on that screen is what
+asks for the download (`POST /v1/episodes/{id}/video`). Pasting a link, adding to Up next, Transcribe, and a channel
+set to process automatically still ask for it themselves; a new channel is manual unless `auto_process` is sent true.
+
+- **Details.** The channel feed gives title, description, date and thumbnail for its latest fifteen videos. The home
+  fetcher fills in the rest when no video is wanted, a few a minute (`GET /v1/video/metadata/wanted`,
+  `PUT /v1/episodes/{id}/video/metadata`): length, chapters, and for older videos the description and date.
+- **More videos.** The button at the foot of a channel (`POST /v1/feeds/{id}/more-videos`) asks for the next fifteen
+  new videos. The fetcher walks down the channel's Videos tab (`GET /v1/video/listings/wanted`,
+  `PUT /v1/feeds/{id}/videos`) until it has them or the channel ends. Nothing is downloaded. A listed video sits just
+  below the channel's oldest, in the channel's order, until its details give its real date.
+- **Captions.** A separate request after the video, so a 429 cannot cost the video. If they fail, nothing is
+  transcribed, because that bills: they are tried again after 1, 3, 6, 12 and 24 hours
+  (`POST /v1/episodes/{id}/video/captions/later`, `GET /v1/video/captions/wanted`), playing the video does not queue a
+  transcription meanwhile, and after the last try Transcribe remains. Only a video with no English captions at all
+  goes to transcription by itself.
+- **A failed video** counts as a failed recording in `processing.audio`, which ends an older app's "Fetching" spinner.
+
 ## App work
 
 - **iOS player**: `PlayerEngine` already uses `AVPlayer`, which plays video. Add a video surface where the artwork

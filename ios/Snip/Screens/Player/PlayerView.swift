@@ -56,6 +56,8 @@ struct PlayerView: View {
         } else {
           upright(ep)
         }
+      } else if engine.status == .details, let ep = engine.episode {
+        VideoDetailsView(episode: ep)
       } else {
         VStack {
           switch engine.status {
@@ -301,8 +303,10 @@ struct MiniPlayer: View {
         Text(ep.title).font(.subheadline).lineLimit(1)
         Spacer()
         if engine.currentAdBreak != nil { SkipAdButton(compact: true) }
-        Button { engine.toggle() } label: { Image(systemName: engine.playing ? "pause.fill" : "play.fill") }
-          .buttonStyle(.plain)
+        if engine.status != .details {
+          Button { engine.toggle() } label: { Image(systemName: engine.playing ? "pause.fill" : "play.fill") }
+            .buttonStyle(.plain)
+        }
       } else {
         Text(engine.status == .loading ? "Loading…" : "Nothing playing").font(.subheadline).foregroundStyle(.secondary)
         Spacer()
@@ -349,5 +353,88 @@ struct SkipAdButton: View {
     .allowsHitTesting(shown)
     .accessibilityHidden(!shown)
     .animation(.easeInOut(duration: 0.25), value: shown)
+  }
+}
+
+/// A channel's video that has not been fetched: what is known about it, at once, and Fetch, the one thing here that
+/// starts the download. PlayerView's poll moves on to the player when the video arrives.
+struct VideoDetailsView: View {
+  @Environment(AppModel.self) private var model
+  @Environment(PlayerEngine.self) private var engine
+  let episode: EpisodeDetail
+  @State private var problem: String?
+
+  var body: some View {
+    ScrollView {
+      VStack(alignment: .leading, spacing: 14) {
+        Artwork(url: model.artwork(episodeImage: episode.imageUrl, feedID: episode.feedId), size: 96)
+        Text(episode.title).font(.title3.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+        Text(meta).font(.subheadline).foregroundStyle(.secondary)
+        fetch
+        if let notes = Self.plainText(episode.descriptionHtml), !notes.isEmpty {
+          Text(notes).font(.body).textSelection(.enabled)
+        } else {
+          Text("No description yet.").foregroundStyle(.secondary)
+        }
+        if let chapters = episode.chapters?.items, !chapters.isEmpty {
+          Text("Chapters").font(.headline).padding(.top, 4)
+          ForEach(chapters, id: \.startMs) { chapter in
+            Text(chapter.title).font(.subheadline)
+          }
+        }
+      }
+      .padding()
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+  }
+
+  @ViewBuilder private var fetch: some View {
+    if episode.video.status == "requested" {
+      HStack(spacing: 10) {
+        ProgressView()
+        Text("Fetching the video… The home fetcher brings it; a long one takes a few minutes.")
+          .font(.footnote).foregroundStyle(.secondary)
+      }
+    } else {
+      if episode.video.status == "failed" {
+        Text("The video could not be fetched: \(episode.video.error ?? "unknown error")").font(.footnote).foregroundStyle(.red)
+      }
+      if let problem { Text(problem).font(.footnote).foregroundStyle(.red) }
+      Button(episode.video.status == "failed" ? "Try again" : "Fetch", systemImage: "arrow.down.circle") {
+        Task {
+          do {
+            problem = nil
+            try await engine.fetchVideo()
+          } catch {
+            problem = error.localizedDescription
+          }
+        }
+      }
+      .buttonStyle(.borderedProminent)
+    }
+  }
+
+  private var meta: String {
+    var parts: [String] = []
+    if let show = episode.showTitle { parts.append(show) }
+    if let at = episode.publishedAt { parts.append(Date(timeIntervalSince1970: Double(at) / 1000).formatted(date: .abbreviated, time: .omitted)) }
+    if let ms = episode.durationMs, ms > 0 {
+      let minutes = (ms + 30_000) / 60_000
+      parts.append(minutes < 60 ? "\(max(1, minutes)) min" : "\(minutes / 60) h \(minutes % 60) min")
+    }
+    return parts.joined(separator: " · ")
+  }
+
+  /// The server's sanitized show notes as plain text: line breaks kept, tags gone, the usual entities decoded.
+  static func plainText(_ html: String?) -> String? {
+    guard var text = html else { return nil }
+    for tag in ["<br>", "<br/>", "<br />", "</p>", "</li>", "</h1>", "</h2>", "</h3>", "</h4>"] {
+      text = text.replacingOccurrences(of: tag, with: tag.hasPrefix("<br") ? "\n" : "\n\n")
+    }
+    text = text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+    for (entity, character) in [("&lt;", "<"), ("&gt;", ">"), ("&quot;", "\""), ("&#39;", "'"), ("&#x27;", "'"), ("&nbsp;", " "), ("&amp;", "&")] {
+      text = text.replacingOccurrences(of: entity, with: character)
+    }
+    return text.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 }

@@ -9,7 +9,7 @@ export function MiniPlayer() {
   const engine = useEngine();
   if (!p.episode) return null;
   const pct = p.durationMs > 0 ? Math.min(100, (p.positionMs / p.durationMs) * 100) : 0;
-  const status = p.status === "preparing" ? "Preparing recording" : p.status === "loading" ? "Loading" : p.status === "error" ? p.error : p.episode.show_title;
+  const status = p.status === "details" ? (p.episode.video.status === "requested" ? "Fetching the video" : "Not fetched yet") : p.status === "preparing" ? "Preparing recording" : p.status === "loading" ? "Loading" : p.status === "error" ? p.error : p.episode.show_title;
   return (
     <div className="mini" style={{ position: "relative" }}>
       <div className="mini__bar" aria-hidden="true">

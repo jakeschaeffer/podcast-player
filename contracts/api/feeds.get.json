@@ -1,11 +1,11 @@
 {
   "request": {
     "method": "GET",
-    "url": "/v1/feeds/01M61KWF17DPN3PJ09MR0D9RJ4"
+    "url": "/v1/feeds/01M6H6YX1N1Q654JD1CDBN62Q1"
   },
   "status": 200,
   "body": {
-    "id": "01M61KWF17DPN3PJ09MR0D9RJ4",
+    "id": "01M6H6YX1N1Q654JD1CDBN62Q1",
     "kind": "podcast",
     "text_for_feed_id": null,
     "title": "Fixture Show",
@@ -22,6 +22,10 @@
     "last_error": null,
     "episode_count": 1,
     "created_at": 1800000000000,
-    "followed": true
+    "followed": true,
+    "more_videos": {
+      "status": "idle",
+      "error": null
+    }
   }
 }

@@ -10,6 +10,8 @@ import { badRequest } from "../../app/errors.js";
 import type { Json3 } from "../../core/transcript/captions.js";
 import { newId } from "../../lib/ids.js";
 import { getEpisode } from "../../services/episodes.js";
+import { captionsLater, listingFailed, requestMoreVideos, storeListing, storeMetadata, wantedCaptions, wantedListings, wantedMetadata } from "../../services/channelVideos.js";
+import { getFeedRow, toFeedView } from "../../services/feeds.js";
 import { addYouTubeVideo, requestVideo, setYouTubeVideo, storeCaptions, storeVideoFile, videoDone, videoFailed, wantedVideos } from "../../services/video.js";
 import * as S from "../schemas.js";
 
@@ -40,6 +42,26 @@ export function registerVideoRoutes(instance: FastifyInstance, ctx: AppContext):
   app.post("/v1/youtube/episodes", { schema: { tags: ["video"], summary: "A pasted YouTube video link becomes an episode of its channel's show (created unfollowed if the library lacks it) and its video is asked for; a video an episode already names is that episode. 201 with the episode", body: Type.Object({ url: Type.String({ minLength: 1, maxLength: 2048 }) }), response: { 201: S.EpisodeDetailSchema, 400: S.ErrorSchema } } }, async (request, reply) => {
     return reply.code(201).send(await addYouTubeVideo(ctx, request.body.url, request.device.id));
   });
+
+  app.post("/v1/feeds/:id/more-videos", { schema: { tags: ["video"], summary: "Ask for the channel's next fifteen older videos. The home fetcher lists them; nothing is downloaded. Asking again before they arrive is the same request. 202 with the feed", params: Id, response: { 202: S.FeedSchema, 400: S.ErrorSchema } } }, async (request, reply) => {
+    requestMoreVideos(ctx, request.params.id);
+    return reply.code(202).send(toFeedView(ctx, getFeedRow(ctx, request.params.id)));
+  });
+  app.get("/v1/video/listings/wanted", { schema: { tags: ["video"], summary: "For the home fetcher: channels whose owner asked for more videos", response: { 200: Type.Object({ items: Type.Array(S.WantedListingSchema) }) } } }, async () => ({ items: wantedListings(ctx) }));
+  app.put("/v1/feeds/:id/videos", { schema: { tags: ["video"], summary: "For the home fetcher: a page of the channel's videos, newest first. Those the library lacks become episodes, with nothing downloaded", params: Id, body: Type.Object({ videos: Type.Array(Type.Object({ youtube_id: Type.String({ maxLength: 11 }), title: Type.String({ maxLength: 1000 }), duration_ms: Type.Optional(S.Nullable(Type.Integer({ minimum: 0 }))), thumbnail_url: Type.Optional(S.Nullable(Type.String({ maxLength: 2048, pattern: "^https://" }))), published_at: Type.Optional(S.Nullable(Type.Integer())) }), { maxItems: 100 }), ended: Type.Boolean() }), response: { 200: Type.Object({ added: Type.Integer(), wanted: Type.Integer() }), 400: S.ErrorSchema } } }, async (request) => storeListing(ctx, request.params.id, request.body.videos, request.body.ended));
+  app.post("/v1/feeds/:id/videos/failed", { schema: { tags: ["video"], summary: "For the home fetcher: the channel could not be listed; the apps show the message", params: Id, body: Type.Object({ message: Type.String({ maxLength: 500 }) }), response: { 200: S.FeedSchema } } }, async (request) => {
+    listingFailed(ctx, request.params.id, request.body.message);
+    return toFeedView(ctx, getFeedRow(ctx, request.params.id));
+  });
+
+  app.get("/v1/video/metadata/wanted", { schema: { tags: ["video"], summary: "For the home fetcher: channel videos whose details have not come yet, the most recently listed first", querystring: Type.Object({ limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })) }), response: { 200: Type.Object({ items: Type.Array(S.WantedDetailsSchema) }) } } }, async (request) => ({ items: wantedMetadata(ctx, request.query.limit ?? 10) }));
+  app.put("/v1/episodes/:id/video/metadata", { schema: { tags: ["video"], summary: "For the home fetcher: a video's details. Only what is sent changes; `unavailable` says the video cannot be read and stops the asking", params: Id, body: Type.Object({ title: Type.Optional(Type.String({ maxLength: 1000 })), description: Type.Optional(S.Nullable(Type.String({ maxLength: 20000 }))), duration_ms: Type.Optional(S.Nullable(Type.Integer({ minimum: 0 }))), thumbnail_url: Type.Optional(S.Nullable(Type.String({ maxLength: 2048, pattern: "^https://" }))), published_at: Type.Optional(S.Nullable(Type.Integer())), chapters: Type.Optional(Type.Array(Type.Object({ start_ms: Type.Integer({ minimum: 0 }), title: Type.String({ maxLength: 500 }) }), { maxItems: 500 })), unavailable: Type.Optional(Type.String({ maxLength: 500 })) }), response: { 200: S.EpisodeDetailSchema } } }, async (request) => {
+    storeMetadata(ctx, request.params.id, request.body);
+    return getEpisode(ctx, request.params.id, request.device.id);
+  });
+
+  app.get("/v1/video/captions/wanted", { schema: { tags: ["video"], summary: "For the home fetcher: videos here whose captions failed earlier and are due another try", response: { 200: Type.Object({ items: Type.Array(S.WantedDetailsSchema) }) } } }, async () => ({ items: wantedCaptions(ctx) }));
+  app.post("/v1/episodes/:id/video/captions/later", { schema: { tags: ["video"], summary: "For the home fetcher: the video arrived but fetching its captions failed. Nothing is transcribed; the captions are wanted again later. retry_at null: no more tries", params: Id, body: Type.Object({ message: Type.String({ maxLength: 500 }) }), response: { 200: Type.Object({ retry_at: S.Nullable(Type.Integer()) }) } } }, async (request) => captionsLater(ctx, request.params.id, request.body.message));
 
   app.get("/v1/video/wanted", { schema: { tags: ["video"], summary: "For the home fetcher: YouTube videos the owner asked for and nobody has delivered, oldest first", querystring: Type.Object({ limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })) }), response: { 200: Type.Object({ items: Type.Array(S.WantedVideoSchema) }) } } }, async (request) => {
     return { items: wantedVideos(ctx, request.query.limit ?? 20) };

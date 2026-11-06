@@ -96,6 +96,15 @@ public struct Feed: Codable, Sendable, Identifiable, Hashable {
   /// In the library. A show opened from search without following it is false: manual, and out of Library and
   /// Today's new episodes. Optional so a server from before the field decodes (every feed was followed then).
   public let followed: Bool?
+  /// A channel's older videos (`moreVideos`). Optional so a server from before the field decodes.
+  public let moreVideos: MoreVideos?
+}
+
+/// Whether a channel's next videos can be asked for: idle, requested (the home fetcher is on it), failed (see
+/// `error`), or ended (it reached the channel's first video).
+public struct MoreVideos: Codable, Sendable, Hashable {
+  public let status: String
+  public let error: String?
 }
 
 /// `GET /v1/search/shows`: shows from the public directory (Apple Podcasts, or Podcast Index when configured).
@@ -199,6 +208,11 @@ public struct VideoState: Codable, Sendable, Hashable {
   public let error: String?
   public var isReady: Bool { status == "ready" }
   public var canRequest: Bool { status == "available" || status == "failed" }
+}
+
+extension EpisodeDetail {
+  /// A channel's video that is not here yet: it opens on its details, and only asking for it starts the download.
+  public var isUnfetchedChannelVideo: Bool { asset == nil && mediaKind == "video" && youtubeId != nil }
 }
 
 /// `GET /v1/queue`.

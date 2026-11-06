@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { describeError } from "../api/client";
+import { askForMoreVideos } from "../api/video";
 import { Artwork } from "../components/Artwork";
 import { EpisodeRow } from "../components/EpisodeRow";
 import { Icon } from "../components/Icon";
@@ -13,6 +15,7 @@ import { useFeeds } from "./Today";
 /** How often to look again while a newly added show's first refresh is still running, and for how long. */
 const FIRST_REFRESH_POLL_MS = 2_000;
 const FIRST_REFRESH_GIVE_UP_MS = 90_000;
+const MORE_VIDEOS_POLL_MS = 5_000;
 
 export function FeedEpisodes({ feedId }: { feedId: string }) {
   const feeds = useFeeds();
@@ -38,6 +41,29 @@ export function FeedEpisodes({ feedId }: { feedId: string }) {
   useEffect(() => {
     if (feed?.last_refresh_at) void reloadEpisodes();
   }, [feed?.last_refresh_at, reloadEpisodes]);
+
+  // A channel's older videos: the home fetcher lists them, so look again until it has, then show what it found.
+  const more = feed?.kind === "youtube" ? feed.more_videos : null;
+  const wasListing = useRef(false);
+  useEffect(() => {
+    if (more?.status !== "requested") {
+      if (wasListing.current) void reloadEpisodes();
+      wasListing.current = false;
+      return;
+    }
+    wasListing.current = true;
+    const timer = window.setInterval(() => void reloadFeeds(), MORE_VIDEOS_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [more?.status, reloadFeeds, reloadEpisodes]);
+
+  async function moreVideos() {
+    try {
+      const next = await askForMoreVideos(feedId);
+      feeds.mutate((prev) => (prev ?? []).map((f) => (f.id === next.id ? next : f)));
+    } catch (e) {
+      toast(describeError(e));
+    }
+  }
 
   return (
     <div className="screen screen--with-mini">
@@ -82,6 +108,18 @@ export function FeedEpisodes({ feedId }: { feedId: string }) {
           <button className="btn btn--soft load-more" onClick={() => void episodes.loadMore()} disabled={episodes.more}>
             {episodes.more ? "Loading…" : "Load more"}
           </button>
+        )}
+        {more && !episodes.next && !episodes.loading && episodes.items.length > 0 && (
+          more.status === "ended" ? (
+            <p className="empty">That’s every video on this channel.</p>
+          ) : (
+            <>
+              {more.status === "failed" && <p className="error">Couldn’t list more videos: {more.error}</p>}
+              <button className="btn btn--soft load-more" onClick={() => void moreVideos()} disabled={more.status === "requested"}>
+                {more.status === "requested" ? "Getting the next 15…" : "More videos"}
+              </button>
+            </>
+          )
         )}
       </section>
       {settings && feed && (

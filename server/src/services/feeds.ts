@@ -1,3 +1,4 @@
+import { moreVideosView, type MoreVideosView } from "./channelVideos.js";
 import { unlink } from "node:fs/promises";
 import type { AppContext } from "../app/context.js";
 import { badRequest, conflict, notFound } from "../app/errors.js";
@@ -29,6 +30,7 @@ export type FeedView = {
   backfill: number;
   last_refresh_at: number | null;
   last_error: string | null;
+  more_videos: MoreVideosView;
   episode_count: number;
   created_at: number;
   followed: boolean;
@@ -62,6 +64,7 @@ export function toFeedView(ctx: AppContext, row: FeedRow): FeedView {
     episode_count: count,
     created_at: row.created_at,
     followed: row.followed === 1,
+    more_videos: moreVideosView(row),
   };
 }
 
@@ -88,7 +91,8 @@ export function addFeed(ctx: AppContext, input: AddFeedInput): FeedView {
   }
   // A show opened without following is always manual: browsing one must never bill.
   const followed = input.followed !== false;
-  const autoProcess = followed && input.auto_process !== false;
+  // A channel's videos are fetched when the owner asks, unless asked for up front: a video is hours of download at home.
+  const autoProcess = followed && (kind === "youtube" ? input.auto_process === true : input.auto_process !== false);
   const backfill = followed ? (input.backfill ?? 2) : 0;
   const id = newId();
   const now = ctx.now();

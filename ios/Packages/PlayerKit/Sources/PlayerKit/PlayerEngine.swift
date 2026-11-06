@@ -15,7 +15,7 @@ import PodcastAPI
 /// which the app wires to SyncKit's PlaybackReporter (it owns `seq` and the offline outbox).
 @MainActor @Observable
 public final class PlayerEngine {
-  public enum Status: Equatable, Sendable { case idle, loading, preparing, ready, error(String) }
+  public enum Status: Equatable, Sendable { case idle, loading, details, preparing, ready, error(String) }
 
   public static let speeds: [Double] = [1, 1.25, 1.5, 1.75, 2]
   /// The longest automatic snip (the server's max_ms); audio this far before a resume point counts as heard.
@@ -153,6 +153,13 @@ public final class PlayerEngine {
           ep = saved
           openedOffline = true
         }
+        // A channel's video opens on its details: only Fetch (`fetchVideo`) starts the download.
+        if ep.isUnfetchedChannelVideo {
+          try Task.checkCancellation()
+          episode = ep
+          status = .details
+          return
+        }
         if ep.asset == nil {
           ep = try await api.prepareAudio(episodeID)
           status = .preparing
@@ -230,13 +237,25 @@ public final class PlayerEngine {
 
   /// Re-read the loaded episode (transcript, processing, snip count) without touching playback.
   public func refreshEpisode() async {
-    guard let id = episode?.id, status == .ready, let fresh = try? await api.episode(id), episode?.id == id else { return }
+    guard let id = episode?.id, status == .ready || status == .details, let fresh = try? await api.episode(id), episode?.id == id else { return }
     episode = fresh
+  }
+
+  /// Fetch, on a channel's video showing its details. The player's poll picks up the video when it arrives.
+  public func fetchVideo() async throws {
+    guard let id = episode?.id, status == .details else { return }
+    let fresh = try await api.requestVideo(id)
+    if episode?.id == id { episode = fresh }
   }
 
   /// Read the episode again and play on from the same spot through whatever its recording now is: its video
   /// arrived, or the owner chose video or sound only.
   public func reload() async {
+    // A channel's video that was only being looked at has arrived: now there is something to play.
+    if status == .details, let id = episode?.id {
+      if let fresh = try? await api.episode(id), episode?.id == id, status == .details, fresh.asset != nil { attach(fresh, autoplay: false) }
+      return
+    }
     guard let id = episode?.id, status == .ready, let fresh = try? await api.episode(id), episode?.id == id else { return }
     let (at, wasPlaying) = (positionMs, playing)
     detach()

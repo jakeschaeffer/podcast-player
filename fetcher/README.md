@@ -46,8 +46,20 @@ need jake in the `render` group and an ffmpeg built with VAAPI/QSV (the bundled 
 saving at a watchable quality is modest, because YouTube's encode is already tight. The lever that works is
 `SNIP_MAX_HEIGHT`: 480 halves 720p's size with no CPU at all, which is why it is the default.
 
+## What it does when no video is wanted
+
+Between downloads, slowly, it does the work that needs no download (`background()` in the script): captions due
+another try, the older videos of a channel whose owner pressed "More videos", and the details of any video that has
+none yet (description, length, thumbnail, date, chapters), a few a pass. A 429 from YouTube stops all of this for
+`SNIP_BACKOFF_SECONDS` (an hour); a video the owner asked for is still tried.
+
 ## When a download fails
 
 The failure's message shows on the episode in the apps. "Sign in to confirm you're not a bot" means YouTube wants
 more than a plain request: update yt-dlp first; if it goes on, the next step is cookies from a browser signed into
 a spare Google account (`--cookies-from-browser`), which the script does not do yet.
+
+Captions are a separate request after the video, so a 429 on them cannot cost the video. They are tried again after 1,
+3, 6, 12 and 24 hours, and nothing is transcribed meanwhile, because that bills. After the last try the episode simply
+has no transcript until the owner presses Transcribe. Only a video YouTube truly has no English captions for goes to
+transcription on its own.

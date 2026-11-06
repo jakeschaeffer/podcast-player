@@ -99,6 +99,11 @@ extension APIClient {
     try await send("POST", "/v1/episodes/\(episodeID)/video")
   }
 
+  /// Ask for a channel's next fifteen older videos: the home fetcher lists them, and nothing is downloaded.
+  public func moreVideos(_ feedID: ULID) async throws -> Feed {
+    try await send("POST", "/v1/feeds/\(feedID)/more-videos")
+  }
+
   /// A pasted YouTube video link becomes an episode of its channel's show (created unfollowed if the library lacks
   /// it) with its video asked for; a video an episode already names is that episode. 400 for anything else.
   public func addYouTubeVideo(_ url: String) async throws -> EpisodeDetail {

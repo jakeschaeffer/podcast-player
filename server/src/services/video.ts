@@ -337,6 +337,7 @@ export function storeCaptions(ctx: AppContext, episodeId: string, json: Json3, m
   const normalized = normalize(raw, { duration_ms: asset.duration_ms });
   const current = asset.transcript_id === null;
   const row = storeTranscript(ctx, asset.id, normalized, { source: "captions", make_current: current });
+  ctx.db.prepare("UPDATE episode SET captions_retry_at = NULL WHERE id = ?").run(ep.id);
   ctx.log("captions stored", { episode_id: ep.id, asset_id: asset.id, transcript_id: row.id, words: normalized.word_count, kind: meta.kind, current });
   return { transcript_id: row.id, word_count: normalized.word_count, current };
 }
@@ -346,6 +347,7 @@ export function videoDone(ctx: AppContext, episodeId: string): void {
   const ep = getEpisodeRow(ctx, episodeId);
   const asset = ep.current_asset_id ? getAssetRow(ctx, ep.current_asset_id) : null;
   if (!asset?.video_path) throw conflict("the episode's video has not arrived");
+  ctx.db.prepare("UPDATE episode SET captions_retry_at = NULL WHERE id = ?").run(ep.id);
   if (!asset.transcript_id) ctx.queue.enqueue("transcribe", `transcribe:${asset.id}`, { asset_id: asset.id }, { priority: PRIORITY.upNext });
 }
 
