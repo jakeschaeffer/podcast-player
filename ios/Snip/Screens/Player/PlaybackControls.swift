@@ -50,26 +50,20 @@ struct TransportRow: View {
 
   var body: some View {
     HStack {
-      Button { press { engine.cycleSpeed() } } label: {
-        Text(engine.speed.formatted(.number.precision(.fractionLength(0...2))) + "×")
-          .font(.callout.weight(.semibold).monospacedDigit())
-          .frame(minWidth: 44, minHeight: 44)
-      }
-      .opacity(engine.currentAdBreak == nil ? 1 : 0)
-      .allowsHitTesting(engine.currentAdBreak == nil)
-      .overlay(alignment: .leading) {
+      // One slot for speed and Skip ad, as wide as the wider of the two (Skip ad, kept in the layout unseen), so
+      // Skip ad never spills onto the button beside it and nothing moves when it comes and goes.
+      ZStack(alignment: .leading) {
+        skipAd.hidden()
+        Button { press { engine.cycleSpeed() } } label: {
+          Text(engine.speed.formatted(.number.precision(.fractionLength(0...2))) + "×")
+            .font(.callout.weight(.semibold).monospacedDigit())
+            .frame(minWidth: 44, minHeight: 44)
+        }
+        .opacity(engine.currentAdBreak == nil ? 1 : 0)
+        .allowsHitTesting(engine.currentAdBreak == nil)
         if engine.currentAdBreak != nil {
-          Button { press { engine.skipAd() } } label: {
-            Text("Skip ad")
-            .font(.footnote.weight(.bold))
-            .foregroundStyle(onVideo ? Color.white : Color.primary)
-            .padding(.horizontal, 10)
-            .frame(height: 34)
-            .overlay { Capsule().stroke(Color.accentColor, lineWidth: 1.5) }
-            .contentShape(.capsule)
-            .fixedSize()
-          }
-          .transition(.opacity)
+          Button { press { engine.skipAd() } } label: { skipAd }
+            .transition(.opacity)
         }
       }
       .animation(.easeInOut(duration: 0.25), value: engine.currentAdBreak == nil)
@@ -100,6 +94,19 @@ struct TransportRow: View {
     }
     .buttonStyle(.plain)
     .shadow(color: .black.opacity(onVideo ? 0.6 : 0), radius: 6)
+    // Five controls share one row; past the largest ordinary text size they would no longer fit it.
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+  }
+
+  private var skipAd: some View {
+    Text("Skip ad")
+      .font(.footnote.weight(.bold))
+      .foregroundStyle(onVideo ? Color.white : Color.primary)
+      .padding(.horizontal, 10)
+      .frame(height: 34)
+      .overlay { Capsule().stroke(Color.accentColor, lineWidth: 1.5) }
+      .contentShape(.capsule)
+      .fixedSize()
   }
 
   private func press(_ action: () -> Void) {

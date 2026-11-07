@@ -153,6 +153,8 @@ struct TranscriptSettingsButton: View {
         .background(Color(.systemGray5), in: .circle)
     }
     .accessibilityLabel("Transcript settings")
+    // A button beside the panel picker, which doesn't grow: the mark stays inside its circle at every text size.
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
 }
 
