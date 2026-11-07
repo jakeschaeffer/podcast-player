@@ -36,10 +36,13 @@ struct RootView: View {
       Tab("Today", systemImage: "sun.max", value: 0) {
         NavigationStack(path: $todayPath) { TodayView(showPlayer: $showPlayer, path: $todayPath) }
       }
-      Tab("Library", systemImage: "square.stack", value: 1) {
+      Tab("Up Next", systemImage: "text.line.last.and.arrowtriangle.forward", value: 1) {
+        NavigationStack { UpNextView(showPlayer: $showPlayer) }
+      }
+      Tab("Library", systemImage: "square.stack", value: 2) {
         NavigationStack { LibraryView(showPlayer: $showPlayer) }
       }
-      Tab("Snips", systemImage: "scissors", value: 2) {
+      Tab("Snips", systemImage: "scissors", value: 3) {
         NavigationStack { SnipsView() }
       }
     }
@@ -51,12 +54,14 @@ struct RootView: View {
       // `-muteAudio 1` keeps every simulator check silent: the player plays, but nothing reaches the Mac's speakers.
       // `-openEpisode <id>` opens the player on that episode at launch, for scripted simulator checks.
       // `-searchShows <text>` and `-openFeed <id>` open the Library on show search or on a show (LibraryView).
-      // `-openSnip <id>` opens the Snips tab on that snip's page (SnipsView).
+      // `-openSnip <id>` opens the Snips tab on that snip's page (SnipsView). `-openUpNext 1` opens the Up Next tab
+      // (`-editUpNext 1` in edit mode).
       .task {
         let defaults = UserDefaults.standard
         if defaults.bool(forKey: "muteAudio") { model.engine.player.isMuted = true }
-        if defaults.string(forKey: "searchShows") != nil || defaults.string(forKey: "openFeed") != nil { tab = 1 }
-        if defaults.string(forKey: "openSnip") != nil { tab = 2 }
+        if defaults.string(forKey: "searchShows") != nil || defaults.string(forKey: "openFeed") != nil { tab = 2 }
+        if defaults.string(forKey: "openSnip") != nil { tab = 3 }
+        if defaults.bool(forKey: "openUpNext") { tab = 1 }
         if let id = defaults.string(forKey: "openEpisode") {
           model.engine.open(id, autoplay: true)
           showPlayer = true

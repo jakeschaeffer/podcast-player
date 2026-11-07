@@ -251,7 +251,7 @@ struct PlayerView: View {
   @ViewBuilder private func panelContent(_ ep: EpisodeDetail) -> some View {
     let chapters = ep.chapters?.items ?? []
     if panel == .upNext {
-      UpNextView()
+      UpNextList { episode, playing in engine.open(episode.id, autoplay: playing) }
     } else if panel == .chapters && chapters.count > 1 {
       let current = chapters.last { $0.startMs <= engine.positionMs }?.startMs
       List(chapters, id: \.startMs) { chapter in
@@ -353,6 +353,8 @@ struct SkipAdButton: View {
     .allowsHitTesting(shown)
     .accessibilityHidden(!shown)
     .animation(.easeInOut(duration: 0.25), value: shown)
+    // Laid over a video or beside the mini player's title: it keeps a button's size at every text size.
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
 }
 
