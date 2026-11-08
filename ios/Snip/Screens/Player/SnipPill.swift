@@ -14,8 +14,14 @@ final class SnipCardModel {
     case snip(Snip)
   }
 
-  private(set) var phase: Phase
+  private(set) var phase: Phase {
+    didSet { if phase != oldValue { onChange?(self) } }
+  }
   private(set) var error: String?
+  /// Told each time the phase changes, so the Live Activity follows the snip (AppModel).
+  @ObservationIgnored var onChange: ((SnipCardModel) -> Void)?
+  /// The Live Activity's title was tapped: the bar opens the title for renaming as soon as it shows.
+  var renameRequested = false
   /// Why the last rename didn't save; the pill keeps the text box open with what was typed.
   private(set) var renameError: String?
   private var etag: String?
@@ -168,6 +174,12 @@ struct SnipPill: View {
     .frame(minHeight: 68)
     // A capsule at one line; a rounded box when the title being typed wraps.
     .background(Color(.systemGray5), in: .rect(cornerRadius: 34, style: .continuous))
+    // A tap on the Live Activity's title (AppModel.open) renames, as a tap on the bar's title would.
+    .task(id: card.renameRequested) {
+      guard card.renameRequested, let snip = card.snip, snip.revision?.title != nil else { return }
+      card.renameRequested = false
+      begin(snip)
+    }
     .task(id: closesAfterAWhile) {
       guard closesAfterAWhile else { return }
       try? await Task.sleep(for: Self.readyFor)

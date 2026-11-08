@@ -4,6 +4,18 @@
 <dict>
 	<key>PodcastServerURL</key>
 	<string>$(PODCAST_SERVER_URL)</string>
+	<!-- The Live Activity's link to rename a snip (SnipLink): the scheme is the bundle id. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			</array>
+		</dict>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIBackgroundModes</key>

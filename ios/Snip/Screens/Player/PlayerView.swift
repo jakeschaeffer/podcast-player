@@ -38,9 +38,10 @@ struct PlayerView: View {
       content
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(item: $openSnip) { route in
-          SnipPage(snipID: route.id, api: model.api, onDelete: { Task { await engine.refreshEpisode() } })
+          SnipPage(snipID: route.id, api: model.api, renaming: route.renaming, onDelete: { Task { await engine.refreshEpisode() } })
         }
     }
+    .task(id: model.renameRequest) { openRename() }
     .presentationDragIndicator(fullScreenSideways && engine.status == .ready ? .hidden : .visible)
   }
 
@@ -103,6 +104,19 @@ struct PlayerView: View {
     // A snip the server finished counts towards the episode's total; re-read it so the badge keeps up.
     .onChange(of: model.snipCard?.snip?.revision?.status == .ready) { _, ready in
       if ready { Task { await engine.refreshEpisode() } }
+    }
+  }
+
+  /// The Live Activity asked to rename a snip (AppModel.open): the snip bar renames it when it is showing that snip,
+  /// as it does on a tap on its title; otherwise the snip's page opens with its title being edited.
+  private func openRename() {
+    guard let id = model.renameRequest else { return }
+    model.renameRequest = nil
+    if let card = model.snipCard, card.snip?.id == id {
+      openSnip = nil
+      card.renameRequested = true
+    } else {
+      openSnip = SnipRoute(id: id, renaming: true)
     }
   }
 
@@ -281,8 +295,7 @@ struct PlayerView: View {
   @ViewBuilder private var pill: some View {
     if let card = model.snipCard {
       SnipPill(card: card, onOpen: { openSnip = SnipRoute(id: $0) }, onCancel: { model.cancelSnip(card) }) {
-        card.stop()
-        if model.snipCard === card { model.snipCard = nil }
+        model.closeSnip(card)
       }
       .transition(.move(edge: .bottom).combined(with: .opacity))
     }
