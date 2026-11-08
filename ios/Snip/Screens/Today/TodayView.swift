@@ -2,7 +2,8 @@ import PlayerKit
 import PodcastAPI
 import SwiftUI
 
-/// Continue listening (the newest in-progress episode) and new episodes across all feeds.
+/// Continue listening (the newest in-progress episode) and new episodes across all feeds. The queue button in the bar
+/// pushes Up Next (UpNextView), as a player's queue button does; it is the way to the queue with nothing playing.
 struct TodayView: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerEngine.self) private var engine
@@ -57,6 +58,9 @@ struct TodayView: View {
     .navigationTitle("Today")
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
+        Button("Up Next", systemImage: "text.line.last.and.arrowtriangle.forward") { path.append(UpNextRoute()) }
+      }
+      ToolbarItem(placement: .topBarTrailing) {
         Menu {
           Text(model.serverURL.host() ?? "")
           Button("Downloads", systemImage: "arrow.down.circle") { path.append(DownloadsRoute()) }
@@ -72,6 +76,7 @@ struct TodayView: View {
     }
     .promptDestinations()
     .navigationDestination(for: DownloadsRoute.self) { _ in DownloadsView(showPlayer: $showPlayer) }
+    .navigationDestination(for: UpNextRoute.self) { _ in UpNextView(showPlayer: $showPlayer) }
     .task { await load() }
     .refreshable { await load() }
   }
