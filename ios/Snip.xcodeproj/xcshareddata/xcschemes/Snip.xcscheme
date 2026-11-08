@@ -58,6 +58,16 @@
                ReferencedContainer = "container:Packages/SyncKit">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "SnipActivityTests"
+               BuildableName = "SnipActivityTests"
+               BlueprintName = "SnipActivityTests"
+               ReferencedContainer = "container:Packages/SnipActivity">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

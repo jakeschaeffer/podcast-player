@@ -27,6 +27,8 @@ final class AppModel {
   private var snips: SnipOutbox
   /// The card for the latest snip tap, shown in the player until closed.
   var snipCard: SnipCardModel?
+  /// A snip whose title the Live Activity asked to rename (`open(_:)`): the player opens on it.
+  var renameRequest: ULID?
   /// A snip's page is showing its words sideways, full screen; the mini player hides meanwhile.
   var readingSideways = false
   /// Up next in the owner's order, without the one playing (`refreshQueue`): ones heard partway and not yet placed
@@ -281,13 +283,35 @@ final class AppModel {
   func snip() async {
     guard let point = engine.snipPoint(), let episodeID = engine.episode?.id else { return }
     sounds.requested()
-    liveActivity.show("Snipped at \(Format.clock(point.anchorMs))", engine: engine)
+    liveActivity.snipStarted(SnipProgress(step: .choosing, anchorMs: point.anchorMs), engine: engine)
     snipCard?.stop()
     let (pending, snip) = await snips.capture(
       assetID: point.assetID, episodeID: episodeID, anchorMs: point.anchorMs, heardFromMs: point.heardFromMs)
     let card = SnipCardModel(pending: pending, snip: snip)
+    card.onChange = { [weak self] card in self?.snipCardChanged(card) }
     snipCard = card
+    snipCardChanged(card)
     card.follow(api: api)
+  }
+
+  /// The latest card's progress goes to the Live Activity; an older card's doesn't.
+  private func snipCardChanged(_ card: SnipCardModel) {
+    guard snipCard === card else { return }
+    liveActivity.snipChanged(card.activityProgress, engine: engine)
+  }
+
+  /// The snip bar was closed, by its X or by itself a while after the title came in. The snip stays in the lists;
+  /// the Live Activity goes back to the episode.
+  func closeSnip(_ card: SnipCardModel) {
+    card.stop()
+    guard snipCard === card else { return }
+    snipCard = nil
+    liveActivity.snipEnded(engine: engine)
+  }
+
+  /// A link into the app. The only one is the Live Activity's, which renames a snip (SnipLink).
+  func open(_ url: URL) {
+    if let id = SnipLink.renamedSnip(in: url) { renameRequest = id }
   }
 
   /// Taps cancelled while they were on their way to the server; the snip each becomes is deleted when it arrives.
@@ -299,7 +323,7 @@ final class AppModel {
     card.stop()
     if snipCard === card { snipCard = nil }
     let (api, snips, engine) = (self.api, self.snips, self.engine)
-    liveActivity.show("Snip cancelled", engine: engine)
+    liveActivity.snipEnded(engine: engine)
     switch card.phase {
     case .waiting(let pending):
       cancelledTaps.insert(pending.id)

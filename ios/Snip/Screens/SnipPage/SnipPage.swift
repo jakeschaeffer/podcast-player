@@ -5,6 +5,8 @@ import SwiftUI
 /// Where a snip's page is pushed from: a snip bar or a row in a list.
 struct SnipRoute: Hashable, Identifiable {
   let id: ULID
+  /// Open with the title being edited, as the Live Activity's title asks.
+  var renaming = false
 }
 
 /// One snip's own page, pushed from the player's snip bar and from the snip lists; swipe from the left edge to go
@@ -27,6 +29,8 @@ struct SnipPage: View {
   /// The list that opened the page hears about each change to the snip, and about its deletion.
   let onChange: (Snip) -> Void
   let onDelete: () -> Void
+  /// Start with the title being edited.
+  let renaming: Bool
 
   enum Mode { case reading, title, adjusting }
 
@@ -34,8 +38,12 @@ struct SnipPage: View {
   /// The app icon's dark, for marks on the accent colour.
   private static let ink = Color(red: 0x0E / 255, green: 0x0F / 255, blue: 0x11 / 255)
 
-  init(snipID: ULID, api: APIClient, onChange: @escaping (Snip) -> Void = { _ in }, onDelete: @escaping () -> Void = {}) {
+  init(
+    snipID: ULID, api: APIClient, renaming: Bool = false, onChange: @escaping (Snip) -> Void = { _ in },
+    onDelete: @escaping () -> Void = {}
+  ) {
     _model = State(initialValue: SnipPageModel(snipID: snipID, api: api))
+    self.renaming = renaming
     self.onChange = onChange
     self.onDelete = onDelete
   }
@@ -66,6 +74,7 @@ struct SnipPage: View {
     .task {
       await model.load()
       model.follow()
+      if renaming { beginTitle() }
       #if DEBUG
         // `-snipMode title|adjust|play` opens the page in that state, for scripted simulator checks.
         switch UserDefaults.standard.string(forKey: "snipMode") {
@@ -189,6 +198,11 @@ struct SnipPage: View {
         .focused($titleFocused)
         .submitLabel(.done)
         .onAppear { titleFocused = true }
+        // The whole title starts selected, as in the snip bar: typing replaces it, a tap places the cursor.
+        .onReceive(NotificationCenter.default.publisher(for: UITextView.textDidBeginEditingNotification)) { note in
+          guard let view = note.object as? UITextView else { return }
+          Task { view.selectAll(nil) }
+        }
         .onChange(of: model.title) { _, title in
           // Return ends the edit: a title is one line of thought, and a vertical field would take the newline.
           guard title.contains("\n") else { return }
