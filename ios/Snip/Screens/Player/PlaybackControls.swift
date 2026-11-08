@@ -37,7 +37,8 @@ struct Scrubber: View {
 
 /// Speed, skip back 15, play or pause, skip forward 30, Snip: the player's controls, the same wherever the player is
 /// shown. Snip is the app's main action, so it is the accent button. During a suspected ad break, Skip ad stands in the
-/// speed button's place, in its slot's width so the other controls never move. `onInteraction` is told of every press.
+/// speed button's place, in its slot's width so the other controls never move; Snip has a slot of the same width at
+/// the other end, so the row is symmetric and play sits in the middle of it. `onInteraction` is told of every press.
 struct TransportRow: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerEngine.self) private var engine
@@ -80,17 +81,21 @@ struct TransportRow: View {
       Spacer(minLength: 0)
       Button { press { engine.skip(by: 30_000) } } label: { Image(systemName: "goforward.30").font(.title2) }
       Spacer(minLength: 0)
-      Button {
-        press { Task { await model.snip() } }
-      } label: {
-        Image(systemName: "scissors")
-          .font(.title3.weight(.semibold))
-          .foregroundStyle(Self.ink)
-          .frame(width: 48, height: 48)
-          .background(Color.accentColor, in: .circle)
+      // The same slot at this end, with Snip at its edge: with the ends equal, the spacers put play in the middle.
+      ZStack(alignment: .trailing) {
+        skipAd.hidden()
+        Button {
+          press { Task { await model.snip() } }
+        } label: {
+          Image(systemName: "scissors")
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(Self.ink)
+            .frame(width: 48, height: 48)
+            .background(Color.accentColor, in: .circle)
+        }
+        .accessibilityLabel("Snip")
+        .sensoryFeedback(.impact, trigger: model.snipCard.map(ObjectIdentifier.init))
       }
-      .accessibilityLabel("Snip")
-      .sensoryFeedback(.impact, trigger: model.snipCard.map(ObjectIdentifier.init))
     }
     .buttonStyle(.plain)
     .shadow(color: .black.opacity(onVideo ? 0.6 : 0), radius: 6)

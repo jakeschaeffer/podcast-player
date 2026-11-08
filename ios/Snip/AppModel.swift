@@ -276,6 +276,11 @@ final class AppModel {
     }
   }
 
+  /// The app is in the foreground again: the activity is drawn afresh, and one the system or the owner ended (a swipe
+  /// on the lock screen, the eight-hour limit) is started again while playing, which only the foreground may do. Until
+  /// then the lock screen had no card, and so no Skip ad, however many ad breaks went by.
+  func refreshLiveActivity() { liveActivity.update(engine) }
+
   // MARK: Snips
 
   /// A tap on Snip: the position and the start of the heard stretch containing it, saved first and sent at once.

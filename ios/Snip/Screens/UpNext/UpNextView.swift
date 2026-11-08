@@ -2,10 +2,13 @@ import PlayerKit
 import PodcastAPI
 import SwiftUI
 
-/// The Up Next tab: what plays after the current episode, in the owner's order (on any device), and nothing else.
-/// Tap an episode to open it; swipe it to play it now, take it out (it comes back if played again) or mark it played;
-/// Edit shows the handles for moving and the minus for removing, which press-and-hold dragging also does. The same
-/// list sits in the player as a panel (UpNextList).
+struct UpNextRoute: Hashable {}
+
+/// Up Next, pushed from Today's queue button: what plays after the current episode, in the owner's order (on any
+/// device), and nothing else. Tap an episode to open it; swipe it to play it now, take it out (it comes back if played
+/// again) or mark it played; Edit shows the handles for moving and the minus for removing, which press-and-hold
+/// dragging also does. The same list sits in the player as a panel (UpNextList), which is where it is reached while
+/// listening; it is not a tab, since the queue is part of playing rather than a place of its own.
 struct UpNextView: View {
   @Environment(PlayerEngine.self) private var engine
   @Binding var showPlayer: Bool
