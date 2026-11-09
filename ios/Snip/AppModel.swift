@@ -262,7 +262,7 @@ final class AppModel {
     PlaybackActivityControl.handler = { [weak self] action in
       guard let self else { return }
       switch action {
-      case .toggle: self.engine.toggle()
+      case .toggle: await self.togglePlayback()
       case .back: self.engine.skip(by: -15_000)
       case .forward: self.engine.skip(by: 30_000)
       case .snip:
@@ -273,6 +273,20 @@ final class AppModel {
     engine.onAdBreakChange = { [weak self] in
       guard let self else { return }
       self.liveActivity.update(self.engine)
+    }
+  }
+
+  /// The activity's Play or pause. The intent waits for the audio to start: iOS may suspend the app once it returns.
+  /// A relaunched app (iOS ended it while paused) has an empty player, so Play opens the activity's episode first.
+  private func togglePlayback() async {
+    switch engine.status {
+    case .ready:
+      await engine.toggle()?.value
+    case .idle, .error:
+      guard let id = liveActivity.episodeID else { return }
+      await engine.open(id, autoplay: true)?.value
+    case .loading, .details, .preparing:
+      return
     }
   }
 

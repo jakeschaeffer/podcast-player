@@ -123,10 +123,12 @@ public final class PlayerEngine {
   // MARK: Loading
 
   /// Load an episode, asking the server to fetch its recording first when it has none, and optionally start it.
-  public func open(_ episodeID: ULID, autoplay: Bool = false) {
+  /// Returns the loading work, for a caller that must wait for it (a Live Activity's Play in a relaunched app).
+  @discardableResult
+  public func open(_ episodeID: ULID, autoplay: Bool = false) -> Task<Void, Never>? {
     if episode?.id == episodeID, status == .ready {
-      if autoplay { play() }
-      return
+      if autoplay { return play() }
+      return nil
     }
     if let left = episode, status == .ready { onLeave?(left.id, positionMs, finished) }
     detach()
@@ -177,6 +179,7 @@ public final class PlayerEngine {
         status = .error(error.localizedDescription)
       }
     }
+    return openTask
   }
 
   private func attach(_ ep: EpisodeDetail, autoplay: Bool) {
@@ -282,20 +285,30 @@ public final class PlayerEngine {
 
   // MARK: Transport
 
-  public func play() {
-    guard status == .ready else { return }
+  /// Start playing. When the signed URL must be renewed first, playing waits on the returned work, which a caller in
+  /// the background (an intent) awaits so that iOS keeps the app up until the audio has started.
+  @discardableResult
+  public func play() -> Task<Void, Never>? {
+    guard status == .ready else { return nil }
     // A signed URL that expired while paused (or failed) is swapped for a fresh one at the same spot.
     if !offline, player.currentItem?.status == .failed || audioURL.map({ SignedURL.needsRenewal($0) }) == true {
-      Task { await renewURL(thenPlay: true) }
-      return
+      return Task { await renewURL(thenPlay: true) }
     }
     AudioSessionController.activate()
     player.playImmediately(atRate: Float(speed))
+    return nil
   }
 
   public func pause() { player.pause() }
 
-  public func toggle() { playing ? pause() : play() }
+  @discardableResult
+  public func toggle() -> Task<Void, Never>? {
+    if playing {
+      pause()
+      return nil
+    }
+    return play()
+  }
 
   public func seek(to ms: Int) {
     guard status == .ready else { return }
@@ -341,7 +354,10 @@ public final class PlayerEngine {
       guard let url = SignedURL.onServer(mediaURL(asset), base: api.baseURL) else { return }
       episode = ep
       load(url, at: positionMs)
-      if thenPlay { player.playImmediately(atRate: Float(speed)) }
+      if thenPlay {
+        AudioSessionController.activate()
+        player.playImmediately(atRate: Float(speed))
+      }
     } catch {
       status = .error(error.localizedDescription)
     }

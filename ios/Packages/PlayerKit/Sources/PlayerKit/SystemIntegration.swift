@@ -1,5 +1,6 @@
 import AVFoundation
 import MediaPlayer
+import os
 
 /// Spoken-word, long-form playback that keeps going in the background and on the lock screen.
 enum AudioSessionController {
@@ -11,12 +12,20 @@ enum AudioSessionController {
   }
 
   /// Made active before each play, so that after an interruption (a call, Siri, another app's audio) the app takes
-  /// the audio, and with it the headphones' buttons, back.
+  /// the audio, and with it the headphones' buttons, back. iOS refuses it from the background unless the play came
+  /// through an `AudioPlaybackIntent` or remote command; the refusal is logged (Console.app, subsystem
+  /// `snip.player`), since nothing else would show why Play did nothing.
   static func activate() {
     #if os(iOS)
-      try? AVAudioSession.sharedInstance().setActive(true)
+      do {
+        try AVAudioSession.sharedInstance().setActive(true)
+      } catch {
+        log.error("Audio session activation failed: \(error.localizedDescription, privacy: .public) (\((error as NSError).code))")
+      }
     #endif
   }
+
+  static let log = Logger(subsystem: "snip.player", category: "audio")
 }
 
 /// Lock screen and Control Center metadata.

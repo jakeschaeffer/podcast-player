@@ -216,7 +216,10 @@ public enum PlaybackActivityControl {
   }
 }
 
-public struct TogglePlaybackIntent: LiveActivityIntent {
+/// Also an `AudioPlaybackIntent`: only that lets the app start audio from the background. Without it Play worked only
+/// while the app was still awake after a pause; a few minutes later iOS refused the audio session and the tap did
+/// nothing.
+public struct TogglePlaybackIntent: LiveActivityIntent, AudioPlaybackIntent {
   public static let title: LocalizedStringResource = "Play or pause"
   public init() {}
   public func perform() async throws -> some IntentResult {
