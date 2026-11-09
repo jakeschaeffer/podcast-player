@@ -327,6 +327,16 @@ describe("end to end: feed → audio → transcript → snip → public page", (
     log = await edits();
     expect(log).toHaveLength(2);
     expect(log[1]).toMatchObject({ new_title: "Heavy users paid what light users paid", previous_title: "Flat fees left money on the table", previous_source: "owner" });
+
+    // In and Out fine-tuned with a new title in the same save: the summary is kept, so no summary job runs for the new
+    // revision to fill the log later. The row carries the model's title from the revision the summary was kept from.
+    const tuned = await app.inject({ method: "PATCH", url: `/v1/snips/${snipId}`, headers: auth(), payload: { start_ms: 103_000, end_ms: 138_000, if_revision: renamed.json().revision.id, title: "Flat fees undercharged heavy users" } });
+    expect(tuned.json().revision).toMatchObject({ rev: 5, title: "Flat fees undercharged heavy users", title_source: "owner" });
+    await drain(ctx);
+    log = await edits();
+    expect(log).toHaveLength(3);
+    expect(log[2]).toMatchObject({ new_title: "Flat fees undercharged heavy users", previous_title: "Heavy users paid what light users paid", generated_title: "Usage pricing doubled revenue", summary_model: "fixed-model" });
+    expect((log[2] as { summary_prompt_version?: string | null }).summary_prompt_version).toBeTruthy();
   });
 
   it("shares every snip of an episode on one page, with only whitelisted fields and a nonce-locked player", async () => {
