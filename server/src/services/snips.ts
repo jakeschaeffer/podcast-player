@@ -248,7 +248,13 @@ export function editSnip(ctx: AppContext, id: string, patch: EditSnipInput, devi
       );
     ctx.db.prepare("UPDATE snip SET current_revision_id = ? WHERE id = ?").run(revisionId, id);
     if (titleChanged) {
-      recordTitleEdit(ctx, { id: revisionId, snip_id: id, start_ms, end_ms, excerpt, generated_title: null, summary_model: null, summary_prompt_version: null }, { title: current?.title ?? null, source: current?.title_source ?? null }, ownerTitle);
+      // With the summary kept, no summary job runs for this revision to fill the log later: the model's title goes in now.
+      recordTitleEdit(
+        ctx,
+        { id: revisionId, snip_id: id, start_ms, end_ms, excerpt, generated_title: kept?.generated_title ?? null, summary_model: kept?.summary_model ?? null, summary_prompt_version: kept?.summary_prompt_version ?? null },
+        { title: current?.title ?? null, source: current?.title_source ?? null },
+        ownerTitle,
+      );
     }
   })();
   if (current) ctx.log("snip edited", { snip_id: id, from: { start_ms: current.start_ms, end_ms: current.end_ms, method: current.method }, to: { start_ms, end_ms }, regenerate });
