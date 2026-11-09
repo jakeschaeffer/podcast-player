@@ -26,6 +26,13 @@ final class LiveActivityController {
     activity = Activity<PlaybackActivityAttributes>.activities.first { $0.activityState == .active }
   }
 
+  /// The episode the activity shows. After iOS ended the app while paused, the activity outlives it: a relaunch
+  /// picks it up with the player empty, and Play opens this episode.
+  var episodeID: ULID? {
+    guard let activity, activity.activityState == .active else { return nil }
+    return activity.content.state.episodeID
+  }
+
   func update(_ engine: PlayerEngine) {
     guard let ep = engine.episode, engine.status == .ready else { return }
     let ad = engine.currentAdBreak
