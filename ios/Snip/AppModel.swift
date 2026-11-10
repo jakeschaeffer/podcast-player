@@ -70,6 +70,7 @@ final class AppModel {
     listenForDeliveredSnips()
     wireQueue()
     wireLiveActivity()
+    restoreSaved()
     // Any 401 outside login means the device was revoked or the token is gone: back to the login screen.
     NotificationCenter.default.addObserver(forName: Self.unauthorized, object: nil, queue: .main) { [weak self] _ in
       MainActor.assumeIsolated { self?.signOut() }
@@ -91,6 +92,8 @@ final class AppModel {
     listenForDeliveredSnips()
     wireQueue()
     wireLiveActivity()
+    queue = []
+    restoreSaved()
     signedIn = true
   }
 
@@ -98,15 +101,29 @@ final class AppModel {
     engine.pause()
     liveActivity.end()
     tokens.clear()
+    api.saved?.clear()
+    queue = []
     SharedSession.forgetServer()
     signedIn = false
+  }
+
+  /// What was last read from this server and kept on the phone: shown until the server answers, or instead of it
+  /// with no connection.
+  private func restoreSaved() {
+    guard signedIn || tokens.load() != nil else { return }
+    if let feeds = api.savedFeeds() { remember(feeds) }
+    if let items = api.savedQueue() { queue = items }
+  }
+
+  private func remember(_ feeds: [Feed]) {
+    showArtwork = Dictionary(feeds.compactMap { f in f.imageUrl.map { (f.id, $0) } }, uniquingKeysWith: { a, _ in a })
+    unfollowedFeeds = Set(feeds.filter { $0.followed == false }.map(\.id))
   }
 
   /// Every feed, followed or not, remembering each show's artwork for `artwork(for:)` and which are unfollowed.
   func feeds() async throws -> [Feed] {
     let feeds = try await api.feeds()
-    showArtwork = Dictionary(feeds.compactMap { f in f.imageUrl.map { (f.id, $0) } }, uniquingKeysWith: { a, _ in a })
-    unfollowedFeeds = Set(feeds.filter { $0.followed == false }.map(\.id))
+    remember(feeds)
     return feeds
   }
 
@@ -424,7 +441,9 @@ final class AppModel {
     -> (tokens: TokenStore, api: APIClient, reporter: PlaybackReporter, engine: PlayerEngine, snips: SnipOutbox, downloads: DownloadStore)
   {
     let tokens = TokenStore(server: server)
-    let api = APIClient(baseURL: server, token: { tokens.load() }) {
+    // The last lists read from this server, drawn at launch before it answers (SavedResponses).
+    let saved = SavedResponses(folder: URL.cachesDirectory.appending(path: "lists/\(server.host() ?? "server")"))
+    let api = APIClient(baseURL: server, token: { tokens.load() }, saved: saved) {
       NotificationCenter.default.post(name: unauthorized, object: nil)
     }
     let outbox = URL.applicationSupportDirectory.appending(path: "playback-outbox.json")

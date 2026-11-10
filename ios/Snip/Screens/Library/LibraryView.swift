@@ -112,6 +112,10 @@ struct LibraryView: View {
   #endif
 
   private func load() async {
+    if !loaded, feeds.isEmpty, let saved = model.api.savedFeeds(), !saved.isEmpty {
+      feeds = saved
+      loaded = true
+    }
     do {
       feeds = try await model.feeds()
       error = nil

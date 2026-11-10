@@ -8,6 +8,7 @@ struct SnipsView: View {
   @State private var next: String?
   @State private var error: String?
   @State private var loading = false
+  @State private var loadingMore = false
   @State private var loaded = false
   @State private var opened: SnipRoute?
 
@@ -22,7 +23,7 @@ struct SnipsView: View {
           }
           .onAppear { if snip.id == snips.last?.id, next != nil { Task { await load(more: true) } } }
       }
-      if loading && loaded { ProgressView().frame(maxWidth: .infinity) }
+      if loading && loadingMore { ProgressView().frame(maxWidth: .infinity) }
     }
     .overlay {
       if !loaded && error == nil {
@@ -67,7 +68,11 @@ struct SnipsView: View {
   private func load(more: Bool) async {
     guard !loading else { return }
     loading = true
+    loadingMore = more
     defer { loading = false }
+    if !more, !loaded, snips.isEmpty, let saved = model.api.savedSnips(limit: 30), !saved.items.isEmpty {
+      (snips, next, loaded) = (saved.items, saved.next, true)
+    }
     do {
       let page = try await model.api.snips(limit: 30, after: more ? next : nil)
       snips = more ? snips + page.items : page.items

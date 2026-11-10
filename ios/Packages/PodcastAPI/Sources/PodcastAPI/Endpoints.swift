@@ -22,8 +22,11 @@ extension APIClient {
   // MARK: Feeds and episodes
 
   public func feeds() async throws -> [Feed] {
-    try await send("GET", "/v1/feeds")
+    try await send("GET", "/v1/feeds", remember: true)
   }
+
+  /// The shows as last read, from the phone (`lastSeen`).
+  public func savedFeeds() -> [Feed]? { lastSeen("/v1/feeds") }
 
   /// Shows in the public directory matching `query` (2–200 characters).
   public func searchShows(_ query: String, limit: Int = 20) async throws -> ShowSearch {
@@ -56,14 +59,26 @@ extension APIClient {
     var query = [URLQueryItem(name: "limit", value: String(limit))]
     if let feedID { query.append(URLQueryItem(name: "feed_id", value: feedID)) }
     if let after { query.append(URLQueryItem(name: "after", value: after)) }
-    return try await send("GET", "/v1/episodes", query: query)
+    // Only the newest across all shows is remembered: Today's list.
+    return try await send("GET", "/v1/episodes", query: query, remember: feedID == nil && after == nil)
+  }
+
+  /// The newest episodes as last read with this `limit`, from the phone.
+  public func savedEpisodes(limit: Int = 30) -> [Episode]? {
+    lastSeen("/v1/episodes", query: [URLQueryItem(name: "limit", value: String(limit))], as: Page<Episode>.self)?.items
   }
 
   /// Up next in the owner's order: episodes not yet placed (heard partway, most recently listened first, on any
   /// device) come first, then the placed and added ones. Includes the one playing.
   public func queue(limit: Int = 50) async throws -> [Episode] {
-    let page: QueuePage = try await send("GET", "/v1/queue", query: [URLQueryItem(name: "limit", value: String(limit))])
+    let page: QueuePage = try await send(
+      "GET", "/v1/queue", query: [URLQueryItem(name: "limit", value: String(limit))], remember: true)
     return page.items
+  }
+
+  /// Up next as last read, from the phone.
+  public func savedQueue(limit: Int = 50) -> [Episode]? {
+    lastSeen("/v1/queue", query: [URLQueryItem(name: "limit", value: String(limit))], as: QueuePage.self)?.items
   }
 
   /// Put Up next in this order, first to last; returns the new Up next.
@@ -171,7 +186,13 @@ extension APIClient {
     var query = [URLQueryItem(name: "limit", value: String(limit))]
     if let episodeID { query.append(URLQueryItem(name: "episode_id", value: episodeID)) }
     if let after { query.append(URLQueryItem(name: "after", value: after)) }
-    return try await send("GET", "/v1/snips", query: query)
+    // Only the first page of every snip is remembered: the Snips tab as it opens.
+    return try await send("GET", "/v1/snips", query: query, remember: episodeID == nil && after == nil)
+  }
+
+  /// The newest snips as last read with this `limit`, from the phone.
+  public func savedSnips(limit: Int = 30) -> Page<Snip>? {
+    lastSeen("/v1/snips", query: [URLQueryItem(name: "limit", value: String(limit))])
   }
 
   // MARK: Prompts and evals
