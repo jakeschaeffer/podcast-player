@@ -26,7 +26,7 @@ import { loadConfig } from "../../lib/config.js";
 import { loadTranscript } from "../../services/transcripts.js";
 import { findEpisodeByTitle } from "../../services/titleMatch.js";
 import { alignSnip } from "./align.js";
-import { slug, wordsBucket, type SnipCase } from "./cases.js";
+import { acceptableRanges, slug, wordsBucket, type ReadwiseSource, type SnipCase } from "./cases.js";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const EVAL_DIR = join(REPO, "evals/snip-selection");
@@ -109,14 +109,10 @@ async function main(): Promise<void> {
     const startIdx = sentences.findIndex((s) => a.start_word >= s.start_word && a.start_word < s.end_word);
     if (lastIdx < 0 || startIdx < 0) { report.unaligned++; continue; }
     const last = sentences[lastIdx]!;
-    const beforeLast = sentences[lastIdx - 1];
-    const startS = sentences[startIdx]!;
-    const prev = sentences[startIdx - 1];
-    const next = sentences[startIdx + 1];
     const endsMidSentence = a.end_word < last.end_word - 1;
     const year = h.highlighted_at ? h.highlighted_at.slice(0, 4) : "unknown";
     const idea = (h.derived.title ?? text).replace(/\s+/g, " ").trim().slice(0, 120);
-    const base: Omit<SnipCase, "id" | "anchor_ms" | "source" | "tags"> & { source: Omit<SnipCase["source"], "anchor_position">; tags: string[] } = {
+    const base: Omit<SnipCase, "id" | "anchor_ms" | "source" | "tags"> & { source: Omit<ReadwiseSource, "anchor_position">; tags: string[] } = {
       transcript_fixture: `${fixturesDir}/${asset.id}.transcript.json`,
       heard_from_ms: 0,
       label: {
@@ -125,8 +121,7 @@ async function main(): Promise<void> {
         ideal_end_word: a.end_word,
         ideal_start_ms: a.start_ms,
         ideal_end_ms: a.end_ms,
-        acceptable_start_ms: [prev ? prev.start_ms : startS.start_ms, next ? next.start_ms : startS.end_ms],
-        acceptable_end_ms: [beforeLast ? beforeLast.end_ms - 500 : last.start_ms, last.end_ms + 500],
+        ...acceptableRanges(sentences, startIdx, lastIdx),
       },
       source: {
         readwise_highlight_id: h.highlight_id,

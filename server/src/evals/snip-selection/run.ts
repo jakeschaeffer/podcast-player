@@ -2,13 +2,18 @@
  * Score span selectors against the eval cases.
  *
  *   pnpm eval:snips:run [--cases-dir cases|cases-text] [--filter <substring of case id>] [--tag show:stratechery] [--limit N]
- *                       [--model] [--concurrency 4] [--model-timeout-ms 90000]
+ *                       [--app] [--model] [--concurrency 4] [--model-timeout-ms 90000]
+ *
+ * Cases come from two places: the files `eval:snips:build` writes from a Readwise export (simulated taps on the
+ * owner's Snipd snips), and with --app the snips made in this app, read from the database (real taps, labelled with
+ * the span the owner left; appSnips.ts). Either may be missing. `--tag source:app` scores the app's alone.
  *
  * Methods: fixed-N (the last N seconds before the tap), snap-90 (the production default), snap-90-band15 (scored
  * signals inside a 15 s band), scored-v1 (the first heuristic), and with --model the Codex-backed start picker.
  * Model picks are cached in results/model-picks.jsonl keyed by case, model, and selector version, so an
  * interrupted run resumes without repeating calls. Writes results/<timestamp>-selection.{json,md}. The server runs the
- * same function (`runSelectionEval`, always with the model) when a run is started from the Prompts screen.
+ * same function (`runSelectionEval`, always with the model and the app's snips) when a run is started from the
+ * Prompts screen.
  */
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -16,6 +21,8 @@ import { fileURLToPath } from "node:url";
 import { appendFileSync, existsSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { CodexCliTextModel } from "../../adapters/codex-cli.js";
+import { createContext } from "../../app/context.js";
+import { loadConfig } from "../../lib/config.js";
 import { DEFAULT_SELECT_PREFS, SELECTOR_VERSION, selectSpan, type Selection, type SpanPicker } from "../../core/snip/select.js";
 import type { TextModel } from "../../adapters/textModel.js";
 import { readRegistry } from "../../core/summary/prompts.js";
@@ -23,7 +30,8 @@ import { makeSpanPicker } from "../../services/spanPicker.js";
 import { SENTENCIZER_VERSION } from "../../core/snip/sentencize.js";
 import { sliceWords } from "../../core/transcript/normalize.js";
 import type { ApiTranscript, NormalizedTranscript } from "../../core/transcript/types.js";
-import type { SnipCase } from "./cases.js";
+import { appSnipCases, editNote, type AppCases } from "./appSnips.js";
+import { isAppCase, type SnipCase } from "./cases.js";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 /** evals/snip-selection at the repository root, or under EVALS_DIR when tests or a local copy point elsewhere. */
@@ -75,6 +83,9 @@ type Row = {
   violations: string[];
   latency_ms: number;
   tags: string[];
+  /** For a snip made in the app, which has no case file to look these up in: what it is, and what the owner did to it. */
+  idea?: string;
+  note?: string;
 };
 
 function fromApi(api: ApiTranscript & { duration_ms: number }): NormalizedTranscript {
@@ -122,6 +133,7 @@ function score(c: SnipCase, m: string, sel: Selection, latency_ms: number, isHeu
     violations,
     latency_ms,
     tags: c.tags,
+    ...(isAppCase(c) ? { idea: c.label.idea, note: editNote(c) ?? "" } : {}),
   };
 }
 
@@ -202,6 +214,8 @@ async function pool<T>(items: T[], concurrency: number, fn: (item: T, index: num
 
 export type SelectionEvalOptions = {
   casesDir?: string;
+  /** Snips made in the app, as cases (`appSnipCases`); they join whatever case files there are. */
+  app?: AppCases;
   filter?: string;
   tag?: string;
   limit?: number;
@@ -217,7 +231,7 @@ export type SelectionEvalOptions = {
   onProgress?: (done: number, total: number) => void;
 };
 
-export type SelectionEvalMeta = { selector: string; sentencizer: string; model: string | null; prompt_name: "span-picker"; prompt: string | null; cases_dir: string; cases: number; snips: number; episodes: number; run_at: string; filter: string | null; tag: string | null };
+export type SelectionEvalMeta = { selector: string; sentencizer: string; model: string | null; prompt_name: "span-picker"; prompt: string | null; cases_dir: string; cases: number; snips: number; app_cases: number; app_edited: number; episodes: number; run_at: string; filter: string | null; tag: string | null };
 
 /** Score every selection method on the cases, plus the model start picker when a model is given, and write the scorecard. */
 export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise<{ stamp: string; meta: SelectionEvalMeta }> {
@@ -225,18 +239,20 @@ export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise
   await mkdir(join(EVAL_DIR, "results"), { recursive: true });
   const values = { filter: opts.filter, tag: opts.tag, limit: opts.limit === undefined ? undefined : String(opts.limit), concurrency: String(opts.concurrency ?? 4), "model-timeout-ms": String(opts.modelTimeoutMs ?? 90_000) };
   const casesDir = opts.casesDir ?? "cases";
-  const caseFiles = (await readdir(join(EVAL_DIR, casesDir))).filter((f) => f.endsWith(".json") && f !== "index.json");
+  // A server with no Readwise export has no case files, and scores its own snips alone.
+  const caseFiles = existsSync(join(EVAL_DIR, casesDir)) ? (await readdir(join(EVAL_DIR, casesDir))).filter((f) => f.endsWith(".json") && f !== "index.json") : [];
+  const wanted = (c: SnipCase) => (!values.filter || c.id.includes(values.filter)) && (!values.tag || c.tags.includes(values.tag));
   const cases: SnipCase[] = [];
   for (const f of caseFiles) {
     const c = JSON.parse(await readFile(join(EVAL_DIR, casesDir, f), "utf8")) as SnipCase;
-    if (values.filter && !c.id.includes(values.filter)) continue;
-    if (values.tag && !c.tags.includes(values.tag)) continue;
-    cases.push(c);
+    if (!c.tags.some((t) => t.startsWith("source:"))) c.tags.push("source:readwise");
+    if (wanted(c)) cases.push(c);
   }
+  cases.push(...(opts.app?.cases ?? []).filter(wanted));
   cases.sort((a, b) => a.id.localeCompare(b.id));
   if (values.limit) cases.splice(Number(values.limit));
-  if (cases.length === 0) throw new Error("no selection cases; run eval:snips:build first");
-  const transcripts = new Map<string, { t: NormalizedTranscript; duration_ms: number }>();
+  if (cases.length === 0) throw new Error("no selection cases: none of the app's snips qualify, and there are no case files (eval:snips:build makes them from a Readwise export)");
+  const transcripts = new Map<string, { t: NormalizedTranscript; duration_ms: number }>(opts.app?.transcripts ?? []);
   for (const c of cases) {
     if (transcripts.has(c.transcript_fixture)) continue;
     const api = JSON.parse(await readFile(join(EVAL_DIR, c.transcript_fixture), "utf8")) as ApiTranscript & { duration_ms: number };
@@ -283,12 +299,12 @@ export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise
     rows.push(...modelRows);
   }
   const overall = Object.fromEntries(methods.map((m) => [m, summarize(rows.filter((r) => r.method === m))]));
-  const tagGroups = [...new Set(cases.flatMap((c) => c.tags))].filter((t) => /^(words:|anchor:|ends-|year:)/.test(t)).sort();
+  const tagGroups = [...new Set(cases.flatMap((c) => c.tags))].filter((t) => /^(source:|app:|words:|anchor:|ends-|year:)/.test(t)).sort();
   const byTag = Object.fromEntries(tagGroups.map((tag) => [tag, Object.fromEntries(methods.map((m) => [m, summarize(rows.filter((r) => r.method === m && r.tags.includes(tag)))]))]));
 
   const stamp = opts.stamp ?? new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   await mkdir(join(EVAL_DIR, "results"), { recursive: true });
-  const meta: SelectionEvalMeta = { selector: SELECTOR_VERSION, sentencizer: SENTENCIZER_VERSION, model: modelLabel, prompt_name: "span-picker", prompt: promptVersion, cases_dir: casesDir, cases: cases.length, snips: new Set(cases.map((c) => c.source.readwise_highlight_id)).size, episodes: new Set(cases.map((c) => c.source.asset_id)).size, run_at: new Date().toISOString(), filter: values.filter ?? null, tag: values.tag ?? null };
+  const meta: SelectionEvalMeta = { selector: SELECTOR_VERSION, sentencizer: SENTENCIZER_VERSION, model: modelLabel, prompt_name: "span-picker", prompt: promptVersion, cases_dir: casesDir, cases: cases.length, snips: new Set(cases.map((c) => ("kind" in c.source ? c.source.snip_id : c.source.readwise_highlight_id))).size, app_cases: cases.filter(isAppCase).length, app_edited: cases.filter((c) => isAppCase(c) && c.source.edited).length, episodes: new Set(cases.map((c) => c.source.asset_id)).size, run_at: new Date().toISOString(), filter: values.filter ?? null, tag: values.tag ?? null };
   const tag = casesDir === "cases" ? "" : `-${casesDir}`;
   await writeFile(join(EVAL_DIR, "results", `${stamp}-selection${tag}.json`), JSON.stringify({ meta, overall, by_tag: byTag, rows }, null, 1));
 
@@ -298,9 +314,11 @@ export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise
   const md: string[] = [
     `# Snip selection scorecard`,
     ``,
-    `Run ${meta.run_at}. Selector \`${meta.selector}\`, sentencizer \`${meta.sentencizer}\`, cases from \`${meta.cases_dir}\`. ${meta.cases} cases from ${meta.snips} Readwise snips across ${meta.episodes} episodes${meta.tag ? `, tag \`${meta.tag}\`` : ""}${meta.filter ? `, filter \`${meta.filter}\`` : ""}.`,
+    `Run ${meta.run_at}. Selector \`${meta.selector}\`, sentencizer \`${meta.sentencizer}\`, cases from \`${meta.cases_dir}\`. ${meta.cases} cases from ${meta.snips} snips across ${meta.episodes} episodes: ${meta.cases - meta.app_cases} simulated taps on Readwise snips, and ${meta.app_cases} snips made in the app (${meta.app_edited} with boundaries the owner moved)${meta.tag ? `, tag \`${meta.tag}\`` : ""}${meta.filter ? `, filter \`${meta.filter}\`` : ""}.`,
     ``,
-    `A hit means the chosen boundary falls inside the acceptable range (one sentence of slack around the aligned Readwise boundary). IoU is against the aligned span in milliseconds. Over-capture is audio included before the ideal start; under-capture is ideal audio left out.`,
+    `A hit means the chosen boundary falls inside the acceptable range (one sentence of slack around the labelled boundary). IoU is against the labelled span in milliseconds. Over-capture is audio included before the ideal start; under-capture is ideal audio left out.`,
+    ``,
+    `The label of a Readwise case is the Snipd snip's words aligned to the transcript. The label of a snip made in the app is the span the owner left it with: exact where the owner moved a boundary (\`app:edited\`, with \`app:start-earlier\`, \`app:start-later\` and \`app:end-moved\` saying which), and weaker where it was left alone (\`app:left-alone\`), since nothing says the snip was looked at. A method that fixes edited snips while leaving the others as they were is the one to want.`,
     ``,
     `## Overall`,
     ``,
@@ -336,11 +354,15 @@ async function main(): Promise<void> {
       concurrency: { type: "string", default: "4" },
       "model-timeout-ms": { type: "string", default: "90000" },
       "cases-dir": { type: "string", default: "cases" },
+      app: { type: "boolean", default: false },
     },
   });
+  // The app's snips are read from the database the server's configuration names (DATA_DIR); nothing is written to it.
+  const ctx = values.app ? createContext(loadConfig()) : null;
   const codex = `codex${process.env.CODEX_MODEL ? `:${process.env.CODEX_MODEL}` : ""}${process.env.CODEX_REASONING_EFFORT ? `/${process.env.CODEX_REASONING_EFFORT}` : ""}`;
   const { stamp } = await runSelectionEval({
     casesDir: values["cases-dir"]!,
+    ...(ctx ? { app: appSnipCases(ctx) } : {}),
     ...(values.filter ? { filter: values.filter } : {}),
     ...(values.tag ? { tag: values.tag } : {}),
     ...(values.limit ? { limit: Number(values.limit) } : {}),
@@ -352,6 +374,7 @@ async function main(): Promise<void> {
   const tag = values["cases-dir"] === "cases" ? "" : `-${values["cases-dir"]}`;
   console.log(await readFile(join(selectionDir(), "results", `${stamp}-selection${tag}.md`), "utf8"));
   console.log(`wrote ${join(selectionDir(), "results", `${stamp}-selection${tag}.{json,md}`)}`);
+  ctx?.db.close();
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

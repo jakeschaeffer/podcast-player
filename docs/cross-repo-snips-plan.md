@@ -307,7 +307,7 @@ A UUID is enough: B accepts any 8–64-character `client_request_id` (B:server/s
 
 **Edit log.** `Snips/snip-edits.jsonl` gets one line per edit, so ground truth starts with the first build. There are two kinds of line:
 - **Title edits** use B's `title_edit` field names exactly: `snip_id, revision_id, previous_title, previous_source, new_title, generated_title, summary_model, summary_prompt_version, start_ms, end_ms, excerpt, created_at` (B:server/src/db/migrations/0005_title_ground_truth.sql:12-26).
-- **Boundary edits** are A's own record: `{kind: "boundary", snip_id, rev, auto_span, final_span, selection_version, created_at}`. B logs no boundary edits.
+- **Boundary edits** are A's own record: `{kind: "boundary", snip_id, rev, auto_span, final_span, selection_version, created_at}`. B keeps no such log: a boundary edit is a `snip_revision` with `method = 'manual'`, and since 2026-11-09 its selection eval reads those revisions as cases (B:server/src/evals/snip-selection/appSnips.ts).
 
 B's eval runners don't read files. The title eval pulls edits from SQLite (`listTitleEdits`, B:server/src/evals/snip-titles/appEdits.ts:7-10), and the selection eval has its own case format. So M12 adds a small converter, `A:evals/scripts/to-b-cases.ts`, that turns the JSONL into B's `TitleCase` and selection-case files.
 
