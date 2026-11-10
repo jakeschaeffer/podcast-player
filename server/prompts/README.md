@@ -41,10 +41,13 @@ One call returns a short preview, three to seven takeaways that cite a sentence,
 
 ## Snip start
 
-This would let the model move where a snip starts, among candidates the fixed rules offer; the end is always fixed. It is off: it scored below the fixed rules on the owner's snips. Snip length is decided by `selectSpan` and `DEFAULT_SELECT_PREFS` in [core/snip/select.ts](../src/core/snip/select.ts).
+This would let the model move where a snip starts, among candidates the fixed rules offer; the end is always fixed. It is off: v1 scored below the fixed rules on the owner's snips. Snip length is decided by `selectSpan` and `DEFAULT_SELECT_PREFS` in [core/snip/select.ts](../src/core/snip/select.ts).
+
+- **What each version may choose from.** v1 is offered three sentences either side of the default start, as it was written for. Every later version asks for reach and is offered every sentence start up to 240 seconds before the tap (`WIDE_REACH_MS`; never before the point you began listening from). The reason is in [evals/snip-selection](../../evals/snip-selection/README.md): on the snips you re-cut, your start was among v1's candidates for 5 of 17, and among the wide ones for 16. v2 is the first written for the wide range; it is not active until a run says it earns it.
 
 - **Instructions.** The active version in [span-picker/](span-picker/).
-- **The message around them.** `makeSpanPicker` in [services/spanPicker.ts](../src/services/spanPicker.ts): the candidate ids, the length rule, and the transcript lines with candidates marked.
+- **The message around them.** `makeSpanPicker` in [services/spanPicker.ts](../src/services/spanPicker.ts). For v1: the candidate ids, the length rule, and the transcript lines with candidates marked. For later versions: the range of ids it may start at, the length rule, and each line with how many seconds before the end it starts, the default and the end marked.
+- **If it is ever turned on.** The picker has 8 seconds in production before the fixed rules' span is used instead. A wide-range call reads up to four minutes of transcript, so check how long the calls take before relying on it.
 - **Eval.** [evals/snip-selection/run.ts](../src/evals/snip-selection/run.ts), which runs this prompt against the owner's snips.
 
 ## Speakers

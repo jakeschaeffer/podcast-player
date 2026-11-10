@@ -8,8 +8,18 @@ import { sentencize, type Sentence } from "./sentencize.js";
  * nearest `target_ms` back; scored signals only break ties inside `snap_band_ms`; the model, when present,
  * may only move the start among a few candidate sentences around the default. Measured against the owner's
  * Readwise snips, this beat the v1 scored heuristic 34% to 13% on "no edit needed".
+ *
+ * November 10, 2026: a picker may ask for reach (`SpanPicker.reach_ms`) and is then offered every sentence start
+ * back to it. The rules themselves, and so everything chosen without a model, are as they were: still v2.
  */
 export const SELECTOR_VERSION = "select_v2";
+
+/**
+ * How far before the tap a start picker with reach may place the start. On the 17 snips the owner had re-cut by
+ * November 9, 2026, the start they chose was among the picker's candidates for 5 with the few sentences around the
+ * default, for 13 with every start in the rules' 180 s, and for 16 with every start in 240 s; 300 s added none.
+ */
+export const WIDE_REACH_MS = 240_000;
 
 export type SelectPrefs = {
   min_ms: number;
@@ -60,7 +70,8 @@ export type Selection = {
   start_word: number | null;
   end_word: number | null;
   method: SelectMethod;
-  window: { lo_ms: number; hi_ms: number; short_exception: boolean; min_relaxed: boolean };
+  /** `reach_lo_ms` is set when a picker with reach was offered starts from before `lo_ms`, back to there. */
+  window: { lo_ms: number; hi_ms: number; short_exception: boolean; min_relaxed: boolean; reach_lo_ms?: number };
   /** Sentences the selector saw, with a few before the window for context (`eligible` false). */
   sentences: (Sentence & { eligible: boolean })[];
   eligible_end_ids: number[];
@@ -73,8 +84,12 @@ export type Selection = {
   version: string;
 };
 
-/** The model's only job in v2: pick the start sentence among the candidates offered. The end is fixed. */
-export type SpanPicker = (input: {
+/**
+ * The model's only job in v2: pick the start sentence among the candidates offered. The end is fixed. A picker that
+ * names a reach is offered every whole-sentence start back to that far before the tap, which may be further than the
+ * rules look (never before the listener began hearing); one that names none gets the few sentences around the default.
+ */
+export type SpanPicker = ((input: {
   sentences: (Sentence & { eligible: boolean })[];
   end_id: number;
   snap_start_id: number;
@@ -82,7 +97,7 @@ export type SpanPicker = (input: {
   anchor_ms: number;
   prefs: SelectPrefs;
   short_exception: boolean;
-}) => Promise<{ start_id: number; reason: string } | null>;
+}) => Promise<{ start_id: number; reason: string } | null>) & { reach_ms?: number };
 
 export type SelectInput = {
   transcript: NormalizedTranscript | null;
@@ -108,12 +123,15 @@ export async function selectSpan(input: SelectInput): Promise<Selection> {
   const lo = Math.max(0, T - prefs.max_ms, H);
   const hi = T;
   const short_exception = hi - lo < prefs.min_ms;
-  const window = { lo_ms: lo, hi_ms: hi, short_exception, min_relaxed: false };
+  // A picker with reach is shown, and may choose from, sentences from before the window the rules look in.
+  const reach = input.picker?.reach_ms;
+  const reachLo = reach === undefined ? lo : Math.min(lo, Math.max(0, T - reach, H));
+  const window: Selection["window"] = { lo_ms: lo, hi_ms: hi, short_exception, min_relaxed: false, ...(reachLo < lo ? { reach_lo_ms: reachLo } : {}) };
   const empty = { sentences: [] as Selection["sentences"], eligible_end_ids: [] as number[], candidates: [] as ScoredCandidate[], snap: null, chosen: null, model_rejection: null, window, version: SELECTOR_VERSION };
 
   if (!input.transcript || hi <= lo) return { ...fixedSpan(input.transcript, lo, hi, prefs), ...empty };
 
-  const all = sentencize(input.transcript, { from_ms: Math.max(0, lo - CONTEXT_MS), to_ms: hi });
+  const all = sentencize(input.transcript, { from_ms: Math.max(0, reachLo - CONTEXT_MS), to_ms: hi });
   const sentences = all.map((s) => ({ ...s, eligible: s.start_ms >= lo && s.end_ms <= hi }));
   const eligible = sentences.filter((s) => s.eligible);
   if (eligible.length === 0) return { ...fixedSpan(input.transcript, lo, hi, prefs), ...empty, sentences };
@@ -137,7 +155,10 @@ export async function selectSpan(input: SelectInput): Promise<Selection> {
   if (input.picker) {
     const byId = [...candidates].sort((a, b) => a.start_id - b.start_id);
     const pos = byId.findIndex((c) => c.start_id === snap.start_id);
-    const offered = byId.slice(Math.max(0, pos - prefs.model_start_radius), pos + prefs.model_start_radius + 1).map((c) => c.start_id);
+    const offered =
+      reach === undefined
+        ? byId.slice(Math.max(0, pos - prefs.model_start_radius), pos + prefs.model_start_radius + 1).map((c) => c.start_id)
+        : startsWithinReach(sentences, endId, reachLo, Math.max(prefs.max_ms, reach), prefs.min_ms, short_exception || window.min_relaxed);
     try {
       const pick = await input.picker({ sentences, end_id: endId, snap_start_id: snap.start_id, candidate_start_ids: offered, anchor_ms: T, prefs, short_exception });
       if (!pick) model_rejection = "picker returned nothing";
@@ -153,7 +174,8 @@ export async function selectSpan(input: SelectInput): Promise<Selection> {
 
   const start = sentences[chosen.start_id]!;
   const end = sentences[chosen.end_id]!;
-  const padded = pad(input.transcript, start.start_word, end.end_word, lo, hi, prefs);
+  // A start the model reached for lies before the rules' window: its lead-in may go back as far as the reach does.
+  const padded = pad(input.transcript, start.start_word, end.end_word, start.start_ms < lo ? reachLo : lo, hi, prefs);
   return {
     ...padded,
     start_word: start.start_word,
@@ -227,6 +249,24 @@ function startCandidates(sentences: (Sentence & { eligible: boolean })[], endId:
     return a.distance_ms - b.distance_ms || b.start_id - a.start_id;
   });
   return out;
+}
+
+/**
+ * Every whole-sentence start a picker with reach may choose for the fixed end, earliest first: back to `reachLo`,
+ * as long as the span is no longer than `maxMs` and, unless the window itself is short, no shorter than `minMs`.
+ */
+function startsWithinReach(sentences: (Sentence & { eligible: boolean })[], endId: number, reachLo: number, maxMs: number, minMs: number, anyLength: boolean): number[] {
+  const end = sentences[endId]!;
+  const out: number[] = [];
+  for (let startId = endId; startId >= 0; startId--) {
+    const start = sentences[startId]!;
+    if (start.start_ms < reachLo) break;
+    const duration_ms = end.end_ms - start.start_ms;
+    if (!anyLength && duration_ms < minMs) continue;
+    if (duration_ms > maxMs) break;
+    out.push(startId);
+  }
+  return out.reverse();
 }
 
 /** Add lead and tail padding without crossing the window or touching a neighbouring word. */

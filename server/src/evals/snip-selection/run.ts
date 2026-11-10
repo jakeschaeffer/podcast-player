@@ -9,7 +9,9 @@
  * the span the owner left; appSnips.ts). Either may be missing. `--tag source:app` scores the app's alone.
  *
  * Methods: fixed-N (the last N seconds before the tap), snap-90 (the production default), snap-90-band15 (scored
- * signals inside a 15 s band), scored-v1 (the first heuristic), and with --model the Codex-backed start picker.
+ * signals inside a 15 s band), scored-v1 (the first heuristic), two ceilings (a picker that knows the answer, choosing
+ * from what a real one is offered: the few sentences around the default, or every start in the wide reach), and with
+ * --model the Codex-backed start picker.
  * Model picks are cached in results/model-picks.jsonl keyed by case, model, and selector version, so an
  * interrupted run resumes without repeating calls. Writes results/<timestamp>-selection.{json,md}. The server runs the
  * same function (`runSelectionEval`, always with the model and the app's snips) when a run is started from the
@@ -23,7 +25,7 @@ import { parseArgs } from "node:util";
 import { CodexCliTextModel } from "../../adapters/codex-cli.js";
 import { createContext } from "../../app/context.js";
 import { loadConfig } from "../../lib/config.js";
-import { DEFAULT_SELECT_PREFS, SELECTOR_VERSION, selectSpan, type Selection, type SpanPicker } from "../../core/snip/select.js";
+import { DEFAULT_SELECT_PREFS, SELECTOR_VERSION, selectSpan, WIDE_REACH_MS, type Selection, type SpanPicker } from "../../core/snip/select.js";
 import type { TextModel } from "../../adapters/textModel.js";
 import { readRegistry } from "../../core/summary/prompts.js";
 import { makeSpanPicker } from "../../services/spanPicker.js";
@@ -58,6 +60,14 @@ const METHODS: Method[] = [
     run: (t: NormalizedTranscript, c: SnipCase, duration_ms: number) =>
       selectSpan({ transcript: t, anchor_ms: c.anchor_ms, heard_from_ms: c.heard_from_ms, duration_ms, prefs: { snap_band_ms: 15_000 } }),
   },
+  {
+    name: "ceiling-near",
+    run: (t: NormalizedTranscript, c: SnipCase, duration_ms: number) => selectSpan({ transcript: t, anchor_ms: c.anchor_ms, heard_from_ms: c.heard_from_ms, duration_ms, picker: ceilingPicker(c) }),
+  },
+  {
+    name: `ceiling-${WIDE_REACH_MS / 1000}s`,
+    run: (t: NormalizedTranscript, c: SnipCase, duration_ms: number) => selectSpan({ transcript: t, anchor_ms: c.anchor_ms, heard_from_ms: c.heard_from_ms, duration_ms, picker: ceilingPicker(c, WIDE_REACH_MS) }),
+  },
   // The v1 behaviour: scored over every valid start (unbounded band), 60 s target, 45–120 s "good length".
   {
     name: "scored-v1",
@@ -65,6 +75,21 @@ const METHODS: Method[] = [
       selectSpan({ transcript: t, anchor_ms: c.anchor_ms, heard_from_ms: c.heard_from_ms, duration_ms, prefs: { snap_band_ms: Number.POSITIVE_INFINITY, target_ms: 60_000, good_min_ms: 45_000, good_max_ms: 120_000 } }),
   },
 ];
+
+/**
+ * A start picker that knows the label: it takes an offered candidate inside the acceptable range whenever there is
+ * one. What it scores is the most any prompt could, given what the selector offers and where the end is fixed.
+ */
+function ceilingPicker(c: SnipCase, reach_ms?: number): SpanPicker {
+  const [from, to] = c.label.acceptable_start_ms;
+  const pick: SpanPicker = async ({ sentences, candidate_start_ids }) => {
+    const ok = candidate_start_ids.filter((id) => sentences[id]!.start_ms >= from && sentences[id]!.start_ms <= to);
+    if (ok.length === 0) return null;
+    const nearest = ok.reduce((a, b) => (Math.abs(sentences[a]!.start_ms - c.label.ideal_start_ms) <= Math.abs(sentences[b]!.start_ms - c.label.ideal_start_ms) ? a : b));
+    return { start_id: nearest, reason: "inside the acceptable range" };
+  };
+  return Object.assign(pick, reach_ms === undefined ? {} : { reach_ms });
+}
 
 type Row = {
   case_id: string;
@@ -110,7 +135,7 @@ function score(c: SnipCase, m: string, sel: Selection, latency_ms: number, isHeu
   const inter = Math.max(0, Math.min(sel.end_ms, label.ideal_end_ms) - Math.max(sel.start_ms, label.ideal_start_ms));
   const union = Math.max(sel.end_ms, label.ideal_end_ms) - Math.min(sel.start_ms, label.ideal_start_ms);
   const violations: string[] = [];
-  if (sel.start_ms < sel.window.lo_ms) violations.push("start before window");
+  if (sel.start_ms < (sel.window.reach_lo_ms ?? sel.window.lo_ms)) violations.push("start before window");
   if (sel.end_ms > c.anchor_ms) violations.push("end after tap");
   if (isHeuristic && sel.method !== "fixed" && !sel.window.short_exception && !sel.window.min_relaxed) {
     const dur = sel.end_ms - sel.start_ms;
@@ -188,13 +213,17 @@ function cachedPicker(inner: SpanPicker, cachePath: string, keyPrefix: string): 
   let hits = 0;
   return {
     hits: () => hits,
-    picker: (caseId) => async (input) => {
-      const key = `${keyPrefix}|${caseId}`;
-      if (cache.has(key)) { hits++; return cache.get(key)!; }
-      const pick = await inner(input);
-      cache.set(key, pick);
-      appendFileSync(cachePath, `${JSON.stringify({ key, pick, at: new Date().toISOString() })}\n`);
-      return pick;
+    picker: (caseId) => {
+      const pick: SpanPicker = async (input) => {
+        const key = `${keyPrefix}|${caseId}`;
+        if (cache.has(key)) { hits++; return cache.get(key)!; }
+        const answer = await inner(input);
+        cache.set(key, answer);
+        appendFileSync(cachePath, `${JSON.stringify({ key, pick: answer, at: new Date().toISOString() })}\n`);
+        return answer;
+      };
+      // The selector reads the reach off the picker it is handed, so the wrapper has to carry it.
+      return Object.assign(pick, inner.reach_ms === undefined ? {} : { reach_ms: inner.reach_ms });
     },
   };
 }
@@ -276,9 +305,11 @@ export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise
     modelLabel = opts.modelLabel ?? "snap-90+model";
     promptVersion = opts.version ?? readRegistry()["span-picker"].active;
     const cachePath = join(EVAL_DIR, "results", "model-picks.jsonl");
-    // Picks made before prompt versions existed are v1's, cached without a version in the key; later versions add theirs.
-    const cacheKey = `${SELECTOR_VERSION}|${modelLabel}${promptVersion === "v1" ? "" : `|${promptVersion}`}`;
-    const cached = cachedPicker(makeSpanPicker(opts.model, { timeout_ms: Number(values["model-timeout-ms"]), version: promptVersion }), cachePath, cacheKey);
+    const spanPicker = makeSpanPicker(opts.model, { timeout_ms: Number(values["model-timeout-ms"]), version: promptVersion });
+    // Picks made before prompt versions existed are v1's, cached without a version in the key; later versions add
+    // theirs, and their reach: a pick names a sentence among those it was offered, which the reach decides.
+    const cacheKey = `${SELECTOR_VERSION}|${modelLabel}${promptVersion === "v1" ? "" : `|${promptVersion}`}${spanPicker.reach_ms === undefined ? "" : `|reach${spanPicker.reach_ms}`}`;
+    const cached = cachedPicker(spanPicker, cachePath, cacheKey);
     methods.push(modelLabel);
     const started = Date.now();
     let done = 0;
@@ -319,6 +350,8 @@ export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise
     `A hit means the chosen boundary falls inside the acceptable range (one sentence of slack around the labelled boundary). IoU is against the labelled span in milliseconds. Over-capture is audio included before the ideal start; under-capture is ideal audio left out.`,
     ``,
     `The label of a Readwise case is the Snipd snip's words aligned to the transcript. The label of a snip made in the app is the span the owner left it with: exact where the owner moved a boundary (\`app:edited\`, with \`app:start-earlier\`, \`app:start-later\` and \`app:end-moved\` saying which), and weaker where it was left alone (\`app:left-alone\`), since nothing says the snip was looked at. A method that fixes edited snips while leaving the others as they were is the one to want.`,
+    ``,
+    `The two ceilings are a start picker that knows the label and takes an offered start inside the acceptable range whenever there is one: \`ceiling-near\` chooses from the few sentences around the default that the v1 prompt is offered, \`ceiling-${WIDE_REACH_MS / 1000}s\` from every start in the wide reach that later versions are. No prompt can score above its ceiling; what is left below 100% is the fixed end, or a start out of reach.`,
     ``,
     `## Overall`,
     ``,

@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { TextModel } from "../src/adapters/textModel.js";
+import { parseAgainstSchema, type TextModel } from "../src/adapters/textModel.js";
 import type { AppContext } from "../src/app/context.js";
 import type { SnipRevisionRow } from "../src/db/rows.js";
 import { appSnipCases } from "../src/evals/snip-selection/appSnips.js";
@@ -90,6 +90,12 @@ describe("selection eval cases from the app's snips", () => {
     expect(row(edited)).toMatchObject({ start_hit: false, end_hit: true, both: false });
     expect(data.by_tag["app:edited"]!["snap-90"]).toMatchObject({ n: 1, both: "0%" });
     expect(data.by_tag["app:left-alone"]!["snap-90"]).toMatchObject({ n: 1, both: "100%" });
+    // The ceilings are a picker that knows the answer: offered the owner's start, it takes it, and it leaves a span
+    // nobody moved where it was. (That a wide reach offers starts the near one cannot is select.test.ts's to show.)
+    const ceiling = (method: string) => data.rows.find((r) => r.method === method && r.case_id === `app-${edited.toLowerCase()}`)!;
+    expect(ceiling("ceiling-240s")).toMatchObject({ start_hit: true, both: true });
+    expect(data.by_tag["app:left-alone"]!["ceiling-near"]).toMatchObject({ both: "100%" });
+    expect(data.by_tag["app:left-alone"]!["ceiling-240s"]).toMatchObject({ both: "100%" });
 
     // The scorecard is committed, so it carries counts and rates and none of the snips' own words.
     const md = readFileSync(join(dir, `${stamp}-selection.md`), "utf8");
@@ -104,5 +110,33 @@ describe("selection eval cases from the app's snips", () => {
     expect(cases[0]).toMatchObject({ id: `app-${edited.toLowerCase()}`, pass: false, note: "Start 15 s earlier" });
     expect(cases[0]!.expected).toContain("Fixture Show");
     expect(cases[1]).toMatchObject({ id: `app-${leftAlone.toLowerCase()}`, pass: true, note: "Left as chosen" });
+  });
+
+  it("gives a later prompt version its reach, and keeps its picks apart from v1's in the cache", async () => {
+    // Picks the earliest sentence it is told it may: a start no v1 picker could have been offered.
+    const seen: string[] = [];
+    const earliest: TextModel = {
+      name: "earliest",
+      async generate(req) {
+        seen.push(req.user);
+        const from = Number(/any sentence from (\d+) to/.exec(req.user)![1]);
+        return { data: parseAgainstSchema(req.schema, { start_id: from, reason: "as early as allowed" }), model: "earliest", elapsed_ms: 1 };
+      },
+    };
+    const stamp = "2026-01-02T03-04-06";
+    await runSelectionEval({ app: appSnipCases(ctx), stamp, model: earliest, modelLabel: "snap-90+model (earliest)", version: "v2" });
+    const dir = join(process.env.EVALS_DIR!, "snip-selection/results");
+    const data = JSON.parse(readFileSync(join(dir, `${stamp}-selection.json`), "utf8")) as { meta: { prompt: string }; rows: { case_id: string; method: string; selection_method: string; start_ms: number; violations: string[] }[] };
+    expect(data.meta.prompt).toBe("v2");
+    expect(seen).toHaveLength(2);
+    const rows = data.rows.filter((r) => r.method === "snap-90+model (earliest)");
+    for (const r of rows) {
+      expect(r.selection_method).toBe("model");
+      expect(r.violations).toEqual([]);
+      // From the top of the recording: further back than the default 90 s, which is all v1 was shown around.
+      expect(r.start_ms).toBeLessThan(15_000);
+    }
+    const keys = readFileSync(join(dir, "model-picks.jsonl"), "utf8").trim().split("\n").map((l) => (JSON.parse(l) as { key: string }).key);
+    expect(keys.filter((k) => k.includes("(earliest)|v2|reach240000|")).length).toBe(2);
   });
 });

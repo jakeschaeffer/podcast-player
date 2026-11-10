@@ -13,6 +13,8 @@ selectSpan(input: {
   heard_from_ms: number,        // H, from the player engine
   duration_ms: number,          // asset length
   prefs: { min_ms: 30000, max_ms: 180000, target_ms: 90000, tail_pad_ms: 250, lead_pad_ms: 200, snap_band_ms: 0, model_start_radius: 3 },
+  // model_start_radius is what a start picker without reach is offered (prompt v1). A picker with reach, every
+  // prompt version after v1, is offered every sentence start up to 240 s back instead (WIDE_REACH_MS, 2026-11-10).
   model?: TextModel,            // optional; absent in the fallback path and in most unit tests
 }): Promise<Selection>
 
@@ -20,7 +22,7 @@ type Selection = {
   start_ms: number; end_ms: number;
   start_word: number | null; end_word: number | null;   // [start_word, end_word)
   method: 'model' | 'snap' | 'heuristic' | 'fixed';     // heuristic = scored inside a non-zero band
-  window: { lo_ms: number; hi_ms: number; short_exception: boolean; min_relaxed: boolean };
+  window: { lo_ms: number; hi_ms: number; short_exception: boolean; min_relaxed: boolean; reach_lo_ms?: number };  // reach_lo_ms: how far back a picker with reach was offered starts, when further than lo_ms
   sentences: Sentence[];        // what the model saw, for evals and debugging
   eligible_end_ids: number[];
   candidates: ScoredCandidate[];
