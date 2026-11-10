@@ -183,10 +183,13 @@ export const EpisodeShareSchema = Type.Object({
 
 const ScoreSchema = Type.Object({ passed: Type.Integer(), n: Type.Integer(), rate: Type.Number({ description: "passed / n" }), margin: Type.Number({ description: "half-width of the 95% Wilson interval for rate" }) });
 const EvalRefSchema = Type.Object({ id: Type.String(), label: Type.String() });
+const editRate = (description: string) => Type.Object({ snips: Type.Integer({ description: "Live snips it wrote for" }), edited: Type.Integer({ description: "Of those, the ones the owner then changed" }) }, { description });
 export const PromptSchema = Type.Object({
   name: Type.String(), label: Type.String(), active: Type.String({ description: "The version production uses" }),
   in_use: Type.Boolean({ description: "Whether production calls this prompt at all" }), eval: Nullable(EvalRefSchema),
-  versions: Type.Array(Type.Object({ version: Type.String(), created_at: Type.Integer(), active: Type.Boolean(), score: Nullable(ScoreSchema) }), { description: "Newest first; score is the version's latest finished run" }),
+  edits_label: Nullable(Type.String({ description: "What the owner's edit of this prompt's output is called (\"titles rewritten\", \"spans moved\"); null when what it writes cannot be edited" })),
+  rules_edits: Nullable(editRate("Snip start only: spans the fixed rules chose, and how many the owner moved. Every snip, while the prompt is off")),
+  versions: Type.Array(Type.Object({ version: Type.String(), created_at: Type.Integer(), active: Type.Boolean(), score: Nullable(ScoreSchema), edits: Nullable(editRate("What the owner changed of what this version wrote in use; null when it has written for no live snip")) }), { description: "Newest first; score is the version's latest finished run" }),
 });
 export const EvalRunSchema = Type.Object({
   id: Type.String(), eval: Type.String(), version: Nullable(Type.String()), run_at: Type.Integer(),

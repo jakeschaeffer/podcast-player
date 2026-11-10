@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "PATCH",
-    "url": "/v1/snips/01M61KWFEHCQ9DGQZ624AN4EV8",
+    "url": "/v1/snips/01M72W085H41KKC1D8XMS7N682",
     "body": {
       "start_ms": 40000,
       "end_ms": 90000

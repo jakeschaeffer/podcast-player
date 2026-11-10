@@ -562,6 +562,12 @@ public struct EvalRef: Codable, Sendable, Hashable {
   public let label: String
 }
 
+/// Of the live snips a prompt version (or the fixed rules) wrote for, how many the owner then changed.
+public struct EditRate: Codable, Sendable, Hashable {
+  public let snips: Int
+  public let edited: Int
+}
+
 /// `GET /v1/prompts`: one prompt with its versions (newest first) and the one production uses.
 public struct Prompt: Codable, Sendable, Identifiable, Hashable {
   public struct Version: Codable, Sendable, Identifiable, Hashable {
@@ -570,6 +576,8 @@ public struct Prompt: Codable, Sendable, Identifiable, Hashable {
     public let active: Bool
     /// The version's latest finished run.
     public let score: EvalScore?
+    /// What the owner changed of what this version wrote in use; nil when it has written for no live snip.
+    public let edits: EditRate?
 
     public var id: String { version }
   }
@@ -579,9 +587,26 @@ public struct Prompt: Codable, Sendable, Identifiable, Hashable {
   /// False when production never calls this prompt (the span picker is off, or there is no text model).
   public let inUse: Bool
   public let eval: EvalRef?
+  /// What the owner's edit of this prompt's output is called ("titles rewritten", "spans moved"); nil when what it
+  /// writes can't be edited.
+  public let editsLabel: String?
+  /// Snip start only: the spans the fixed rules chose, and how many the owner moved.
+  public let rulesEdits: EditRate?
   public let versions: [Version]
 
   public var id: String { name }
+
+  /// "5 of 21 titles rewritten", or nil when there is nothing to count.
+  public func editsText(_ rate: EditRate?) -> String? {
+    guard let rate, let editsLabel else { return nil }
+    return "\(rate.edited) of \(rate.snips) \(editsLabel)"
+  }
+
+  /// The prompt's own line: its active version's count, or the fixed rules' when they do the work (Snip start
+  /// while it is off).
+  public var editsLine: String? {
+    editsText(versions.first { $0.active }?.edits) ?? editsText(rulesEdits).map { "Fixed rules: \($0)" }
+  }
 }
 
 public enum EvalRunStatus: String, LenientEnum {

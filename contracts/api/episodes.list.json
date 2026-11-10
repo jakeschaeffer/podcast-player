@@ -7,15 +7,15 @@
   "body": {
     "items": [
       {
-        "id": "01M67P22HKRYCDKC4007Q988N6",
-        "feed_id": "01M67P22HJRDWJXRJ6MSH42ZSY",
+        "id": "01M72W076WHQPB24PHQQTG1MHS",
+        "feed_id": "01M72W076SJAGEEBA91T199FE3",
         "show_title": "Fixture Show",
         "title": "Pricing",
         "published_at": null,
         "duration_ms": 120000,
         "image_url": null,
-        "asset_id": "01M67P22HKDPJX7ENH18XBQ8CD",
-        "transcript_id": "01M67P22P7SYBMASEN4XXXZRCB",
+        "asset_id": "01M72W076WB21QJFR5KGKZ9QP7",
+        "transcript_id": "01M72W07W4BPKCK69RS3MN8B1W",
         "has_summary": true,
         "processing": {
           "audio": "ready",

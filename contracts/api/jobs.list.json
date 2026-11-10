@@ -6,21 +6,21 @@
   "status": 200,
   "body": [
     {
-      "id": "01M67T1G9HEAC554KGJHP15PRK",
+      "id": "01M72W09YJTB8GE7YP6DKPJB94",
       "kind": "render_clip",
-      "key": "render_clip:01M67T1G9GB0P18949DGJZN6M6",
+      "key": "render_clip:01M72W09YEYBKSG9KBPMS39BHN",
       "priority": 100,
       "status": "failed",
       "attempts": 5,
       "run_after": 1800021840000,
-      "last_error": "Command failed: ffmpeg -nostdin -hide_banner -loglevel error -y -ss 16.200 -i /nonexistent/recording.mp3 -t 88.690 -map_metadata -1 -map_chapters -1 -vn -af afade=t=in:st=0:d=0.03,afade=t=out:st=88.660:d=0.03 -c:a libmp3lame -b:a 128k -ar 44100 -f mp3 /var/folders/gr/960g1njd5d73x9gmfvbwn0t80000gn/T/pp-test-htrUMC/media/clips/01M67T1G9GB0P18949DGJZN6M6.mp3.tmp-72355-1793411039605\n[in#0 @ 0x99d008000] Error opening input: No such file or directory\nError opening input file /nonexistent/recording.mp3.\nError opening input files: No such file or directory\n",
+      "last_error": "Command failed: ffmpeg -nostdin -hide_banner -loglevel error -y -ss 16.200 -i /nonexistent/recording.mp3 -t 88.690 -map_metadata -1 -map_chapters -1 -vn -af afade=t=in:st=0:d=0.03,afade=t=out:st=88.660:d=0.03 -c:a libmp3lame -b:a 128k -ar 44100 -f mp3 /var/folders/gr/960g1njd5d73x9gmfvbwn0t80000gn/T/pp-test-TkZQQW/media/clips/01M72W09YEYBKSG9KBPMS39BHN.mp3.tmp-2607-1794319067386\n[in#0 @ 0x777408000] Error opening input: No such file or directory\nError opening input file /nonexistent/recording.mp3.\nError opening input files: No such file or directory\n",
       "created_at": 1800000000000,
       "updated_at": 1800028800000
     },
     {
-      "id": "01M67T1FRHWNJ5GYA6739KWS5K",
+      "id": "01M72W07W6DQ3A4XED7S177TJV",
       "kind": "detect_ads",
-      "key": "detect_ads:01M67T1FNKEV70MH2C0C7AS04F",
+      "key": "detect_ads:01M72W076WB21QJFR5KGKZ9QP7",
       "priority": 0,
       "status": "done",
       "attempts": 1,
@@ -30,9 +30,9 @@
       "updated_at": 1800000000000
     },
     {
-      "id": "01M67T1FRH3VBG4M98D52C3051",
+      "id": "01M72W07W73FMKJS97S5SYR491",
       "kind": "summarize_episode",
-      "key": "summarize_episode:01M67T1FNKEV70MH2C0C7AS04F",
+      "key": "summarize_episode:01M72W076WB21QJFR5KGKZ9QP7",
       "priority": 0,
       "status": "done",
       "attempts": 1,
@@ -42,9 +42,9 @@
       "updated_at": 1800000000000
     },
     {
-      "id": "01M67T1FRHZH3Y4QNAPTX693FR",
+      "id": "01M72W07W72119WA0NBT6BF3HD",
       "kind": "identify_speakers",
-      "key": "identify_speakers:01M67T1FRG8QV38ZB6B96MBAZH",
+      "key": "identify_speakers:01M72W07W4BPKCK69RS3MN8B1W",
       "priority": 0,
       "status": "queued",
       "attempts": 0,
@@ -54,9 +54,9 @@
       "updated_at": 1800000000000
     },
     {
-      "id": "01M67T1FSHBT47GJCTJ52SSFRK",
+      "id": "01M72W0800GCZCSVVQSX1AVCQ7",
       "kind": "refresh_feed",
-      "key": "refresh_feed:01M67T1FSHWMFGGT0RQCKF2H7C",
+      "key": "refresh_feed:01M72W07ZZBJSWYQRTA0GYTSDF",
       "priority": 50,
       "status": "queued",
       "attempts": 0,
@@ -66,9 +66,9 @@
       "updated_at": 1800000000000
     },
     {
-      "id": "01M67T1FTKPWSTZ75Y918DN47T",
+      "id": "01M72W085J8BQSX49XKWGQP8D9",
       "kind": "select_snip",
-      "key": "select_snip:01M67T1FTJDQF0EKSGFGCAZB5G",
+      "key": "select_snip:01M72W085H4WP4P1QSK8J52131",
       "priority": 100,
       "status": "done",
       "attempts": 1,
@@ -78,9 +78,9 @@
       "updated_at": 1800000000000
     },
     {
-      "id": "01M67T1FTVN80QF8RACJSKQ6WK",
+      "id": "01M72W086T44T0PDXH1VX4B43A",
       "kind": "render_clip",
-      "key": "render_clip:01M67T1FTJDQF0EKSGFGCAZB5G",
+      "key": "render_clip:01M72W085H4WP4P1QSK8J52131",
       "priority": 100,
       "status": "done",
       "attempts": 1,
@@ -90,9 +90,9 @@
       "updated_at": 1800000000000
     },
     {
-      "id": "01M67T1FTVS59RF85V7RER3XYK",
+      "id": "01M72W086TPGHNNE14673NXK53",
       "kind": "summarize_snip",
-      "key": "summarize_snip:01M67T1FTJDQF0EKSGFGCAZB5G",
+      "key": "summarize_snip:01M72W085H4WP4P1QSK8J52131",
       "priority": 100,
       "status": "done",
       "attempts": 1,
@@ -102,45 +102,9 @@
       "updated_at": 1800000000000
     },
     {
-      "id": "01M67T1G3S8A5J5HH3HB01NQQZ",
-      "kind": "render_clip",
-      "key": "render_clip:01M67T1G3SZJDHJ7YEBZZWWG8S",
-      "priority": 100,
-      "status": "done",
-      "attempts": 1,
-      "run_after": 1800000000000,
-      "last_error": null,
-      "created_at": 1800000000000,
-      "updated_at": 1800000000000
-    },
-    {
-      "id": "01M67T1G3TEJNG1CGYSTE9ASGA",
-      "kind": "summarize_snip",
-      "key": "summarize_snip:01M67T1G3SZJDHJ7YEBZZWWG8S",
-      "priority": 100,
-      "status": "done",
-      "attempts": 1,
-      "run_after": 1800000000000,
-      "last_error": null,
-      "created_at": 1800000000000,
-      "updated_at": 1800000000000
-    },
-    {
-      "id": "01M67T1G9FADTF3EW1HC7WQ95Q",
-      "kind": "select_snip",
-      "key": "select_snip:01M67T1G9FTRT8AJJN8KRHV2Q8",
-      "priority": 100,
-      "status": "deferred",
-      "attempts": 1,
-      "run_after": 1800000000000,
-      "last_error": "waiting for transcript",
-      "created_at": 1800000000000,
-      "updated_at": 1800000000000
-    },
-    {
-      "id": "01M67T1G9GMS9BR020K7G36A6A",
-      "kind": "transcribe",
-      "key": "transcribe:01M67T1G9FY4GRN0KJVK1MKSR9",
+      "id": "01M72W086T9S5T9D4DXATC1T94",
+      "kind": "render_video_clip",
+      "key": "render_video_clip:01M72W085H4WP4P1QSK8J52131",
       "priority": 100,
       "status": "queued",
       "attempts": 0,
@@ -150,9 +114,9 @@
       "updated_at": 1800000000000
     },
     {
-      "id": "01M67T1G9GSMHRNXSEWNXF9TB7",
-      "kind": "select_snip",
-      "key": "select_snip:01M67T1G9GB0P18949DGJZN6M6",
+      "id": "01M72W0983NY57KZ6K5JMD2HGQ",
+      "kind": "render_clip",
+      "key": "render_clip:01M72W0982713Y1QQMCBM196YB",
       "priority": 100,
       "status": "done",
       "attempts": 1,
@@ -162,12 +126,84 @@
       "updated_at": 1800000000000
     },
     {
-      "id": "01M67T1G9HNC3NRCZJMM82P16C",
+      "id": "01M72W0984G163SEZTPR0ZY329",
       "kind": "summarize_snip",
-      "key": "summarize_snip:01M67T1G9GB0P18949DGJZN6M6",
+      "key": "summarize_snip:01M72W0982713Y1QQMCBM196YB",
       "priority": 100,
       "status": "done",
       "attempts": 1,
+      "run_after": 1800000000000,
+      "last_error": null,
+      "created_at": 1800000000000,
+      "updated_at": 1800000000000
+    },
+    {
+      "id": "01M72W0984C63KAMYQWV892R87",
+      "kind": "render_video_clip",
+      "key": "render_video_clip:01M72W0982713Y1QQMCBM196YB",
+      "priority": 100,
+      "status": "queued",
+      "attempts": 0,
+      "run_after": 1800000000000,
+      "last_error": null,
+      "created_at": 1800000000000,
+      "updated_at": 1800000000000
+    },
+    {
+      "id": "01M72W09YBBEPK4NA0AGJFJ71Y",
+      "kind": "select_snip",
+      "key": "select_snip:01M72W09YB57GVXT6VVBH600BR",
+      "priority": 100,
+      "status": "deferred",
+      "attempts": 1,
+      "run_after": 1800000000000,
+      "last_error": "waiting for transcript",
+      "created_at": 1800000000000,
+      "updated_at": 1800000000000
+    },
+    {
+      "id": "01M72W09YC04SD07S12YVBBX9C",
+      "kind": "transcribe",
+      "key": "transcribe:01M72W09Y9XHVDCZ3CAZY84NFG",
+      "priority": 100,
+      "status": "queued",
+      "attempts": 0,
+      "run_after": 1800000000000,
+      "last_error": null,
+      "created_at": 1800000000000,
+      "updated_at": 1800000000000
+    },
+    {
+      "id": "01M72W09YE0FDRKT2R4WX4KWW1",
+      "kind": "select_snip",
+      "key": "select_snip:01M72W09YEYBKSG9KBPMS39BHN",
+      "priority": 100,
+      "status": "done",
+      "attempts": 1,
+      "run_after": 1800000000000,
+      "last_error": null,
+      "created_at": 1800000000000,
+      "updated_at": 1800000000000
+    },
+    {
+      "id": "01M72W09YKNWKK9RBDJKR0TF7X",
+      "kind": "summarize_snip",
+      "key": "summarize_snip:01M72W09YEYBKSG9KBPMS39BHN",
+      "priority": 100,
+      "status": "done",
+      "attempts": 1,
+      "run_after": 1800000000000,
+      "last_error": null,
+      "created_at": 1800000000000,
+      "updated_at": 1800000000000
+    },
+    {
+      "id": "01M72W09YMQV2MERG8HPPPNQ6S",
+      "kind": "render_video_clip",
+      "key": "render_video_clip:01M72W09YEYBKSG9KBPMS39BHN",
+      "priority": 100,
+      "status": "queued",
+      "attempts": 0,
       "run_after": 1800000000000,
       "last_error": null,
       "created_at": 1800000000000,

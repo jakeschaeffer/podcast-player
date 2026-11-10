@@ -6,6 +6,7 @@ import { badRequest, conflict, notFound } from "../app/errors.js";
 import { isPromptName, loadPrompt, PROMPT_NAMES, promptsDir, readRegistry, type PromptName, type PromptRegistry } from "../core/summary/prompts.js";
 import { commitFiles } from "../lib/git.js";
 import { evalForPrompt, latestScores, listRuns, type RunView, type Score } from "./evalRuns.js";
+import { boundaryEditRates, titleRewriteRates, type EditRate } from "./snipEdits.js";
 
 /**
  * The owner's view of prompts/: every version with its score, new versions, and which one is active. Versions are
@@ -13,10 +14,12 @@ import { evalForPrompt, latestScores, listRuns, type RunView, type Score } from 
  * change is committed to the repository that holds the folder, so the history lives in git too.
  */
 export const PROMPT_LABELS: Record<PromptName, string> = { "snip-summary": "Snip summary", "episode-summary": "Episode summary", "span-picker": "Snip start", speakers: "Speakers", "title-judge": "Title judge (evals)" };
+/** What the owner's edit of a prompt's output is called, for the prompts whose output can be edited. */
+const EDITS_LABELS: Partial<Record<PromptName, string>> = { "snip-summary": "titles rewritten", "span-picker": "spans moved" };
 const MAX_CHARS = 20_000;
 
-export type PromptVersionItem = { version: string; created_at: number; active: boolean; score: Score | null };
-export type PromptView = { name: PromptName; label: string; active: string; in_use: boolean; eval: { id: string; label: string } | null; versions: PromptVersionItem[] };
+export type PromptVersionItem = { version: string; created_at: number; active: boolean; score: Score | null; edits: EditRate | null };
+export type PromptView = { name: PromptName; label: string; active: string; in_use: boolean; eval: { id: string; label: string } | null; edits_label: string | null; rules_edits: EditRate | null; versions: PromptVersionItem[] };
 export type PromptVersionView = { name: PromptName; label: string; version: string; text: string; created_at: number; active: boolean; previous: { version: string; text: string } | null; eval: { id: string; label: string } | null; runs: RunView[] };
 
 export function promptName(name: string): PromptName {
@@ -36,10 +39,16 @@ export function getPrompt(ctx: AppContext, name: PromptName, registry: PromptReg
   const entry = registry[name];
   const ev = evalForPrompt(name);
   const scores = ev ? latestScores(ctx, ev.id) : new Map<string, Score>();
+  // How the versions fared in use, beside how they scored: what the owner changed of what each wrote.
+  const spans = name === "span-picker" ? boundaryEditRates(ctx) : null;
+  const edits = spans ? spans.versions : name === "snip-summary" ? titleRewriteRates(ctx) : new Map<string, EditRate>();
   const versions = Object.entries(entry.versions)
     .sort(([a], [b]) => num(b) - num(a))
-    .map(([version, v]) => ({ version, created_at: Date.parse(v.created_at), active: version === entry.active, score: scores.get(version) ?? null }));
-  return { name, label: PROMPT_LABELS[name], active: entry.active, in_use: inUse(ctx, name), eval: ev ? { id: ev.id, label: ev.label } : null, versions };
+    .map(([version, v]) => ({ version, created_at: Date.parse(v.created_at), active: version === entry.active, score: scores.get(version) ?? null, edits: edits.get(version) ?? null }));
+  return {
+    name, label: PROMPT_LABELS[name], active: entry.active, in_use: inUse(ctx, name), eval: ev ? { id: ev.id, label: ev.label } : null,
+    edits_label: EDITS_LABELS[name] ?? null, rules_edits: spans && spans.rules.snips > 0 ? spans.rules : null, versions,
+  };
 }
 
 export function listPrompts(ctx: AppContext): PromptView[] {

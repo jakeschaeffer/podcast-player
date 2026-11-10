@@ -14,12 +14,18 @@
         "id": "titles",
         "label": "Titles"
       },
+      "edits_label": "titles rewritten",
+      "rules_edits": null,
       "versions": [
         {
           "version": "v3",
           "created_at": 1793290454000,
           "active": true,
-          "score": null
+          "score": null,
+          "edits": {
+            "snips": 2,
+            "edited": 1
+          }
         },
         {
           "version": "v2",
@@ -30,13 +36,15 @@
             "n": 2,
             "rate": 0.5,
             "margin": 0.40547134519913386
-          }
+          },
+          "edits": null
         },
         {
           "version": "v1",
           "created_at": 1792620879000,
           "active": false,
-          "score": null
+          "score": null,
+          "edits": null
         }
       ]
     },
@@ -46,12 +54,15 @@
       "active": "v1",
       "in_use": true,
       "eval": null,
+      "edits_label": null,
+      "rules_edits": null,
       "versions": [
         {
           "version": "v1",
           "created_at": 1792620879000,
           "active": true,
-          "score": null
+          "score": null,
+          "edits": null
         }
       ]
     },
@@ -64,12 +75,18 @@
         "id": "selection",
         "label": "Starts"
       },
+      "edits_label": "spans moved",
+      "rules_edits": {
+        "snips": 1,
+        "edited": 1
+      },
       "versions": [
         {
           "version": "v1",
           "created_at": 1792620879000,
           "active": true,
-          "score": null
+          "score": null,
+          "edits": null
         }
       ]
     },
@@ -79,12 +96,15 @@
       "active": "v1",
       "in_use": true,
       "eval": null,
+      "edits_label": null,
+      "rules_edits": null,
       "versions": [
         {
           "version": "v1",
           "created_at": 1793292026000,
           "active": true,
-          "score": null
+          "score": null,
+          "edits": null
         }
       ]
     },
@@ -94,12 +114,15 @@
       "active": "v1",
       "in_use": true,
       "eval": null,
+      "edits_label": null,
+      "rules_edits": null,
       "versions": [
         {
           "version": "v1",
           "created_at": 1793292142000,
           "active": true,
-          "score": null
+          "score": null,
+          "edits": null
         }
       ]
     }

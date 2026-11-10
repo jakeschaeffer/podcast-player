@@ -11,13 +11,13 @@
   "status": 201,
   "body": {
     "device": {
-      "id": "01M61KWF9B1SP8CR79XY9DHH4Y",
+      "id": "01M72W07VGAQ4BDX419T5CGF7B",
       "name": "iPhone",
       "platform": "ios",
       "created_at": 1800000000000,
       "last_seen_at": null,
       "revoked_at": null
     },
-    "token": "pp_mUgE044GHnoBOAGT3z-tQKYkG1HSJAPY"
+    "token": "pp_Gmh1pQO4ea27R2pdR13p9eydH4iXbDDx"
   }
 }
