@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { Static, TSchema } from "@sinclair/typebox";
 import { describe, expect, it } from "vitest";
 import { parseAgainstSchema, type GenerateRequest, type GenerateResult, type TextModel } from "../src/adapters/textModel.js";
-import { DEFAULT_SELECT_PREFS } from "../src/core/snip/select.js";
+import { DEFAULT_SELECT_PREFS, WIDE_REACH_MS } from "../src/core/snip/select.js";
 import { sentencize } from "../src/core/snip/sentencize.js";
 import { DEFAULT_EPISODE_LIMITS, summarizeEpisode, type EpisodeSummaryInput } from "../src/core/summary/episode.js";
 import { PROMPT_NAMES, readRegistry, type PromptName } from "../src/core/summary/prompts.js";
@@ -118,6 +118,28 @@ async function spanPickerCalls(): Promise<Call[]> {
   return model.calls;
 }
 
+/**
+ * Snip start with reach (every version after v1): the picker is offered a range, not a handful, and the message is
+ * built for one. v1's message above is untouched, which is why its fingerprint did not move when this was added.
+ */
+const SPAN_PICKER_WITH_REACH = "sha256:7d7edeca4b5904a0";
+async function spanPickerReachCalls(): Promise<{ calls: Call[]; picker: ReturnType<typeof makeSpanPicker> }> {
+  const t = buildTranscript([
+    { speaker: "host", text: "Can I ask about pricing? What did you try first?" },
+    { speaker: "guest", text: "We started with a flat monthly fee. It felt simple and fair. Almost nobody upgraded. So we moved to usage tiers." },
+  ]);
+  const sentences = sentencize(t).map((s) => ({ ...s, eligible: true }));
+  const end_id = sentences.length - 1;
+  const model = new RecordingModel([{ start_id: 1, reason: "the question" }, { start_id: 1, reason: "the question" }, { start_id: 1, reason: "the question" }]);
+  const picker = makeSpanPicker(model, { version: "v2" });
+  for (const short_exception of [false, true]) {
+    await picker({ sentences, end_id, snap_start_id: 2, candidate_start_ids: [1, 2, 3], anchor_ms: sentences[end_id]!.end_ms, prefs: DEFAULT_SELECT_PREFS, short_exception });
+  }
+  // Candidates that are not one unbroken run are listed one by one.
+  await picker({ sentences, end_id, snap_start_id: 3, candidate_start_ids: [1, 3], anchor_ms: sentences[end_id]!.end_ms, prefs: DEFAULT_SELECT_PREFS, short_exception: false });
+  return { calls: model.calls, picker };
+}
+
 /** Speakers: an interview where the first answer invents a name, so the retry wording is covered too. */
 async function speakersCalls(): Promise<Call[]> {
   const t = buildTranscript([
@@ -164,6 +186,23 @@ describe("prompt versions", () => {
       }
       expect(files, `${name}: the active version ${registry[name].active} has no file`).toContain(registry[name].active);
     }
+  });
+
+  it("span-picker: v1 keeps its handful of candidates; later versions ask for reach and are shown a range", async () => {
+    expect(makeSpanPicker(new RecordingModel([]), { version: "v1" }).reach_ms).toBeUndefined();
+    const { calls, picker } = await spanPickerReachCalls();
+    expect([picker.prompt_version, picker.reach_ms]).toEqual(["v2", WIDE_REACH_MS]);
+    const [normal, short, listed] = calls.map((c) => c.user);
+    expect(normal).toContain("The snip may start at any sentence from 1 to 3. Default: 2. End: 5.");
+    expect(normal).toContain("Any start in the range gives a snip between 30 and 240 seconds long.");
+    expect(normal).toMatch(/\[0\] \(not a start\) 15s S1: Can I ask about pricing\?/);
+    expect(normal).toMatch(/\[2\] \(DEFAULT\) 9s S2: We started with a flat monthly fee\./);
+    expect(normal).toMatch(/\[4\] \(not a start\) 4s S2: Almost nobody upgraded\./);
+    expect(normal).toMatch(/\[5\] \(END\) 2s S2: So we moved to usage tiers\./);
+    expect(short).toContain("shorter than the usual minimum; any start in the range is acceptable");
+    expect(listed).toContain("The snip may start at one of: 1, 3.");
+    const actual = fingerprint(calls);
+    expect(actual, `What the code sends around the span-picker instructions of a version with reach changed. If that is intended, record ${actual} in SPAN_PICKER_WITH_REACH, then create a new version of span-picker so picks from before and after stay apart.`).toBe(SPAN_PICKER_WITH_REACH);
   });
 
   for (const name of PROMPT_NAMES) {

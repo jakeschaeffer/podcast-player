@@ -111,6 +111,76 @@ describe("selectSpan with a transcript", () => {
     expect(failed.model_rejection).toMatch(/timeout/);
   });
 
+  it("offers a picker that asks for reach every start back to it, past the rules' own window, and keeps the default", async () => {
+    const reach_ms = 240_000;
+    let offered: number[] = [];
+    const earliest: SpanPicker = Object.assign(
+      async ({ candidate_start_ids }: Parameters<SpanPicker>[0]) => {
+        offered = candidate_start_ids;
+        return { start_id: candidate_start_ids[0]!, reason: "earliest offered" };
+      },
+      { reach_ms },
+    );
+    const base = await selectSpan({ transcript: t, anchor_ms: anchor, heard_from_ms: 0, duration_ms });
+    const picked = await selectSpan({ transcript: t, anchor_ms: anchor, heard_from_ms: 0, duration_ms, picker: earliest });
+
+    // The rules still choose the same default and the same end; only what is offered around them grows.
+    const startWord = (sel: typeof picked, id: number) => sel.sentences[id]!.start_word;
+    expect(startWord(picked, picked.snap!.start_id)).toBe(startWord(base, base.snap!.start_id));
+    expect(picked.end_word).toBe(base.end_word);
+    expect(picked.end_ms).toBe(base.end_ms);
+    expect(picked.window).toMatchObject({ lo_ms: base.window.lo_ms, hi_ms: base.window.hi_ms, reach_lo_ms: anchor - reach_ms });
+    expect(base.window).not.toHaveProperty("reach_lo_ms");
+
+    // Every whole sentence from the minimum length back to the reach is on offer, in order.
+    const end = picked.sentences[picked.snap!.end_id]!;
+    const lengths = offered.map((id) => end.end_ms - picked.sentences[id]!.start_ms);
+    expect(offered.length).toBeGreaterThan(2 * prefs.model_start_radius + 1);
+    expect(offered).toEqual([...offered].sort((a, b) => a - b));
+    expect(offered).toContain(picked.snap!.start_id);
+    expect(Math.min(...lengths)).toBeGreaterThanOrEqual(prefs.min_ms);
+    expect(Math.max(...lengths)).toBeLessThanOrEqual(reach_ms);
+    expect(Math.max(...lengths)).toBeGreaterThan(prefs.max_ms);
+
+    // The pick is taken, though it starts before the window the rules look in.
+    expect(picked.method).toBe("model");
+    expect(picked.chosen!.start_id).toBe(offered[0]);
+    expect(picked.start_ms).toBeLessThan(picked.window.lo_ms);
+    expect(picked.start_ms).toBeGreaterThanOrEqual(anchor - reach_ms);
+    expect(picked.start_word).toBe(picked.sentences[offered[0]!]!.start_word);
+  });
+
+  it("never offers a reaching picker a start from before the listener began hearing", async () => {
+    const heardFrom = anchor - 100_000;
+    let offered: number[] = [];
+    const sentencesSeen: { start_ms: number }[] = [];
+    const picker: SpanPicker = Object.assign(
+      async ({ candidate_start_ids, sentences: seen }: Parameters<SpanPicker>[0]) => {
+        offered = candidate_start_ids;
+        sentencesSeen.push(...candidate_start_ids.map((id) => seen[id]!));
+        return { start_id: candidate_start_ids[0]!, reason: "earliest offered" };
+      },
+      { reach_ms: 240_000 },
+    );
+    const sel = await selectSpan({ transcript: t, anchor_ms: anchor, heard_from_ms: heardFrom, duration_ms, picker });
+    expect(offered.length).toBeGreaterThan(0);
+    for (const s of sentencesSeen) expect(s.start_ms).toBeGreaterThanOrEqual(heardFrom);
+    expect(sel.start_ms).toBeGreaterThanOrEqual(heardFrom);
+    expect(sel.window).not.toHaveProperty("reach_lo_ms"); // the reach added nothing the window lacked
+  });
+
+  it("falls back to the rules' span when a reaching picker fails or picks outside what it was offered", async () => {
+    const base = await selectSpan({ transcript: t, anchor_ms: anchor, heard_from_ms: 0, duration_ms });
+    const failing: SpanPicker = Object.assign(async () => { throw new Error("timeout"); }, { reach_ms: 240_000 });
+    const failed = await selectSpan({ transcript: t, anchor_ms: anchor, heard_from_ms: 0, duration_ms, picker: failing });
+    expect(failed).toMatchObject({ method: "snap", start_ms: base.start_ms, end_ms: base.end_ms, start_word: base.start_word, end_word: base.end_word });
+    expect(failed.model_rejection).toMatch(/timeout/);
+    const wild: SpanPicker = Object.assign(async () => ({ start_id: 0, reason: "the very beginning" }), { reach_ms: 240_000 });
+    const rejected = await selectSpan({ transcript: t, anchor_ms: anchor, heard_from_ms: 0, duration_ms, picker: wild });
+    expect(rejected).toMatchObject({ method: "snap", start_ms: base.start_ms, end_ms: base.end_ms });
+    expect(rejected.model_rejection).toMatch(/not among the offered/);
+  });
+
   it("scores inside the band when a band is set", async () => {
     const banded = await selectSpan({ transcript: t, anchor_ms: anchor, heard_from_ms: 0, duration_ms, prefs: { snap_band_ms: 20_000 } });
     expect(banded.method).toBe("heuristic");

@@ -32,6 +32,18 @@ A snip whose boundaries the owner moved is exact ground truth (`app:edited`, wit
 
 What it says: the production rule reproduces what it chose (the one miss was chosen by `select_v1`), and no other length or scoring fixes more than one of the edited snips, because the starts the owner wants sit anywhere from 38 to 240 s before the tap. Three are past the 180 s ceiling, which no setting of the current selector can reach, and the model start picker may move only three sentences from the default. A start chosen from the content, over a wider range, is what these cases can now measure.
 
+### What a start picker could reach, November 10, 2026
+
+The scorecard's two ceilings are a picker that knows the label and takes an offered start inside the acceptable range whenever there is one. No prompt can score above its ceiling. Same 48 snips, no model:
+
+| Method | Both, all 48 | Left alone (31) | Edited (17) | Start hit, all 48 |
+| --- | ---: | ---: | ---: | ---: |
+| snap-90 (production) | 63% | 97% | 0% | 71% |
+| ceiling-near: v1's candidates, three sentences either side of the default | 67% | 100% | 6% | 75% |
+| ceiling-240s: every start within 240 s, offered to versions after v1 | 85% | 100% | 59% | 98% |
+
+So the v1 prompt could never have fixed more than one of the 17 however it was worded: the owner's start was among its candidates for 5 of them, and the end was right for only one of those. With every start in the rules' 180 s on offer it is 13 of 17, with 240 s it is 16, and 300 s adds none, which is why `WIDE_REACH_MS` is 240 s. What the wide ceiling still misses is the end: the selector ends at the tap, and the owner moved the end on 8 of the 17, mostly later. Whether a prompt gets near its ceiling, and what it does to the 31 nobody touched, takes a model run to say.
+
 ## What the Readwise export says about snip length
 
 Word counts of the transcript part of the owner's Snipd snips (deduplicated, 644 snips): min 43, p25 272, median 394, p75 587, p90 702, max 1,315. At typical speech rates that is a median of roughly 2.5 minutes and a p75 near 4 minutes, with a downward trend by year (median 579 words in 2023, 272 in 2026). Two consequences for the selector:
