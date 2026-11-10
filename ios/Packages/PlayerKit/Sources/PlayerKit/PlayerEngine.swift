@@ -19,7 +19,7 @@ public final class PlayerEngine {
 
   public static let speeds: [Double] = [1, 1.25, 1.5, 1.75, 2]
   /// The longest automatic snip (the server's max_ms); audio this far before a resume point counts as heard.
-  static let resumeAssumedHeardMs = 180_000
+  public static let resumeAssumedHeardMs = 180_000
   static let reportEvery: TimeInterval = 15
   static let preparePoll: Duration = .seconds(2)
 

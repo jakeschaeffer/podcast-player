@@ -74,6 +74,20 @@ private func state(
     #expect(state().mode == .episode)
   }
 
+  @Test func staleContentIsDrawnWithoutItsSnip() {
+    let named = SnipProgress(step: .named, snipID: "s", anchorMs: 1_000, lengthMs: 42_000, title: "A title")
+    let fresh = state(playing: false, snip: named)
+    #expect(fresh.drawn(stale: false) == fresh)
+    // Paused, the app can't take the snip off the card when its time is up; the stale date does.
+    let drawn = fresh.drawn(stale: true)
+    #expect(drawn.mode == .episode)
+    #expect(drawn.renameURL(scheme: "org.example.snip") == nil)
+    #expect(drawn.positionMs == fresh.positionMs && !drawn.playing)
+    // In an ad break the snip only marked the Snip button; the break keeps the card.
+    #expect(state(ad: 50_000...90_000, snip: named).drawn(stale: true).mode == .adBreak)
+    #expect(state().drawn(stale: true) == state())
+  }
+
   @Test func anAdBreakNeedsBothEnds() {
     var s = state()
     s.adBreakEndMs = 90_000

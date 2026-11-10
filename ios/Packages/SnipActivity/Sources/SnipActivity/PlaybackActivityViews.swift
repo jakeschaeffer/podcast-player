@@ -35,7 +35,7 @@ public struct PlaybackLockScreenView: View {
     Group {
       switch state.mode {
       case .adBreak: AdCard(state: state, island: false)
-      case .snip(let snip): SnipRelay(snip: snip, island: false)
+      case .snip(let snip): SnipRelay(snip: snip, island: false, paused: !state.playing)
       case .episode: EpisodeCard(state: state)
       }
     }
@@ -96,7 +96,7 @@ struct PositionLine: View {
 /// The title steps aside for the break: "Ad break · show", a big countdown, the break's own bar, and Skip ad as wide
 /// as the card allows. Snip stays, for a moment heard just before the break; it shows a check while a snip made
 /// meanwhile is still on its way, since the break has the card. In the island, the label and the countdown sit
-/// beside the camera instead.
+/// beside the camera instead. Paused, the countdown stands still with a pause mark before it and Play joins Snip.
 struct AdCard: View {
   let state: PlaybackState
   let island: Bool
@@ -108,6 +108,10 @@ struct AdCard: View {
           Text("\(Text("Ad break").fontWeight(.semibold).foregroundStyle(ActivityPalette.accent)) · \(state.showTitle)")
             .font(.subheadline).foregroundStyle(ActivityPalette.secondary).lineLimit(1)
           Spacer(minLength: 0)
+          if !state.playing {
+            PauseMark().font(.title3.weight(.semibold)).foregroundStyle(ActivityPalette.secondary)
+              .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
+          }
           AdCountdown(state: state, style: .title1, size: 30).foregroundStyle(.white)
         }
         .padding(.bottom, 9)
@@ -115,7 +119,10 @@ struct AdCard: View {
       AdBar(state: state)
       HStack(spacing: 12) {
         SkipAdButton(height: island ? 46 : 48)
-        SnipButton(size: island ? 46 : 48, done: state.snip?.inProgress == true)
+        HStack(spacing: 10) {
+          if !state.playing { PlayButton(size: island ? 46 : 48) }
+          SnipButton(size: island ? 46 : 48, done: state.snip?.inProgress == true)
+        }
       }
       .padding(.top, island ? 12 : 14)
     }
@@ -183,22 +190,27 @@ struct SkipAdButton: View {
 /// After a snip: a headline and, under it, the step under way with three marks for choose, cut and name. When a step
 /// finishes, both lines roll up (a push from the bottom, clipped to each line): the headline to what just finished,
 /// the line under it to what's next. The last headline is the generated title, at a size that keeps any title the
-/// server writes (60 characters at most) to two lines.
+/// server writes (60 characters at most) to two lines. Paused, Play stands at the edge, where it is on the episode's
+/// card, and the title may take a third line on the lock screen for the room Play takes.
 struct SnipRelay: View {
   let snip: SnipProgress
   let island: Bool
+  var paused = false
   @ScaledMetric(relativeTo: .title) private var headlineSize: CGFloat = 30
   @ScaledMetric(relativeTo: .title2) private var titleSize: CGFloat = 24
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Rolling(id: snip.step) { headline }
-      // In the island, "Saved" and the length sit beside the camera once the title is in.
-      if !(island && snip.step == .named) {
-        Rolling(id: snip.step) { status }
+    HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 8) {
+        Rolling(id: snip.step) { headline }
+        // In the island, "Saved" and the length sit beside the camera once the title is in.
+        if !(island && snip.step == .named) {
+          Rolling(id: snip.step) { status }
+        }
       }
+      .frame(maxWidth: .infinity, minHeight: island ? nil : 66, alignment: .leading)
+      if paused { PlayButton(size: island ? 44 : 48) }
     }
-    .frame(maxWidth: .infinity, minHeight: island ? nil : 66, alignment: .leading)
   }
 
   @ViewBuilder private var headline: some View {
@@ -206,8 +218,8 @@ struct SnipRelay: View {
     case .named:
       Text(snip.title ?? "Snip")
         .font(.system(size: titleSize, weight: .semibold))
-        .lineLimit(2)
-        .minimumScaleFactor(0.85)
+        .lineLimit(paused && !island ? 3 : 2)
+        .minimumScaleFactor(paused ? 0.75 : 0.85)
     case .failed:
       HStack(spacing: 9) {
         Image(systemName: "exclamationmark.triangle").foregroundStyle(ActivityPalette.warning)
@@ -383,7 +395,10 @@ public struct PlaybackIslandTrailing: View {
     Group {
       switch state.mode {
       case .adBreak:
-        AdCountdown(state: state, style: .title3, size: 20).foregroundStyle(.white)
+        HStack(spacing: 7) {
+          if !state.playing { PauseMark() }
+          AdCountdown(state: state, style: .title3, size: 20).foregroundStyle(.white)
+        }
       case .snip(let snip):
         if snip.step == .named, let length = snip.lengthMs {
           Text(ActivityClock.string(length)).foregroundStyle(ActivityPalette.secondary)
@@ -419,7 +434,7 @@ public struct PlaybackIslandBottom: View {
       case .adBreak:
         AdCard(state: state, island: true)
       case .snip(let snip):
-        SnipRelay(snip: snip, island: true)
+        SnipRelay(snip: snip, island: true, paused: !state.playing)
       case .episode:
         HStack(spacing: 14) {
           Text(state.title).font(.headline).foregroundStyle(.white).lineLimit(2)
@@ -468,7 +483,11 @@ public struct PlaybackCompactTrailing: View {
     Group {
       switch state.mode {
       case .adBreak:
-        AdCountdown(state: state, style: .subheadline, size: nil).foregroundStyle(ActivityPalette.accent)
+        if state.playing {
+          AdCountdown(state: state, style: .subheadline, size: nil).foregroundStyle(ActivityPalette.accent)
+        } else {
+          PauseMark().foregroundStyle(ActivityPalette.secondary)
+        }
       case .snip(let snip):
         if snip.step != .failed { Steps(done: snip.stepsDone, compact: true) }
       case .episode:

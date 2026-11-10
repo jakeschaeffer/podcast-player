@@ -9,6 +9,8 @@ import UIKit
 /// Wires the client, the player engine and the outboxes together for one server, and owns sign-in state.
 @MainActor @Observable
 final class AppModel {
+  /// The one model, made when the process starts (SnipApp.init), whether or not a screen ever shows.
+  static let shared = AppModel()
   static let serverKey = "server.url"
   nonisolated static let unauthorized = Notification.Name("AppModel.unauthorized")
 
@@ -260,13 +262,15 @@ final class AppModel {
       self.liveActivity.update(self.engine)
     }
     PlaybackActivityControl.handler = { [weak self] action in
-      guard let self else { return }
+      guard let self else {
+        LiveActivityController.log.notice("an activity button was pressed with no app model to take it")
+        return
+      }
       switch action {
       case .toggle: await self.togglePlayback()
       case .back: self.engine.skip(by: -15_000)
       case .forward: self.engine.skip(by: 30_000)
-      case .snip:
-        await self.snip()
+      case .snip: await self.snipFromActivity()
       case .skipAd: self.engine.skipAd()
       }
     }
@@ -290,6 +294,41 @@ final class AppModel {
     }
   }
 
+  /// How long the activity's Snip keeps its intent open while paused. Most snips have their title well within it; one
+  /// that doesn't leaves the card by its stale date (LiveActivityController).
+  static let snipIntentWait = Duration.seconds(20)
+
+  /// The activity's Snip. Two things differ from a tap in the app. iOS may have ended the app while it was paused: the
+  /// activity outlives it and the relaunched player is empty, so the episode is loaded first, paused, and the tap is
+  /// taken where the card says the episode stands. And while paused the intent waits for the snip to settle: iOS
+  /// suspends the app again once the intent returns, which would leave the card on the snip's first step.
+  private func snipFromActivity() async {
+    LiveActivityController.log.notice("snip from the activity: player \(String(describing: self.engine.status), privacy: .public)")
+    switch engine.status {
+    case .ready:
+      await snip()
+    case .idle, .error:
+      guard let shown = liveActivity.shown else {
+        LiveActivityController.log.notice("snip from the activity: no activity to say which episode")
+        return
+      }
+      await engine.open(shown.episodeID, autoplay: false)?.value
+      guard engine.status == .ready, let loaded = engine.snipPoint() else {
+        LiveActivityController.log.notice("snip from the activity: the episode did not load (\(String(describing: self.engine.status), privacy: .public))")
+        return
+      }
+      // As after any resume, the three minutes before that place count as heard.
+      await snip(at: (loaded.assetID, shown.positionMs, max(0, shown.positionMs - PlayerEngine.resumeAssumedHeardMs)))
+    case .loading, .details, .preparing:
+      return
+    }
+    guard !engine.playing, let card = snipCard else { return }
+    let deadline = ContinuousClock.now + Self.snipIntentWait
+    while ContinuousClock.now < deadline, snipCard === card, card.activityProgress.inProgress {
+      try? await Task.sleep(for: .milliseconds(400))
+    }
+  }
+
   /// The app is in the foreground again: the activity is drawn afresh, and one the system or the owner ended (a swipe
   /// on the lock screen, the eight-hour limit) is started again while playing, which only the foreground may do. Until
   /// then the lock screen had no card, and so no Skip ad, however many ad breaks went by.
@@ -298,9 +337,10 @@ final class AppModel {
   // MARK: Snips
 
   /// A tap on Snip: the position and the start of the heard stretch containing it, saved first and sent at once.
-  /// The server picks the span, renders the clip and writes the title; the card follows it.
-  func snip() async {
-    guard let point = engine.snipPoint(), let episodeID = engine.episode?.id else { return }
+  /// The server picks the span, renders the clip and writes the title; the card follows it. `at` names another place
+  /// in the loaded recording (the Live Activity's, after a relaunch).
+  func snip(at place: (assetID: ULID, anchorMs: Int, heardFromMs: Int)? = nil) async {
+    guard let point = place ?? engine.snipPoint(), let episodeID = engine.episode?.id else { return }
     sounds.requested()
     liveActivity.snipStarted(SnipProgress(step: .choosing, anchorMs: point.anchorMs), engine: engine)
     snipCard?.stop()
@@ -390,6 +430,11 @@ final class AppModel {
     let outbox = URL.applicationSupportDirectory.appending(path: "playback-outbox.json")
     let reporter = PlaybackReporter(file: outbox) { id, report in _ = try await api.reportPlayback(assetID: id, report) }
     let engine = PlayerEngine(api: api)
+    #if DEBUG
+      // `-muteAudio 1`: scripted simulator checks stay silent. Here and not in a view, because a launch iOS makes for
+      // a Live Activity button has no view, and its Play would otherwise sound.
+      if UserDefaults.standard.bool(forKey: "muteAudio") { engine.player.isMuted = true }
+    #endif
     // Downloads are per server: a recording's id means nothing on another.
     let downloads = DownloadStore(root: URL.applicationSupportDirectory.appending(path: "downloads/\(server.host() ?? "server")"), api: api)
     engine.downloads = downloads

@@ -3,9 +3,17 @@ import SwiftUI
 
 @main
 struct SnipApp: App {
-  @State private var model = AppModel()
+  @State private var model = AppModel.shared
   @Environment(\.scenePhase) private var scenePhase
   @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
+  /// The model is made here, when the process starts, and not when the first screen is drawn. iOS also launches the
+  /// app out of sight, with no screen at all, for a button on the Live Activity pressed after it ended the app: `@State`
+  /// builds an observable object only once a view reads it, so that launch had no model, nothing had installed the
+  /// buttons' handler, and Play, Snip and Skip ad on the card did nothing.
+  init() {
+    _ = AppModel.shared
+  }
 
   var body: some Scene {
     WindowGroup {
@@ -68,7 +76,8 @@ struct RootView: View {
     // The Live Activity's title was tapped: the player takes it from there (PlayerView.openRename).
     .onChange(of: model.renameRequest, initial: true) { _, id in if id != nil { showPlayer = true } }
     #if DEBUG
-      // `-muteAudio 1` keeps every simulator check silent: the player plays, but nothing reaches the Mac's speakers.
+      // `-muteAudio 1` keeps every simulator check silent: the player plays, but nothing reaches the Mac's speakers
+      // (applied where the player is made, in AppModel, so a launch with no screen is silent too).
       // `-openEpisode <id>` opens the player on that episode at launch, for scripted simulator checks.
       // `-searchShows <text>` and `-openFeed <id>` open the Library on show search or on a show (LibraryView).
       // `-openSnip <id>` opens the Snips tab on that snip's page (SnipsView). `-openUpNext 1` opens Up Next from Today's
@@ -78,7 +87,6 @@ struct RootView: View {
       // link at launch.
       .task {
         let defaults = UserDefaults.standard
-        if defaults.bool(forKey: "muteAudio") { model.engine.player.isMuted = true }
         if defaults.string(forKey: "searchShows") != nil || defaults.string(forKey: "openFeed") != nil { tab = 1 }
         if defaults.string(forKey: "openSnip") != nil { tab = 2 }
         if defaults.bool(forKey: "openUpNext") { todayPath.append(UpNextRoute()) }

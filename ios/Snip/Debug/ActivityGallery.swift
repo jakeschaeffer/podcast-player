@@ -6,7 +6,7 @@
   /// stand-ins for the lock screen and the Dynamic Island, for design checks: a script can't lock the simulator to see
   /// the real lock screen. `-activityGallery <page>` shows one page instead of the app: `lock` (playing, paused, the
   /// longest title), `ad` (ad breaks), `snip` and `snip2` (a snip's steps), `island` and `island2` (expanded), `compact`
-  /// (compact and minimal). The stand-ins follow the system's frames: a 370 pt card at 76% black with 24 pt corners, a
+  /// (compact and minimal), `paused` and `paused2` (every card while paused, on the lock screen and in the island). The stand-ins follow the system's frames: a 370 pt card at 76% black with 24 pt corners, a
   /// 370 pt island with 44 pt corners around the camera's 126 × 37 pt cutout, a 250 × 37 pt compact pill.
   struct ActivityGallery: View {
     let page: String
@@ -37,6 +37,20 @@
             item("Just snipped") { expanded(.snip(.choosing)) }
             item("Named") { expanded(.snip(.named)) }
             item("Named, the longest title") { expanded(.snip(.named, title: Sample.longestSnipTitle)) }
+          case "paused":
+            item("Paused") { lock(.paused) }
+            item("Paused, longest title") { lock(.longTitlePaused) }
+            item("Paused in an ad break") { lock(.adPaused) }
+            item("Paused, just snipped") { lock(.snip(.choosing, playing: false)) }
+            item("Paused, named, the longest title") { lock(.snip(.named, title: Sample.longestSnipTitle, playing: false)) }
+          case "paused2":
+            item("Paused") { expanded(.paused) }
+            item("Paused in an ad break") { expanded(.adPaused) }
+            item("Paused, just snipped") { expanded(.snip(.choosing, playing: false)) }
+            item("Paused, named, the longest title") { expanded(.snip(.named, title: Sample.longestSnipTitle, playing: false)) }
+            item("Compact: paused, paused in an ad break") {
+              VStack(spacing: 10) { compact(.paused); compact(.adPaused) }
+            }
           case "compact":
             item("Compact: playing, paused, ad break") {
               VStack(spacing: 10) { compact(.playing); compact(.paused); compact(.ad) }
@@ -131,6 +145,9 @@
     fileprivate static let longTitle = episode(
       "The Daily", "The Sunday Read: ‘The Unraveling of a Small-Town Bakery Empire, Told by the People Who Built It’",
       at: 1_083_000, of: 2_851_000)
+    fileprivate static let longTitlePaused = episode(
+      "The Daily", "The Sunday Read: ‘The Unraveling of a Small-Town Bakery Empire, Told by the People Who Built It’",
+      at: 5_534_000, of: 7_928_000, playing: false)
     fileprivate static let playing = episode("Acquired", "Costco (with Craig Jelinek)", at: 1_934_000, of: 4_328_000)
     fileprivate static let fast = episode("Acquired", "Costco (with Craig Jelinek)", at: 1_934_000, of: 4_328_000, speed: 1.5)
     fileprivate static let paused = episode("Acquired", "Costco (with Craig Jelinek)", at: 1_934_000, of: 4_328_000, playing: false)
@@ -144,11 +161,11 @@
       "Hard Fork", "The A.I. Phone Is Here", at: 760_000, of: 3_482_000, ad: 712_000...808_000,
       snip: SnipProgress(step: .cutting, snipID: "sample", anchorMs: 744_000))
 
-    fileprivate static func snip(_ step: SnipProgress.Step, title: String = "Elevator operators knew everyone’s secrets") -> PlaybackState {
+    fileprivate static func snip(_ step: SnipProgress.Step, title: String = "Elevator operators knew everyone’s secrets", playing: Bool = true) -> PlaybackState {
       let progress = SnipProgress(
         step: step, snipID: "sample", anchorMs: 439_000, lengthMs: step == .named ? 42_000 : nil,
         title: step == .named ? title : nil, error: step == .failed ? "render failed: ffmpeg exited with code 1" : nil)
-      return episode("99% Invisible", "The Lost Art of the Elevator Operator", at: 441_000, of: 2_712_000, snip: progress)
+      return episode("99% Invisible", "The Lost Art of the Elevator Operator", at: 441_000, of: 2_712_000, playing: playing, snip: progress)
     }
   }
 #endif
