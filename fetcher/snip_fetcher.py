@@ -218,8 +218,15 @@ def send_captions(episode_id: str, video_id: str, work: Path) -> None:
             quiet_until = time.time() + BACKOFF_SECONDS
         message = str(e)[:500]
         log(f"  captions failed, will try later: {message}")
-        r = call("POST", f"/v1/episodes/{episode_id}/video/captions/later", body=json.dumps({"message": message}).encode(), content_type="application/json")
-        log(f"  next try at {r.get('retry_at')}")
+        # The video is already there, so nothing raised from here may be reported as the video failing.
+        for attempt in range(3):
+            try:
+                r = call("POST", f"/v1/episodes/{episode_id}/video/captions/later", body=json.dumps({"message": message}).encode(), content_type="application/json")
+                log(f"  next try at {r.get('retry_at')}")
+                return
+            except Exception as e2:  # noqa: BLE001
+                log(f"  could not put the captions off (try {attempt + 1} of 3): {e2}")
+                time.sleep(PACE_SECONDS)
 
 
 def fetch_one(item: dict) -> None:
@@ -228,20 +235,23 @@ def fetch_one(item: dict) -> None:
     work = WORK / video_id
     log(f"fetching {video_id} for {item.get('show_title') or '?'}: {item['title']}")
     try:
-        video = download_video(video_id, work)
-        log(f"  downloaded {video.stat().st_size // 1_000_000} MB")
-        call("PUT", f"/v1/episodes/{episode_id}/video/file", content_type="video/mp4", timeout=UPLOAD_TIMEOUT, body_file=video)
-        log("  video uploaded")
-        send_captions(episode_id, video_id, work)
-    except Exception as e:  # noqa: BLE001 - whatever went wrong, the server should hear why
-        if isinstance(e, RateLimited):
-            quiet_until = time.time() + BACKOFF_SECONDS
-        message = str(e)[:500]
-        log(f"  failed: {message}")
         try:
-            call("POST", f"/v1/episodes/{episode_id}/video/failed", body=json.dumps({"message": message}).encode(), content_type="application/json")
-        except Exception as e2:  # noqa: BLE001
-            log(f"  could not report the failure: {e2}")
+            video = download_video(video_id, work)
+            log(f"  downloaded {video.stat().st_size // 1_000_000} MB")
+            call("PUT", f"/v1/episodes/{episode_id}/video/file", content_type="video/mp4", timeout=UPLOAD_TIMEOUT, body_file=video)
+            log("  video uploaded")
+        except Exception as e:  # noqa: BLE001 - whatever went wrong, the server should hear why
+            if isinstance(e, RateLimited):
+                quiet_until = time.time() + BACKOFF_SECONDS
+            message = str(e)[:500]
+            log(f"  failed: {message}")
+            try:
+                call("POST", f"/v1/episodes/{episode_id}/video/failed", body=json.dumps({"message": message}).encode(), content_type="application/json")
+            except Exception as e2:  # noqa: BLE001
+                log(f"  could not report the failure: {e2}")
+            return
+        # From here the video is on the server: a caption problem is the captions', never the video's.
+        send_captions(episode_id, video_id, work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -339,15 +349,23 @@ def background() -> None:
     """Everything that needs no download, a little per pass, until YouTube says stop."""
     global quiet_until
     for item in call("GET", "/v1/video/listings/wanted").get("items", []):
-        try:
-            if time.time() < quiet_until:
-                raise RateLimited("YouTube is limiting requests; try again in a while")
-            list_channel(item)
-        except Exception as e:  # noqa: BLE001
-            if isinstance(e, RateLimited):
-                quiet_until = max(quiet_until, time.time() + BACKOFF_SECONDS) if "yt-dlp" in str(e) else quiet_until
-            log(f"  listing failed: {e}")
-            call("POST", f"/v1/feeds/{item['feed_id']}/videos/failed", body=json.dumps({"message": str(e)[:500]}).encode(), content_type="application/json")
+        message = None
+        if time.time() >= quiet_until:
+            try:
+                list_channel(item)
+            except RateLimited as e:
+                quiet_until = time.time() + BACKOFF_SECONDS
+                log(f"  listing stopped, YouTube says slow down: {e}")
+            except Exception as e:  # noqa: BLE001
+                message = str(e)[:500]
+                log(f"  listing failed: {message}")
+        if time.time() < quiet_until:
+            # Not a fault of the channel: say when asking again will work, rather than show yt-dlp's error.
+            minutes = max(1, round((quiet_until - time.time()) / 60))
+            message = f"YouTube is limiting requests. Try again in about {minutes} minutes."
+            log(f"  listing put off: {message}")
+        if message:
+            call("POST", f"/v1/feeds/{item['feed_id']}/videos/failed", body=json.dumps({"message": message}).encode(), content_type="application/json")
         time.sleep(PACE_SECONDS)
     if time.time() < quiet_until:
         return

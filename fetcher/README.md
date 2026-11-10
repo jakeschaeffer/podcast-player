@@ -51,7 +51,8 @@ saving at a watchable quality is modest, because YouTube's encode is already tig
 Between downloads, slowly, it does the work that needs no download (`background()` in the script): captions due
 another try, the older videos of a channel whose owner pressed "More videos", and the details of any video that has
 none yet (description, length, thumbnail, date, chapters), a few a pass. A 429 from YouTube stops all of this for
-`SNIP_BACKOFF_SECONDS` (an hour); a video the owner asked for is still tried.
+`SNIP_BACKOFF_SECONDS` (an hour); a video the owner asked for is still tried. "More videos" pressed during that hour
+answers at once with when to ask again, rather than waiting.
 
 ## When a download fails
 

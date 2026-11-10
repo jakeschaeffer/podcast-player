@@ -21,3 +21,4 @@ evals/**/cases-text/
 evals/**/results/*.json
 evals/**/results/*.jsonl
 evals/**/results/*-cache.jsonl
+__pycache__/
