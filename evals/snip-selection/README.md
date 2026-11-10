@@ -8,7 +8,29 @@ Cases, fixtures, and results for function 2 ([spec](../../docs/core/02-snip-sele
 | --- | --- | --- |
 | `fixtures/readwise/` | The owner's 1,016 podcast highlights exported from Readwise on October 21, 2026: 671 unique Snipd snips with transcript text and a start offset in seconds, plus 199 older Airr quotes. See its README for the field inventory | no |
 | `cases/` | Eval cases in the format below, derived from the Readwise snips once the matching episodes are transcribed | no (private text); the generator script will be |
+| (the database) | Cases from the snips made in the app, read at run time | no |
 | `results/` | Dated scorecards per selector version | no |
+
+## Two kinds of case
+
+- **Readwise snips** (below): the owner's Snipd library, each snip's words aligned to our transcript, with the tap simulated at five places in its last sentence. Many cases, one show's worth of episodes, no real taps.
+- **Snips made in the app** (`server/src/evals/snip-selection/appSnips.ts`): every live snip whose span a selector chose from a transcript. The case has the real tap (`anchor_ms`, `heard_from_ms`) and the transcript the selector saw, and its label is the span the owner left the snip with. They are read from the database when a run starts, so nothing is built or stored, and the set grows as snips are made. `pnpm --dir server eval:snips:run --app` adds them (set `DATA_DIR` to the database's folder, as `scripts/dev-server.sh` does); a run started from the Prompts screen always includes them. With no Readwise export they are the whole eval.
+
+A snip whose boundaries the owner moved is exact ground truth (`app:edited`, with `app:start-earlier`, `app:start-later`, `app:end-moved`). One left alone (`app:left-alone`) is weaker: nothing records whether it was looked at. It still counts, because it shows what a new selector would change that nobody asked for. Read the two groups apart: a better selector raises the first without lowering the second. Scoring only the edited snips would flatter any change, since they are by construction the ones the current rule got wrong.
+
+### Baseline on the app's snips, November 9, 2026
+
+48 snips across nine shows; the owner moved boundaries on 17: the start earlier on 11 (median 69 s), later on 4, and the end on 8. Selector `select_v2`, no model.
+
+| Method | Both, all 48 | Left alone (31) | Edited (17) | Edited: start hit | Edited: end hit |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| snap-90 (production) | 63% | 97% | 0% | 4 of 17 | 11 of 17 |
+| fixed-90 | 10% | 13% | 6% | | |
+| fixed-180 | 2% | 0% | 6% | | |
+| snap-90-band15 | 35% | 55% | 0% | | |
+| scored-v1 | 17% | 23% | 6% | | |
+
+What it says: the production rule reproduces what it chose (the one miss was chosen by `select_v1`), and no other length or scoring fixes more than one of the edited snips, because the starts the owner wants sit anywhere from 38 to 240 s before the tap. Three are past the 180 s ceiling, which no setting of the current selector can reach, and the model start picker may move only three sentences from the default. A start chosen from the content, over a wider range, is what these cases can now measure.
 
 ## What the Readwise export says about snip length
 

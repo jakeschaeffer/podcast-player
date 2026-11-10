@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { AppContext } from "../app/context.js";
 import { conflict, notFound } from "../app/errors.js";
 import { readRegistry, type PromptName } from "../core/summary/prompts.js";
+import { appSnipCases } from "../evals/snip-selection/appSnips.js";
 import { runSelectionEval, selectionDir } from "../evals/snip-selection/run.js";
 import { appEditCases } from "../evals/snip-titles/appEdits.js";
 import { codexLabel, runStamp, runTitleEval, titlesDir } from "../evals/snip-titles/run.js";
@@ -13,7 +14,9 @@ import { commitFiles } from "../lib/git.js";
 /**
  * Evals the Prompts screen can run, one per prompt that has one. Each run is scored as a pass rate over its cases:
  * titles pass when the judge says the title makes the owner's point (4 or 5 of 5; a title that fails validation
- * fails), starts pass when both boundaries need no edit. Results are the same files the eval CLIs write.
+ * fails), starts pass when both boundaries need no edit. Both read the owner's own edits fresh from the database:
+ * rewritten titles, and the snips made in the app with the spans they were left with. Results are the same files the
+ * eval CLIs write.
  */
 export type EvalId = "titles" | "selection";
 type EvalDef = { id: EvalId; label: string; prompt: PromptName; dir: () => string; file: RegExp };
@@ -46,7 +49,7 @@ export function score(passed: number, n: number): Score {
 }
 
 type TitleRow = { id: string; show: string | null; reference: string; candidate: string | null; failed: string | null; score: number | null; missing: string | null };
-type SelectionRow = { case_id: string; method: string; both: boolean; start_hit: boolean; end_hit: boolean; duration_ms: number };
+type SelectionRow = { case_id: string; method: string; both: boolean; start_hit: boolean; end_hit: boolean; duration_ms: number; idea?: string; note?: string };
 type Parsed = { version: string | null; run_at: number; score: Score; cases: () => CaseView[] };
 
 // Result files are large (a selection run keeps every method's rows), so parse each once per modification.
@@ -94,7 +97,7 @@ function parseSelection(data: { meta: Record<string, unknown>; rows: unknown[] }
     score: score(rows.filter((r) => r.both).length, rows.length),
     cases: () =>
       rows
-        .map((r) => ({ id: r.case_id, pass: r.both, score: null, expected: ideas.get(r.case_id) ?? r.case_id, actual: `Start ${mark(r.start_hit)}  End ${mark(r.end_hit)}  ${Math.round(r.duration_ms / 1000)} s`, note: null }))
+        .map((r) => ({ id: r.case_id, pass: r.both, score: null, expected: r.idea ?? ideas.get(r.case_id) ?? r.case_id, actual: `Start ${mark(r.start_hit)}  End ${mark(r.end_hit)}  ${Math.round(r.duration_ms / 1000)} s`, note: r.note || null }))
         .sort((a, b) => Number(a.pass) - Number(b.pass) || a.id.localeCompare(b.id)),
   };
 }
@@ -188,7 +191,7 @@ export async function evalRunJob(ctx: AppContext, job: Job<{ eval: EvalId; versi
   progress.set(stamp, { done: 0, total: 0 });
   try {
     if (def.id === "titles") await runTitleEval({ version, model: ctx.textModel, modelLabel: label, stamp, appEdits: appEditCases(ctx), onProgress });
-    else await runSelectionEval({ version, model: ctx.textModel, modelLabel: `snap-90+model (${label})`, stamp, onProgress });
+    else await runSelectionEval({ version, model: ctx.textModel, modelLabel: `snap-90+model (${label})`, stamp, app: appSnipCases(ctx), onProgress });
   } catch (err) {
     // A failed run is not retried on its own: it may be dozens of model calls, and the cache keeps what finished.
     throw new NonRetryable(err instanceof Error ? err.message : String(err));

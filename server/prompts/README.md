@@ -86,9 +86,9 @@ History: `git log -p -- server/prompts` for the instruction files and activation
 | Prompt | Eval | A case passes when | Cases |
 |---|---|---|---|
 | Snip summary | [Titles](../src/evals/snip-titles/run.ts) | the judge says the title makes the owner's point (4 or 5 of 5); a title that fails validation fails | 60 of the owner's titles, seeded, with every title rewritten in the app first |
-| Snip start | [Starts](../src/evals/snip-selection/run.ts) | both boundaries land where the owner's snip did, so no edit is needed | 510 taps on 102 Stratechery snips |
+| Snip start | [Starts](../src/evals/snip-selection/run.ts) | both boundaries land where the owner's snip did, so no edit is needed | 510 simulated taps on 102 Stratechery snips from Readwise, and every snip made in the app: its real tap, and the span you left it with ([appSnips.ts](../src/evals/snip-selection/appSnips.ts)) |
 
-Each run's score is the share of cases that pass, with the half-width of its 95% interval. Runs started from the app use these case sets, so a version's score is comparable with earlier versions'. From the command line, `--version vN` runs a version other than the active one: `pnpm --dir server eval:titles:run --version v2`, or `pnpm --dir server eval:snips:run --model --version v2`. The episode summary has no eval yet.
+Each run's score is the share of cases that pass, with the half-width of its 95% interval. Runs started from the app use these case sets, so a version's score is comparable with earlier versions' as far as the sets are the same: both grow with what you do in the app (titles you rewrite, snips you make), and a run's scorecard says how many of each it had. From the command line, `--version vN` runs a version other than the active one: `pnpm --dir server eval:titles:run --version v2`, or `pnpm --dir server eval:snips:run --model --version v2`. The episode summary has no eval yet.
 
 ## Seeing what the prompts produced
 
