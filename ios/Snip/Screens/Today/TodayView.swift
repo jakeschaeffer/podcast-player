@@ -82,9 +82,19 @@ struct TodayView: View {
   }
 
   private func load() async {
+    // What was read last time shows at once; the server's answer replaces it when it comes.
+    if !loaded, episodes.isEmpty, let saved = model.api.savedEpisodes(limit: 30), !saved.isEmpty {
+      episodes = saved
+      loaded = true
+    }
     do {
-      if model.showArtwork.isEmpty { _ = try? await model.feeds() }
+      // The shows (for artwork, and which are unfollowed) are asked for alongside the episodes, not before them.
+      // Up next too, so the queue button opens on it at once and its first episodes download as the setting says.
+      async let feeds = model.feeds()
+      async let queue: Void = model.refreshQueue()
       episodes = try await model.api.episodes(limit: 30).items
+      _ = try? await feeds
+      await queue
       error = nil
     } catch {
       self.error = error.localizedDescription

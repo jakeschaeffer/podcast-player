@@ -37,6 +37,8 @@ public final class APIClient: Sendable {
   private let session: URLSession
   private let token: @Sendable () -> String?
   private let onUnauthorized: @Sendable () -> Void
+  /// Where the last answer to each remembered GET is kept (`send(remember:)`, `lastSeen`); nil keeps nothing.
+  public let saved: SavedResponses?
 
   public static let decoder: JSONDecoder = {
     let d = JSONDecoder()
@@ -54,8 +56,10 @@ public final class APIClient: Sendable {
     baseURL: URL,
     session: URLSession = .shared,
     token: @escaping @Sendable () -> String?,
+    saved: SavedResponses? = nil,
     onUnauthorized: @escaping @Sendable () -> Void = {}
   ) {
+    self.saved = saved
     self.baseURL = baseURL
     self.session = session
     self.token = token
@@ -67,14 +71,26 @@ public final class APIClient: Sendable {
     _ path: String,
     query: [URLQueryItem] = [],
     body: (some Encodable)? = Optional<Empty>.none,
+    remember: Bool = false,
     as type: T.Type = T.self
   ) async throws -> T {
     let (data, _) = try await raw(method, path, query: query, body: body)
     do {
-      return try Self.decoder.decode(T.self, from: data)
+      let value = try Self.decoder.decode(T.self, from: data)
+      // Only an answer that decoded is worth showing again at the next launch.
+      if remember { saved?.write(data, for: SavedResponses.key(path, query)) }
+      return value
     } catch {
       throw APIError(status: 200, code: "decode", message: "Unexpected response from the server: \(error)")
     }
+  }
+
+  /// The last answer a remembered GET got, on this launch or an earlier one, read from the phone with no request:
+  /// what a screen draws at once while it asks again. Nil when there is none, or when it no longer decodes (the
+  /// models changed in an update).
+  public func lastSeen<T: Decodable>(_ path: String, query: [URLQueryItem] = [], as type: T.Type = T.self) -> T? {
+    guard let data = saved?.read(SavedResponses.key(path, query)) else { return nil }
+    return try? Self.decoder.decode(T.self, from: data)
   }
 
   /// For routes whose response the app ignores (DELETE returns 204).
