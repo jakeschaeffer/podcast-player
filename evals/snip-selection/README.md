@@ -44,6 +44,22 @@ The scorecard's two ceilings are a picker that knows the label and takes an offe
 
 So the v1 prompt could never have fixed more than one of the 17 however it was worded: the owner's start was among its candidates for 5 of them, and the end was right for only one of those. With every start in the rules' 180 s on offer it is 13 of 17, with 240 s it is 16, and 300 s adds none, which is why `WIDE_REACH_MS` is 240 s. What the wide ceiling still misses is the end: the selector ends at the tap, and the owner moved the end on 8 of the 17, mostly later. Whether a prompt gets near its ceiling, and what it does to the 31 nobody touched, takes a model run to say.
 
+### span-picker v2 on the same snips, November 10, 2026
+
+The first model run with the wide reach: `--app --model --version v2`, Codex CLI at low reasoning effort, run from the Mac. All 48 picks were valid ids (none rejected, none failed).
+
+| Method | Both, all 48 | Left alone (31) | Edited (17) | Start hit, all 48 |
+| --- | ---: | ---: | ---: | ---: |
+| snap-90 (production) | 63% | 97% | 0% | 71% |
+| snap-90 + span-picker v2 | 27% | 16% | 47% | 29% |
+| ceiling-240s | 85% | 100% | 59% | 98% |
+
+What it says:
+
+- **It can find the owner's start.** 8 of the 17 edited snips need no edit, of the 10 the ceiling allows; on the 11 whose start the owner moved earlier it is 6 against the ceiling's 8. The rules get none.
+- **It moves far too often.** It kept the default start on 5 of 48, started earlier on 35 (median 51 s earlier) and later on 8 (median 28 s later). The owner moved the start earlier on 11 and later on 4. So it changed 28 of the 31 snips nobody touched, 25 of them past the one-sentence slack, 24 of those earlier, and the median clip grew from 90 s to 126 s. A left-alone snip is a weak label, so 16% overstates the harm, but a picker that rewrites nine in ten of the spans the owner accepted is not one to turn on. The prompt reads "where does this thought begin" as an invitation to go back; a next version has to make the default the answer unless there is a reason against it, and be scored on both groups.
+- **It is far too slow to run at the tap.** Seconds per call: median 32, p90 46, longest 61, with four calls at a time on a laptop. The production picker gives up after 8 s (`makeSpanPicker`'s default) and the rules' span stands, so 47 of these 48 picks would have been thrown away. A start chosen by a model this way has to be chosen before the tap (per episode, after transcription) or by a much faster call.
+
 ## What the Readwise export says about snip length
 
 Word counts of the transcript part of the owner's Snipd snips (deduplicated, 644 snips): min 43, p25 272, median 394, p75 587, p90 702, max 1,315. At typical speech rates that is a median of roughly 2.5 minutes and a p75 near 4 minutes, with a downward trend by year (median 579 words in 2023, 272 in 2026). Two consequences for the selector:
