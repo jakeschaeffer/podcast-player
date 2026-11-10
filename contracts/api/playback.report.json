@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "PUT",
-    "url": "/v1/playback/01M61KWF197PXCCKQ7SFCTJ346",
+    "url": "/v1/playback/01M72W076WB21QJFR5KGKZ9QP7",
     "body": {
       "position_ms": 95000,
       "speed": 1.25,

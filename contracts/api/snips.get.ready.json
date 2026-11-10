@@ -1,30 +1,30 @@
 {
   "request": {
     "method": "GET",
-    "url": "/v1/snips/01M6CASQNV4REJTRNBHJ03MB59"
+    "url": "/v1/snips/01M72W085H41KKC1D8XMS7N682"
   },
   "status": 200,
   "body": {
-    "id": "01M6CASQNV4REJTRNBHJ03MB59",
-    "asset_id": "01M6CASQGSK8FZY5WZSPMJCSBD",
-    "episode_id": "01M6CASQGSDTDKHQRP9CBNN90H",
+    "id": "01M72W085H41KKC1D8XMS7N682",
+    "asset_id": "01M72W076WB21QJFR5KGKZ9QP7",
+    "episode_id": "01M72W076WHQPB24PHQQTG1MHS",
     "episode_title": "Pricing",
     "show_title": "Fixture Show",
     "image_url": null,
     "media_kind": "audio",
     "anchor_ms": 100000,
     "heard_from_ms": 0,
-    "share_url": "http://pods.test/s/lovkghsj3jjmo5ktkt4h",
+    "share_url": "http://pods.test/s/bzhgq5xk7lfhn3x6mqgl",
     "share_state": "active",
     "note": null,
     "created_at": 1800000000000,
     "captured_at": 1799999999500,
     "revision": {
-      "id": "01M6CASQNV3M1AGBGAGV2XAZCA",
+      "id": "01M72W085H4WP4P1QSK8J52131",
       "rev": 1,
       "method": "snap",
       "status": "ready",
-      "transcript_id": "01M6CASQKX2H4SHE2KNZ90AC3K",
+      "transcript_id": "01M72W07W4BPKCK69RS3MN8B1W",
       "start_ms": 5700,
       "end_ms": 94390,
       "start_word": 12,
@@ -35,7 +35,7 @@
       "summary": "Nobody upgrades for three months.\nA flat fee feels simple and fair.",
       "quote": null,
       "summary_status": "ready",
-      "clip_url": "http://pods.test/m/clips/01M6CASQNV3M1AGBGAGV2XAZCA?e=1800003600&d=01M6CASQKRS6YXRDKEMDKC0X58&s=TFRL63_aMg4b-hg-8o4ypTEiZD4mOS7jNYjQhkPXK0k",
+      "clip_url": "http://pods.test/m/clips/01M72W085H4WP4P1QSK8J52131?e=1800003600&d=01M72W07VGAQ4BDX419T5CGF7B&s=1JZrZgxoYXbfp-KVV2liFjXLMZHFjwuHARGvTOYPhpQ",
       "clip_duration_ms": 88690,
       "error": null,
       "selection": {

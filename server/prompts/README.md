@@ -2,7 +2,7 @@
 
 The instructions for each of the app's AI workflows live in this folder, one file per version, and [registry.json](registry.json) names the version each workflow uses. They are the production prompts, not copies: the server reads them each time it calls the model. Everything else that shapes what the model sees is in code, and each section below links to it: the message built around the content, the output schema, the retry wording, and, for long episodes, the window and merge instructions.
 
-In the app, the profile sheet's **Prompts** screen lists each prompt's versions with their eval scores, shows a version's text and its changes from the one before, saves new versions, activates one, and runs a version's eval.
+In the app, the profile sheet's **Prompts** screen lists each prompt's versions with their eval scores, shows a version's text and its changes from the one before, saves new versions, activates one, and runs a version's eval. Beside the score it says how each version fared in use: of the live snips it wrote a title for, how many titles you rewrote; and for Snip start, of the spans the fixed rules chose, how many you moved (`services/snipEdits.ts`, from the title log and the snips' revisions). A snip left alone is not proof it was right, since nothing records whether you looked at it, so read the count as a floor.
 
 ## What runs
 
@@ -99,4 +99,5 @@ Each run's score is the share of cases that pass, with the half-width of its 95%
   ```
 
   `GET /v1/export/title-edits` lists every title you rewrote next to the model's title and the prompt version that wrote it.
+- **How often you changed them.** `GET /v1/prompts` carries each snip-summary version's `edits` (`snips`, `edited`) and Snip start's `rules_edits`, the same counts the Prompts screen shows.
 - **Episode summaries.** `GET /v1/episodes/{id}` returns `summary.prompt_version`, `summary.model`, the preview, the takeaways, and `chapters.source` (`publisher` or `ai`).

@@ -1,11 +1,11 @@
 {
   "request": {
     "method": "PATCH",
-    "url": "/v1/snips/01M61KWFEHCQ9DGQZ624AN4EV8",
+    "url": "/v1/snips/01M72W085H41KKC1D8XMS7N682",
     "body": {
       "start_ms": 41000,
       "end_ms": 90000,
-      "if_revision": "01M61KWFEH9X8DNPG0WZ958E9F"
+      "if_revision": "01M72W085H4WP4P1QSK8J52131"
     }
   },
   "status": 409,

@@ -19024,6 +19024,8 @@
                       "active",
                       "in_use",
                       "eval",
+                      "edits_label",
+                      "rules_edits",
                       "versions"
                     ],
                     "properties": {
@@ -19063,6 +19065,42 @@
                           }
                         ]
                       },
+                      "edits_label": {
+                        "anyOf": [
+                          {
+                            "description": "What the owner's edit of this prompt's output is called (\"titles rewritten\", \"spans moved\"); null when what it writes cannot be edited",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "rules_edits": {
+                        "anyOf": [
+                          {
+                            "description": "Snip start only: spans the fixed rules chose, and how many the owner moved. Every snip, while the prompt is off",
+                            "type": "object",
+                            "required": [
+                              "snips",
+                              "edited"
+                            ],
+                            "properties": {
+                              "snips": {
+                                "description": "Live snips it wrote for",
+                                "type": "integer"
+                              },
+                              "edited": {
+                                "description": "Of those, the ones the owner then changed",
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "versions": {
                         "description": "Newest first; score is the version's latest finished run",
                         "type": "array",
@@ -19072,7 +19110,8 @@
                             "version",
                             "created_at",
                             "active",
-                            "score"
+                            "score",
+                            "edits"
                           ],
                           "properties": {
                             "version": {
@@ -19108,6 +19147,31 @@
                                     "margin": {
                                       "description": "half-width of the 95% Wilson interval for rate",
                                       "type": "number"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "edits": {
+                              "anyOf": [
+                                {
+                                  "description": "What the owner changed of what this version wrote in use; null when it has written for no live snip",
+                                  "type": "object",
+                                  "required": [
+                                    "snips",
+                                    "edited"
+                                  ],
+                                  "properties": {
+                                    "snips": {
+                                      "description": "Live snips it wrote for",
+                                      "type": "integer"
+                                    },
+                                    "edited": {
+                                      "description": "Of those, the ones the owner then changed",
+                                      "type": "integer"
                                     }
                                   }
                                 },
@@ -19705,6 +19769,8 @@
                     "active",
                     "in_use",
                     "eval",
+                    "edits_label",
+                    "rules_edits",
                     "versions"
                   ],
                   "properties": {
@@ -19744,6 +19810,42 @@
                         }
                       ]
                     },
+                    "edits_label": {
+                      "anyOf": [
+                        {
+                          "description": "What the owner's edit of this prompt's output is called (\"titles rewritten\", \"spans moved\"); null when what it writes cannot be edited",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rules_edits": {
+                      "anyOf": [
+                        {
+                          "description": "Snip start only: spans the fixed rules chose, and how many the owner moved. Every snip, while the prompt is off",
+                          "type": "object",
+                          "required": [
+                            "snips",
+                            "edited"
+                          ],
+                          "properties": {
+                            "snips": {
+                              "description": "Live snips it wrote for",
+                              "type": "integer"
+                            },
+                            "edited": {
+                              "description": "Of those, the ones the owner then changed",
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "versions": {
                       "description": "Newest first; score is the version's latest finished run",
                       "type": "array",
@@ -19753,7 +19855,8 @@
                           "version",
                           "created_at",
                           "active",
-                          "score"
+                          "score",
+                          "edits"
                         ],
                         "properties": {
                           "version": {
@@ -19789,6 +19892,31 @@
                                   "margin": {
                                     "description": "half-width of the 95% Wilson interval for rate",
                                     "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "edits": {
+                            "anyOf": [
+                              {
+                                "description": "What the owner changed of what this version wrote in use; null when it has written for no live snip",
+                                "type": "object",
+                                "required": [
+                                  "snips",
+                                  "edited"
+                                ],
+                                "properties": {
+                                  "snips": {
+                                    "description": "Live snips it wrote for",
+                                    "type": "integer"
+                                  },
+                                  "edited": {
+                                    "description": "Of those, the ones the owner then changed",
+                                    "type": "integer"
                                   }
                                 }
                               },

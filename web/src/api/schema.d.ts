@@ -4434,6 +4434,13 @@ export interface paths {
                                 id: string;
                                 label: string;
                             } | null;
+                            edits_label: string | null;
+                            rules_edits: {
+                                /** @description Live snips it wrote for */
+                                snips: number;
+                                /** @description Of those, the ones the owner then changed */
+                                edited: number;
+                            } | null;
                             /** @description Newest first; score is the version's latest finished run */
                             versions: {
                                 version: string;
@@ -4446,6 +4453,12 @@ export interface paths {
                                     rate: number;
                                     /** @description half-width of the 95% Wilson interval for rate */
                                     margin: number;
+                                } | null;
+                                edits: {
+                                    /** @description Live snips it wrote for */
+                                    snips: number;
+                                    /** @description Of those, the ones the owner then changed */
+                                    edited: number;
                                 } | null;
                             }[];
                         }[];
@@ -4673,6 +4686,13 @@ export interface paths {
                                 id: string;
                                 label: string;
                             } | null;
+                            edits_label: string | null;
+                            rules_edits: {
+                                /** @description Live snips it wrote for */
+                                snips: number;
+                                /** @description Of those, the ones the owner then changed */
+                                edited: number;
+                            } | null;
                             /** @description Newest first; score is the version's latest finished run */
                             versions: {
                                 version: string;
@@ -4685,6 +4705,12 @@ export interface paths {
                                     rate: number;
                                     /** @description half-width of the 95% Wilson interval for rate */
                                     margin: number;
+                                } | null;
+                                edits: {
+                                    /** @description Live snips it wrote for */
+                                    snips: number;
+                                    /** @description Of those, the ones the owner then changed */
+                                    edited: number;
                                 } | null;
                             }[];
                         };

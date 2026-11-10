@@ -7,7 +7,7 @@
   "body": {
     "ok": true,
     "jobs": {
-      "queued": 1,
+      "queued": 6,
       "running": 0,
       "done": 9,
       "failed": 1,

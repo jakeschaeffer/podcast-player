@@ -42,6 +42,24 @@ function ScoreText({ score }: { score: Score | null }) {
   );
 }
 
+/** "5 of 21 titles rewritten": what the owner changed of what a version, or the fixed rules, wrote in use. */
+function editsText(rate: { snips: number; edited: number } | null | undefined, label: string | null): string | null {
+  return rate && label ? `${rate.edited} of ${rate.snips} ${label}` : null;
+}
+
+/** A prompt's own line: its active version's count, or the fixed rules' when they do the work (Snip start while off). */
+function promptEdits(p: Prompt): string | null {
+  const rules = editsText(p.rules_edits, p.edits_label);
+  return editsText(p.versions.find((v) => v.active)?.edits, p.edits_label) ?? (rules ? `Fixed rules: ${rules}` : null);
+}
+
+/** Under a prompt's versions, when the fixed rules choose spans: the count that belongs to no version. */
+function RulesEdits({ p }: { p: Prompt }) {
+  const rules = editsText(p.rules_edits, p.edits_label);
+  if (!rules) return null;
+  return <p className="list-note">{p.in_use ? "Where the fixed rules chose the start instead:" : "The fixed rules choose where a snip starts while this prompt is off."} {rules}.</p>;
+}
+
 function when(ms: number): string {
   return `${relativeDay(ms)} ${new Date(ms).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
 }
@@ -77,6 +95,7 @@ export function Prompts() {
               <th scope="col">Active version</th>
               <th scope="col">Status</th>
               <th scope="col">Versions</th>
+              <th scope="col">Edited in use</th>
               <th scope="col" className="dtable__num">Eval score</th>
             </tr>
           </thead>
@@ -89,6 +108,7 @@ export function Prompts() {
                 <td>{p.active}</td>
                 <td>{p.in_use ? <span className="state state--ready">In use</span> : <span className="state state--pending">Off</span>}</td>
                 <td className="tnum">{p.versions.length}</td>
+                <td className="tnum">{promptEdits(p) ?? <span className="score score--none">–</span>}</td>
                 <td className="dtable__num">{p.eval ? <ScoreText score={p.versions.find((v) => v.active)?.score ?? null} /> : <span className="score score--none">No eval</span>}</td>
               </tr>
             ))}
@@ -110,6 +130,7 @@ export function Prompts() {
                 <div className="list-item__meta">
                   <span>{p.active}</span>
                   {!p.in_use && <span className="state state--pending">Off</span>}
+                  {promptEdits(p) && <span className="tnum">{promptEdits(p)}</span>}
                 </div>
               </div>
               {p.eval && <ScoreText score={p.versions.find((v) => v.active)?.score ?? null} />}
@@ -148,6 +169,7 @@ export function PromptDetail({ name }: { name: string }) {
                     <div className="list-item__meta">
                       <span>{relativeDay(v.created_at)}</span>
                       {v.active && <span className="state state--accent">Active</span>}
+                      {editsText(v.edits, p.edits_label) && <span className="tnum">{editsText(v.edits, p.edits_label)}</span>}
                     </div>
                   </div>
                   {p.eval && <ScoreText score={v.score} />}
@@ -156,6 +178,7 @@ export function PromptDetail({ name }: { name: string }) {
               </li>
             ))}
           </ul>
+          <RulesEdits p={p} />
         </>
       )}
     </div>
@@ -213,6 +236,7 @@ function PromptWorkspace({ name, version }: { name: string; version: string | nu
                       <span className="pick__meta">
                         <span>{relativeDay(v.created_at)}</span>
                         {v.active && <span className="state state--accent">Active</span>}
+                        {editsText(v.edits, p.edits_label) && <span className="tnum">{editsText(v.edits, p.edits_label)}</span>}
                       </span>
                     </span>
                     {p.eval && <ScoreText score={v.score} />}
@@ -220,6 +244,7 @@ function PromptWorkspace({ name, version }: { name: string; version: string | nu
                 </li>
               ))}
             </ul>
+            <RulesEdits p={p} />
           </nav>
           <div className="split__detail">{version && <VersionBody key={version} name={name} version={version} inWorkspace />}</div>
         </div>

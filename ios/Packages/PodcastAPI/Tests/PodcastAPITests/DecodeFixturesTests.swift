@@ -113,6 +113,19 @@ struct DecodeFixturesTests {
     }
   }
 
+  /// The Prompts screen's line about use reads straight off the recording: the active version's count for the snip
+  /// summary, the fixed rules' for Snip start while it is off, and nothing where there is nothing to edit.
+  @Test func promptsSayWhatTheOwnerEdited() throws {
+    let prompts = try Self.decode([Prompt].self, try Self.body(of: "prompts.list"))
+    let summary = try #require(prompts.first { $0.name == "snip-summary" })
+    #expect(summary.editsLabel == "titles rewritten")
+    #expect(summary.editsLine?.hasSuffix(" titles rewritten") == true)
+    let start = try #require(prompts.first { $0.name == "span-picker" })
+    #expect(start.editsLine?.hasPrefix("Fixed rules: ") == true)
+    #expect(start.editsLine?.hasSuffix(" spans moved") == true)
+    #expect(try #require(prompts.first { $0.name == "speakers" }).editsLine == nil)
+  }
+
   @Test func transcriptWordsAreTuples() throws {
     let t = try Self.decode(Transcript.self, try Self.body(of: "transcripts.get"))
     let first = try #require(t.segments.first?.words.first)

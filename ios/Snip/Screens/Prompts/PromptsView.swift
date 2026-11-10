@@ -44,6 +44,10 @@ struct PromptsView: View {
               Text(prompt.label).font(.body.weight(.medium))
               Text([prompt.active, prompt.inUse ? nil : "Off"].compactMap { $0 }.joined(separator: " · "))
                 .font(.caption).foregroundStyle(.secondary)
+              // How it fared in use, beside how it scored: what the owner changed of what it wrote.
+              if let edits = prompt.editsLine {
+                Text(edits).font(.caption).monospacedDigit().foregroundStyle(.secondary)
+              }
             }
             Spacer()
             if prompt.eval != nil { ScoreText(score: prompt.versions.first { $0.active }?.score) }
@@ -81,20 +85,30 @@ struct PromptDetailView: View {
     List {
       if let error { Text(error).foregroundStyle(.secondary) }
       if let prompt {
-        ForEach(prompt.versions) { v in
-          NavigationLink(value: PromptRoute.version(name: name, version: v.version)) {
-            HStack {
-              VStack(alignment: .leading, spacing: 3) {
-                Text(v.version).font(.body.weight(.medium))
-                HStack(spacing: 6) {
-                  Text(Format.day(v.createdAt))
-                  if v.active { ActiveBadge() }
+        Section {
+          ForEach(prompt.versions) { v in
+            NavigationLink(value: PromptRoute.version(name: name, version: v.version)) {
+              HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                  Text(v.version).font(.body.weight(.medium))
+                  HStack(spacing: 6) {
+                    Text(Format.day(v.createdAt))
+                    if v.active { ActiveBadge() }
+                  }
+                  .font(.caption).foregroundStyle(.secondary)
+                  if let edits = prompt.editsText(v.edits) {
+                    Text(edits).font(.caption).monospacedDigit().foregroundStyle(.secondary)
+                  }
                 }
-                .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                if prompt.eval != nil { ScoreText(score: v.score) }
               }
-              Spacer()
-              if prompt.eval != nil { ScoreText(score: v.score) }
             }
+          }
+        } footer: {
+          // The count that belongs to no version: the spans the fixed rules chose.
+          if let rules = prompt.editsText(prompt.rulesEdits) {
+            Text("\(prompt.inUse ? "Where the fixed rules chose the start instead:" : "The fixed rules choose where a snip starts while this prompt is off.") \(rules).")
           }
         }
       }
