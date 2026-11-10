@@ -1,5 +1,6 @@
 import ActivityKit
 import Foundation
+import os
 import PlayerKit
 import PodcastAPI
 import SnipActivity
@@ -12,6 +13,12 @@ import SnipActivity
 /// the server, and stays a while once the title is in (as long as the app's snip bar does) so it can be tapped to
 /// rename. A snip the server takes long over, say one waiting for a transcript, gives the card back after a minute and
 /// a half; it returns once it is named.
+///
+/// The card is given back twice over. While the app runs, it redraws the activity when the snip's time is up
+/// (`refresh`). Paused, iOS suspends the app and that redraw never comes, so the content also carries the moment as its
+/// stale date, and the widget draws stale content without the snip (`ContentState.drawn(stale:)`). The system marks
+/// content stale no sooner than two minutes after its last update, whatever earlier date it is given (seen on iOS 26),
+/// so with the app suspended a snip can keep the card that long; Play is on the snip's card for that reason.
 final class LiveActivityController {
   private var activity: Activity<PlaybackActivityAttributes>?
   /// The latest snip's progress, when the tap was, and when its title came in or it failed.
@@ -21,27 +28,42 @@ final class LiveActivityController {
   static let failedFor = Duration.seconds(8)
   static let workingFor = Duration.seconds(90)
 
+  /// The lock screen's buttons act with the app out of sight, often in a process iOS has just relaunched for them:
+  /// what they found and why they did nothing is only ever visible here (subsystem snip.player, category activity).
+  static let log = Logger(subsystem: "snip.player", category: "activity")
+
   init() {
     // An activity left from an earlier launch is picked up rather than duplicated.
-    activity = Activity<PlaybackActivityAttributes>.activities.first { $0.activityState == .active }
+    let all = Activity<PlaybackActivityAttributes>.activities
+    activity = all.first(where: Self.isLive)
+    Self.log.notice("launch: \(all.count) activities (\(all.map { String(describing: $0.activityState) }.joined(separator: ","), privacy: .public)), picked up \(self.activity == nil ? "none" : "one", privacy: .public)")
+  }
+
+  /// Still on the lock screen and ours to update. Stale counts: it is only content whose snip has had its time.
+  nonisolated private static func isLive(_ activity: Activity<PlaybackActivityAttributes>) -> Bool {
+    activity.activityState == .active || activity.activityState == .stale
   }
 
   /// The episode the activity shows. After iOS ended the app while paused, the activity outlives it: a relaunch
   /// picks it up with the player empty, and Play opens this episode.
-  var episodeID: ULID? {
-    guard let activity, activity.activityState == .active else { return nil }
-    return activity.content.state.episodeID
+  var episodeID: ULID? { shown?.episodeID }
+
+  /// Where the activity says that episode stands, which is where a Snip tapped on it means.
+  var shown: (episodeID: ULID, positionMs: Int)? {
+    guard let activity, Self.isLive(activity) else { return nil }
+    return (activity.content.state.episodeID, activity.content.state.positionMs)
   }
 
   func update(_ engine: PlayerEngine) {
     guard let ep = engine.episode, engine.status == .ready else { return }
     let ad = engine.currentAdBreak
+    let snip = shownSnip
     let state = PlaybackActivityAttributes.ContentState(
       episodeID: ep.id, showTitle: ep.showTitle ?? "", title: ep.title, playing: engine.playing,
       positionMs: engine.positionMs, durationMs: engine.durationMs, speed: engine.speed,
-      adBreakStartMs: ad?.startMs, adBreakEndMs: ad?.endMs, snip: shownSnip)
-    let content = ActivityContent(state: state, staleDate: nil)
-    if let activity, activity.activityState == .active {
+      adBreakStartMs: ad?.startMs, adBreakEndMs: ad?.endMs, snip: snip)
+    let content = ActivityContent(state: state, staleDate: snip == nil ? nil : snipLeavesAt)
+    if let activity, Self.isLive(activity) {
       let id = activity.id
       Task.detached { await Self.running(id)?.update(content) }
       return
@@ -76,12 +98,18 @@ final class LiveActivityController {
 
   /// The snip, while it still has the card.
   private var shownSnip: SnipProgress? {
+    guard let snip, let until = snipLeavesAt, .now < until else { return nil }
+    return snip.progress
+  }
+
+  /// When the snip's time on the card is up: a while after it settled, or after the tap if it is still on its way.
+  private var snipLeavesAt: Date? {
     guard let snip else { return nil }
     if let settled = snip.settled {
       let hold = snip.progress.step == .named ? Self.namedFor : Self.failedFor
-      return .now < settled.addingTimeInterval(hold.timeInterval) ? snip.progress : nil
+      return settled.addingTimeInterval(hold.timeInterval)
     }
-    return .now < snip.since.addingTimeInterval(Self.workingFor.timeInterval) ? snip.progress : nil
+    return snip.since.addingTimeInterval(Self.workingFor.timeInterval)
   }
 
   /// Draw the card again once a snip's time on it is up.

@@ -1,11 +1,13 @@
 import ActivityKit
 import AppIntents
 import Foundation
+import os
 
 /// The Live Activity for what is playing, on the lock screen and in the Dynamic Island. Play, pause and the skips are
 /// left to the system's Now Playing card, which is always there while audio plays; the activity shows what that card
 /// can't: the whole title and the position, Snip, an ad break with Skip ad, and a snip's way from the tap to its title.
-/// Play joins Snip while paused, since the system card can leave a while after audio stops.
+/// Play joins them while paused, whatever the card is showing, since the system card can leave a while after audio
+/// stops; an ad break's countdown stands still with a pause mark beside it.
 ///
 /// Started and updated by the app (local updates only; there is no push). One activity spans a listening session, so
 /// the episode lives in the state: an app may start an activity only in the foreground, but the next episode in the
@@ -95,6 +97,17 @@ extension PlaybackActivityAttributes.ContentState {
   public var adBreakFraction: Double {
     guard let start = adBreakStartMs, let end = adBreakEndMs, end > start else { return 0 }
     return min(max(Double(positionMs - start) / Double(end - start), 0), 1)
+  }
+
+  /// The state as the card draws it. Content goes stale when a snip's time on the card is up (the app sets the stale
+  /// date to that moment, and the system acts on it within two minutes): the snip steps off by itself. While playing
+  /// the app redraws the card then anyway; paused it is suspended and can't, and without this the snip would keep the
+  /// card until the app next ran.
+  public func drawn(stale: Bool) -> Self {
+    guard stale, snip != nil else { return self }
+    var drawn = self
+    drawn.snip = nil
+    return drawn
   }
 
   /// Where a tap on the card goes: once a snip's title is in, to renaming it in the app. Otherwise nil, and a tap opens
@@ -201,8 +214,9 @@ public enum ActivityClock {
   }
 }
 
-/// What the activity's buttons do. The app installs `handler` at launch; the intents run in the app's process
-/// (`LiveActivityIntent`), so they reach the player directly.
+/// What the activity's buttons do. The app installs `handler` when its process starts, which may be a launch iOS makes
+/// out of sight for the button itself; the intents run in the app's process (`LiveActivityIntent`), so they reach the
+/// player directly.
 public enum PlaybackActivityAction: Sendable {
   case toggle, back, forward, snip, skipAd
 }
@@ -212,8 +226,17 @@ public enum PlaybackActivityControl {
   public static var handler: (@MainActor (PlaybackActivityAction) async -> Void)?
 
   static func run(_ action: PlaybackActivityAction) async {
-    await handler?(action)
+    // A button pressed after iOS ended the app launches it out of sight, and the intent can arrive while the app is
+    // still setting itself up: give the handler a moment to be installed before giving up.
+    for _ in 0..<20 where handler == nil { try? await Task.sleep(for: .milliseconds(100)) }
+    guard let handler else {
+      log.notice("\(String(describing: action), privacy: .public): pressed, and the app never installed its handler")
+      return
+    }
+    await handler(action)
   }
+
+  static let log = Logger(subsystem: "snip.player", category: "activity")
 }
 
 /// Also an `AudioPlaybackIntent`: only that lets the app start audio from the background. Without it Play worked only

@@ -37,14 +37,23 @@ bundle id are in ../CLAUDE.local.md and the gitignored `Config/Local.xcconfig` a
   `$(ORG_IDENTIFIER).Snip.LiveActivity`, embedded in the app). What both sides must agree on (the activity's state,
   the buttons' `LiveActivityIntent`s) and its views live in `Packages/SnipActivity`, which both link; the extension
   only places the views, and the intents run in the app's process through `PlaybackActivityControl.handler`. Play,
-  pause and the skips are left to the system's Now Playing card: the activity shows the title and position with Snip
-  (Play joins it while paused), an ad break with Skip ad, and a snip's steps until its title is in. A tap on that title
+  pause and the skips are left to the system's Now Playing card: the activity shows the title and position with Snip,
+  an ad break with Skip ad, and a snip's steps until its title is in (Play joins whichever it is while paused). A tap on that title
   opens the app renaming it (`SnipLink`: the URL scheme is the app's bundle id, registered in `Config/Info.plist`).
   Its tests run in the simulator only (`xcodebuild test -scheme Snip`): ActivityKit has no macOS. `testflight.sh`
   mints an App Store profile for each bundle and passes them as `SNIP_APP_PROFILE` / `SNIP_EXTENSION_PROFILE` /
   `SNIP_SHARE_PROFILE`.
+- **The activity's buttons run with the app out of sight**, often in a process iOS launched just for the press
+  after ending the app while it was paused. Nothing may depend on a screen having been drawn: the model is made in
+  `SnipApp.init` (`AppModel.shared`), because `@State` builds an observable object only when a view reads it, and a
+  launch with no view once left every button dead. To check one: play, pause, send the app to the background
+  (`xcrun simctl launch <udid> com.apple.Preferences`), `xcrun simctl terminate` it, long-press the island and tap
+  the button; `log show --predicate 'subsystem == "snip.player"'` says what the relaunched app found. Persist the
+  mute first (`xcrun simctl spawn <udid> defaults write <bundle id> muteAudio -bool YES`): the system's relaunch
+  carries no launch arguments. The simulator never suspends a paused app, so "the app is suspended" is tested by
+  ending it.
 - **Design checks of the Live Activity.** A script can't lock the simulator, so `-activityGallery lock|ad|snip|snip2|
-  island|island2|compact` (DEBUG) draws every state at real size with the activity's own views. The compact island shows
+  island|island2|compact|paused|paused2` (DEBUG) draws every state at real size with the activity's own views. The compact island shows
   for real once the app is in the background (`xcrun simctl launch <udid> com.apple.Preferences`); `-openEpisode <id>
   -seekTo <ms> -autoSnipAfter <s> -renameAfter <s>` plays into an ad break, snips, and opens the rename link.
 - **Share sheet** is a third target, `SnipShare/` (bundle `$(ORG_IDENTIFIER).Snip.Share`, a share extension embedded
