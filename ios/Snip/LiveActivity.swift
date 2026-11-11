@@ -143,7 +143,7 @@ extension SnipCardModel {
   var activityProgress: SnipProgress {
     switch phase {
     case .waiting(let pending):
-      return SnipProgress(step: .choosing, anchorMs: pending.body.anchorMs)
+      return SnipProgress(step: onPhone ? .onPhone : .choosing, anchorMs: pending.body.anchorMs)
     case .snip(let snip):
       let rev = snip.revision
       let step: SnipProgress.Step =

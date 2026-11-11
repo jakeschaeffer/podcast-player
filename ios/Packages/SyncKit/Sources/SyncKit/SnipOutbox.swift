@@ -6,9 +6,28 @@ import PodcastAPI
 /// the server restarts, is delivered when the connection returns. `captured_at` keeps the moment of the tap.
 public actor SnipOutbox {
   public struct Pending: Codable, Sendable, Hashable, Identifiable {
-    public let body: CreateSnip
+    public var body: CreateSnip
     public let episodeID: ULID
+    /// What a list needs to show the tap before the server has made a snip of it.
+    public var episodeTitle: String?
+    public var showTitle: String?
+    public var imageUrl: String?
     public var id: String { body.clientRequestId }
+
+    /// How much before the tap a waiting snip covers until the owner or the server says otherwise.
+    public static let defaultLengthMs = 90_000
+
+    /// A heard stretch shorter than this (a tap just after a seek) doesn't bound the span: nobody snips a few seconds.
+    public static let shortestHeardMs = 30_000
+
+    /// The span shown while the tap waits: the owner's if they set one, else the default length back from the tap,
+    /// and not before the start of the stretch they heard unless that stretch is only moments long.
+    public var startMs: Int {
+      if let start = body.owner?.startMs { return start }
+      let back = max(body.anchorMs - Self.defaultLengthMs, 0)
+      return body.anchorMs - body.heardFromMs >= Self.shortestHeardMs ? max(body.heardFromMs, back) : back
+    }
+    public var endMs: Int { body.owner?.endMs ?? body.anchorMs }
   }
 
   public enum Event: Sendable {
@@ -39,15 +58,33 @@ public actor SnipOutbox {
   public func capture(assetID: ULID, episodeID: ULID, anchorMs: Int, heardFromMs: Int, at date: Date = .now) async
     -> (Pending, Snip?)
   {
+    let pending = add(assetID: assetID, episodeID: episodeID, anchorMs: anchorMs, heardFromMs: heardFromMs, at: date)
+    let sent = await flush()
+    return (pending, sent[pending.id])
+  }
+
+  /// Save a tap without sending it; `flush` sends it. The caller can show it at once, however long the server takes.
+  public func add(
+    assetID: ULID, episodeID: ULID, anchorMs: Int, heardFromMs: Int, episodeTitle: String? = nil,
+    showTitle: String? = nil, imageUrl: String? = nil, at date: Date = .now
+  ) -> Pending {
     let pending = Pending(
       body: CreateSnip(
         clientRequestId: UUID().uuidString.lowercased(), assetId: assetID, anchorMs: anchorMs,
         heardFromMs: heardFromMs, capturedAt: Int(date.timeIntervalSince1970 * 1000)),
-      episodeID: episodeID)
+      episodeID: episodeID, episodeTitle: episodeTitle, showTitle: showTitle, imageUrl: imageUrl)
     queue.append(pending)
     save()
-    let sent = await flush()
-    return (pending, sent[pending.id])
+    return pending
+  }
+
+  /// The owner's title, note or span for a tap still waiting; it goes with the tap when it is sent. Returns the tap
+  /// as it now stands, or nil when it has already gone (the edit then belongs on the snip it became).
+  public func edit(_ id: String, owner: CreateSnip.Owner) -> Pending? {
+    guard let i = queue.firstIndex(where: { $0.id == id }) else { return nil }
+    queue[i].body.owner = owner.isEmpty ? nil : owner
+    save()
+    return queue[i]
   }
 
   /// Drop a tap that hasn't reached the server. A tap already on its way may still arrive: the caller deletes the snip

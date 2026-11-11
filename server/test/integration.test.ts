@@ -473,6 +473,32 @@ describe("end to end: feed → audio → transcript → snip → public page", (
     expect(md.body).toContain("## ");
     expect(md.body).toContain("http://pods.test/s/");
   });
+  it("applies what the owner changed offline over the selector's span, and keeps the selector's choice on record", async () => {
+    const tap = { asset_id: assetId, anchor_ms: 150_000, heard_from_ms: 0 };
+    const bad = await app.inject({ method: "POST", url: "/v1/snips", headers: auth(), payload: { ...tap, client_request_id: "01TESTOFFLINE000000000000", owner: { start_ms: 10_000 } } });
+    expect(bad.statusCode).toBe(400);
+
+    const made = await app.inject({ method: "POST", url: "/v1/snips", headers: auth(), payload: { ...tap, client_request_id: "01TESTOFFLINE000000000001", owner: { start_ms: 20_000, end_ms: 150_000, title: "Mine, typed offline", note: "why I kept it" } } });
+    expect(made.statusCode).toBe(201);
+    const id = made.json().id;
+    expect(made.json().note).toBe("why I kept it");
+    await drain(ctx, { kinds: ["select_snip", "render_clip", "summarize_snip"] });
+    const snip = (await app.inject({ method: "GET", url: `/v1/snips/${id}`, headers: auth() })).json();
+    expect(snip.revision).toMatchObject({ rev: 2, method: "manual", status: "ready", title: "Mine, typed offline", title_source: "owner" });
+    expect(snip.revision.start_ms).toBeLessThanOrEqual(20_000);
+    expect(snip.revision.start_ms).toBeGreaterThan(15_000);
+    const first = ctx.db.prepare("SELECT method, clip_path FROM snip_revision WHERE snip_id = ? AND rev = 1").get(id) as { method: string; clip_path: string | null };
+    expect(first).toEqual({ method: "snap", clip_path: null });
+    expect((ctx.db.prepare("SELECT owner_edit FROM snip WHERE id = ?").get(id) as { owner_edit: string | null }).owner_edit).toBeNull();
+
+    // A title alone stays on the selector's revision.
+    const titled = await app.inject({ method: "POST", url: "/v1/snips", headers: auth(), payload: { ...tap, client_request_id: "01TESTOFFLINE000000000002", owner: { title: "Only a title" } } });
+    await drain(ctx, { kinds: ["select_snip", "render_clip", "summarize_snip"] });
+    const kept = (await app.inject({ method: "GET", url: `/v1/snips/${titled.json().id}`, headers: auth() })).json();
+    expect(kept.revision).toMatchObject({ rev: 1, method: "snap", status: "ready", title: "Only a title", title_source: "owner" });
+    for (const s of [id, titled.json().id]) await app.inject({ method: "DELETE", url: `/v1/snips/${s}`, headers: auth() });
+  });
+
 });
 
 function feedXml(base: string): string {

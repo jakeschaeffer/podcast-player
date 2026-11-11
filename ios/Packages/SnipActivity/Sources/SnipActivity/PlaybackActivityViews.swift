@@ -226,6 +226,11 @@ struct SnipRelay: View {
         Text("Snip failed")
       }
       .font(.system(size: headlineSize, weight: .semibold))
+    case .onPhone:
+      Text("Snip kept on the phone")
+        .font(.system(size: headlineSize, weight: .semibold))
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
       .lineLimit(1)
       .minimumScaleFactor(0.6)
     default:
@@ -252,6 +257,8 @@ struct SnipRelay: View {
         Image(systemName: "checkmark").font(.subheadline.weight(.bold)).foregroundStyle(ActivityPalette.accent)
       case .failed:
         EmptyView()
+      case .onPhone:
+        Image(systemName: "wifi.slash").font(.subheadline.weight(.semibold))
       default:
         Steps(done: snip.stepsDone)
       }
@@ -268,6 +275,7 @@ struct SnipRelay: View {
     case .naming: "Naming it…"
     case .named: ["Saved", snip.lengthMs.map(ActivityClock.string), "tap to rename"].compactMap(\.self).joined(separator: " · ")
     case .failed: snip.error ?? "Open the app to try again."
+    case .onPhone: "Snipped at \(ActivityClock.string(snip.anchorMs)) · sends when online"
     }
   }
 }

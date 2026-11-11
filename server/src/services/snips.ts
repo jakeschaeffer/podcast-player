@@ -30,7 +30,9 @@ export type SnipView = {
   created_at: number; captured_at: number; revision: RevisionView | null;
 };
 
-export type CreateSnipInput = { client_request_id: string; asset_id: string; anchor_ms: number; heard_from_ms: number; captured_at?: number };
+/** What the owner changed on the device while the tap waited to be sent. The span is both ends or neither. */
+export type OwnerEdit = { start_ms?: number; end_ms?: number; title?: string; note?: string };
+export type CreateSnipInput = { client_request_id: string; asset_id: string; anchor_ms: number; heard_from_ms: number; captured_at?: number; owner?: OwnerEdit };
 export type EditSnipInput = {
   start_ms?: number; end_ms?: number; start_word?: number; end_word?: number; transcript_id?: string; snap?: boolean; note?: string | null; title?: string; if_revision?: string;
   regenerate_summary?: boolean;
@@ -134,10 +136,19 @@ export function createSnip(ctx: AppContext, input: CreateSnipInput, deviceId: st
   const revisionId = newId();
   const provisionalStart = Math.max(heardFrom, anchor - FIXED_TARGET_MS, 0);
   const hasTranscript = asset.transcript_id !== null;
+  // The owner's own span and title wait on the row until the selector has chosen (applyOwnerEdit); the note needs
+  // no revision and is saved now.
+  const owner = input.owner ?? {};
+  const span = owner.start_ms !== undefined && owner.end_ms !== undefined ? { start_ms: Math.round(owner.start_ms), end_ms: Math.round(owner.end_ms) } : null;
+  if ((owner.start_ms === undefined) !== (owner.end_ms === undefined)) throw badRequest("owner.start_ms and owner.end_ms go together");
+  if (span && !(span.start_ms >= 0 && span.start_ms < span.end_ms && span.end_ms <= asset.duration_ms)) throw badRequest("owner span must satisfy 0 <= start < end <= duration");
+  const title = owner.title?.trim().slice(0, 120) || undefined;
+  const ownerEdit = span || title ? JSON.stringify({ ...(span ?? {}), ...(title ? { title } : {}) }) : null;
+  const note = owner.note?.trim() || null;
   ctx.db.transaction(() => {
     ctx.db
-      .prepare("INSERT INTO snip (id, audio_asset_id, anchor_ms, heard_from_ms, client_request_id, share_token, share_state, current_revision_id, created_at, captured_at) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)")
-      .run(snipId, asset.id, anchor, heardFrom, input.client_request_id, newShareToken(), revisionId, now, capturedAt);
+      .prepare("INSERT INTO snip (id, audio_asset_id, anchor_ms, heard_from_ms, client_request_id, share_token, share_state, current_revision_id, created_at, captured_at, owner_edit, note) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)")
+      .run(snipId, asset.id, anchor, heardFrom, input.client_request_id, newShareToken(), revisionId, now, capturedAt, ownerEdit, note);
     ctx.db
       .prepare("INSERT INTO snip_revision (id, snip_id, rev, method, transcript_id, start_ms, end_ms, status, summary_status, created_at) VALUES (?, ?, 1, 'fixed', ?, ?, ?, ?, 'pending', ?)")
       .run(revisionId, snipId, asset.transcript_id, provisionalStart, anchor, hasTranscript ? "selecting" : "waiting", now);
@@ -261,6 +272,27 @@ export function editSnip(ctx: AppContext, id: string, patch: EditSnipInput, devi
   if (kept) ctx.queue.enqueue("render_clip", `render_clip:${revisionId}`, { revision_id: revisionId }, { priority: PRIORITY.snip });
   else enqueuePreparation(ctx, revisionId);
   return getSnip(ctx, id, deviceId);
+}
+
+/**
+ * The selector has chosen revision 1's span. If the owner already edited this tap on the device, their edit goes over
+ * it now, as any later edit would: a title in place, a span as a manual revision (so the selector's choice stays on
+ * record, and nothing is rendered or titled for a span the owner already replaced). Returns true when a new revision
+ * took over and is being prepared; false when revision 1 still needs preparing.
+ */
+export function applyOwnerEdit(ctx: AppContext, snipId: string, revisionId: string): boolean {
+  const row = ctx.db.prepare("SELECT owner_edit FROM snip WHERE id = ?").get(snipId) as { owner_edit: string | null };
+  if (!row.owner_edit) return false;
+  const edit = JSON.parse(row.owner_edit) as OwnerEdit;
+  ctx.db.prepare("UPDATE snip SET owner_edit = NULL WHERE id = ?").run(snipId);
+  try {
+    editSnip(ctx, snipId, { ...edit, if_revision: revisionId }, null);
+  } catch (e) {
+    // A span that no longer fits (the recording was replaced) is not worth failing the snip for.
+    ctx.log("owner edit from the device not applied", { snip_id: snipId, error: String(e) });
+    return false;
+  }
+  return edit.start_ms !== undefined;
 }
 
 /** Queue the clip render, its picture if the recording has one, and the summary for a revision whose span is settled. */

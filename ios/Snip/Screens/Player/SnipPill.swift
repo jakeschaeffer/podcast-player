@@ -18,6 +18,10 @@ final class SnipCardModel {
     didSet { if phase != oldValue { onChange?(self) } }
   }
   private(set) var error: String?
+  /// The server couldn't be reached: the tap is kept on the phone and sent when it can be.
+  private(set) var onPhone = false {
+    didSet { if onPhone != oldValue { onChange?(self) } }
+  }
   /// Told each time the phase changes, so the Live Activity follows the snip (AppModel).
   @ObservationIgnored var onChange: ((SnipCardModel) -> Void)?
   /// The Live Activity's title was tapped: the bar opens the title for renaming as soon as it shows.
@@ -47,8 +51,17 @@ final class SnipCardModel {
     }
   }
 
-  /// The outbox delivered the tap later; start following the snip it became.
+  /// The first try to send the tap failed.
+  func held() { onPhone = true }
+
+  /// The owner gave the waiting tap a title, a note or another length.
+  func edited(_ pending: SnipOutbox.Pending) {
+    if case .waiting = phase { phase = .waiting(pending) }
+  }
+
+  /// The outbox delivered the tap; start following the snip it became.
   func delivered(_ snip: Snip, api: APIClient) {
+    onPhone = false
     phase = .snip(snip)
     follow(api: api)
   }
@@ -113,7 +126,33 @@ struct SnipPill: View {
 
   var body: some View {
     Group {
-      if card.cancellable {
+      if card.onPhone, case .waiting(let pending) = card.phase {
+        // No connection: the snip is kept, with a length to start from, and can be named before it is sent.
+        HStack(spacing: 14) {
+          Image(systemName: "wifi.slash").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
+          Button { model.editingWaiting = pending } label: {
+            lines(
+              pending.body.owner?.title ?? "Snipped at \(Format.clock(pending.body.anchorMs))",
+              "Not sent yet · \(Format.duration(pending.endMs - pending.startMs))"
+            ).contentShape(.rect)
+          }
+          .buttonStyle(.plain)
+          .accessibilityHint("Names the snip or changes its length")
+          Button { model.editingWaiting = pending } label: {
+            Image(systemName: "pencil")
+              .font(.body.weight(.bold))
+              .frame(width: 48, height: 48)
+              .background(Color(.systemGray4), in: .circle)
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("Edit snip")
+          Button(action: onClose) {
+            Image(systemName: "xmark").font(.body.weight(.semibold)).frame(width: 36, height: 44)
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("Close")
+        }
+      } else if card.cancellable {
         HStack(spacing: 14) {
           ProgressView().controlSize(.regular)
           lines("Snipped at \(Format.clock(anchorMs))", "Choosing the moment…")

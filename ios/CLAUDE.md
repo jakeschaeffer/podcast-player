@@ -63,6 +63,13 @@ bundle id are in ../CLAUDE.local.md and the gitignored `Config/Local.xcconfig` a
   server itself: a channel link is followed (`POST /v1/feeds`), any other link becomes an episode
   (`POST /v1/links/episodes`). In the simulator, share a page from Safari to try it; the app must have been opened
   signed in once, since it writes the server to the Keychain at launch.
+- **A snip tap is saved, shown, then sent** (`SnipOutbox.add`, then `flush`). One the server can't take stays on
+  the phone (`AppModel.waitingSnips`, the Snips tab's "Waiting to send", the bar's "Not sent yet"), with a default
+  span of 90 s. A title, a note or another length given meanwhile (`WaitingSnipSheet`) rides in the tap's `owner`
+  field; the server still lets its selector choose first and then puts the owner's span over it as a manual
+  revision, so nothing typed offline is overridden. To test: stop only the server's listener
+  (`lsof -ti tcp:8080 -sTCP:LISTEN | xargs kill`; without `-sTCP:LISTEN` that also kills the simulator app, which
+  holds a connection on the port), tap Snip, edit, start the server, and bring the app to the front to flush.
 - **Nothing of one deployment in the code.** Identifiers derive from the bundle id (`TokenStore.defaultService`,
   `DownloadStore.sessionIdentifier`); the default server comes from Info.plist through the xcconfigs. A hostname,
   team or account that belongs to the owner goes in the gitignored files above, not in a Swift file, a script or a doc.

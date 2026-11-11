@@ -136,6 +136,8 @@ public struct SnipProgress: Codable, Hashable, Sendable {
     /// Done: the title is in.
     case named
     case failed
+    /// The server couldn't be reached: the tap is kept on the phone and sent later. Settled, as far as the card goes.
+    case onPhone
   }
 
   public var step: Step
@@ -161,7 +163,7 @@ public struct SnipProgress: Codable, Hashable, Sendable {
   /// How many of the three steps (choose the moment, cut the clip, name it) are done.
   public var stepsDone: Int {
     switch step {
-    case .choosing, .waitingForTranscript, .failed: 0
+    case .choosing, .waitingForTranscript, .failed, .onPhone: 0
     case .cutting: 1
     case .naming: 2
     case .named: 3
@@ -169,7 +171,7 @@ public struct SnipProgress: Codable, Hashable, Sendable {
   }
 
   /// The server is still working on it.
-  public var inProgress: Bool { step != .named && step != .failed }
+  public var inProgress: Bool { step != .named && step != .failed && step != .onPhone }
 }
 
 /// The link the activity opens when a snip's title is tapped: the app comes up on that snip with its title selected,
