@@ -15915,6 +15915,30 @@
                     "minimum": 0,
                     "description": "Unix ms on the device's clock when the owner tapped; capped at receipt time",
                     "type": "integer"
+                  },
+                  "owner": {
+                    "description": "What the owner changed on the device while the tap waited to be sent (offline). The selector still chooses its span first; a span here (both ends) then replaces it as a manual revision, and a title here is kept as the owner's",
+                    "type": "object",
+                    "properties": {
+                      "start_ms": {
+                        "minimum": 0,
+                        "description": "milliseconds",
+                        "type": "integer"
+                      },
+                      "end_ms": {
+                        "minimum": 0,
+                        "description": "milliseconds",
+                        "type": "integer"
+                      },
+                      "title": {
+                        "maxLength": 120,
+                        "type": "string"
+                      },
+                      "note": {
+                        "maxLength": 4000,
+                        "type": "string"
+                      }
+                    }
                   }
                 }
               }

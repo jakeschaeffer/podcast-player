@@ -133,6 +133,10 @@ export const CreateSnipBody = Type.Object({
   anchor_ms: Ms,
   heard_from_ms: Ms,
   captured_at: Type.Optional(Type.Integer({ minimum: 0, description: "Unix ms on the device's clock when the owner tapped; capped at receipt time" })),
+  owner: Type.Optional(Type.Object({
+    start_ms: Type.Optional(Ms), end_ms: Type.Optional(Ms),
+    title: Type.Optional(Type.String({ maxLength: 120 })), note: Type.Optional(Type.String({ maxLength: 4000 })),
+  }, { description: "What the owner changed on the device while the tap waited to be sent (offline). The selector still chooses its span first; a span here (both ends) then replaces it as a manual revision, and a title here is kept as the owner's" })),
 });
 export const EditSnipBody = Type.Partial(Type.Object({
   start_ms: Ms, end_ms: Ms, start_word: Type.Integer({ minimum: 0 }), end_word: Type.Integer({ minimum: 1 }),

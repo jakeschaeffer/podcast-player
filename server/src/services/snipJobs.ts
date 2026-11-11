@@ -18,7 +18,7 @@ import { DeferJob } from "../jobs/errors.js";
 import { NonRetryable } from "../jobs/errors.js";
 import { PRIORITY, type Job } from "../jobs/queue.js";
 import { getAssetRow } from "./episodes.js";
-import { enqueuePreparation, episodeForAsset, getRevisionRow } from "./snips.js";
+import { applyOwnerEdit, enqueuePreparation, episodeForAsset, getRevisionRow } from "./snips.js";
 import { makeSpanPicker } from "./spanPicker.js";
 import { loadTranscript, transcriptForAsset } from "./transcripts.js";
 
@@ -42,7 +42,7 @@ export async function selectSnipJob(ctx: AppContext, job: Job<{ revision_id: str
     .prepare("UPDATE snip_revision SET method = ?, transcript_id = ?, start_ms = ?, end_ms = ?, start_word = ?, end_word = ?, excerpt = ?, status = 'preparing', selection = ? WHERE id = ?")
     .run(selection.method, asset.transcript_id, selection.start_ms, selection.end_ms, selection.start_word, selection.end_word, excerpt, JSON.stringify({ ...compactSelection(selection), ...(picker ? { picker_prompt_version: picker.prompt_version } : {}) }), rev.id);
   ctx.log("snip selected", { snip_id: snip.id, revision_id: rev.id, method: selection.method, start_ms: selection.start_ms, end_ms: selection.end_ms, model_rejection: selection.model_rejection });
-  enqueuePreparation(ctx, rev.id);
+  if (!applyOwnerEdit(ctx, snip.id, rev.id)) enqueuePreparation(ctx, rev.id);
 }
 
 /** What we keep of a selection for debugging and evals: enough to replay, without the full sentence list. */

@@ -15,6 +15,18 @@ struct SnipsView: View {
   var body: some View {
     List {
       if let error { Text(error).foregroundStyle(.secondary) }
+      // Taps made with no connection, until they are sent; a tap opens one to name it or change its length.
+      if !model.waitingSnips.isEmpty {
+        Section("Waiting to send") {
+          ForEach(model.waitingSnips.reversed()) { pending in
+            Button { model.editingWaiting = pending } label: { WaitingSnipRow(pending: pending) }
+              .buttonStyle(.plain)
+              .swipeActions {
+                Button("Delete", systemImage: "trash", role: .destructive) { Task { await model.deleteWaiting(pending.id) } }
+              }
+          }
+        }
+      }
       ForEach(snips) { snip in
         Button { opened = SnipRoute(id: snip.id) } label: { SnipRow(snip: snip) }
           .buttonStyle(.plain)
@@ -28,13 +40,17 @@ struct SnipsView: View {
     .overlay {
       if !loaded && error == nil {
         ProgressView()
-      } else if loaded && snips.isEmpty && error == nil {
+      } else if loaded && snips.isEmpty && error == nil && model.waitingSnips.isEmpty {
         ContentUnavailableView("No snips yet", systemImage: "scissors",
           description: Text("Tap the scissors in the player to save a moment."))
       }
     }
     .navigationTitle("Snips")
     .task { if !loaded { await load(more: false) } }
+    // A waiting tap was sent: it is a snip now, at the top of the list.
+    .onChange(of: model.waitingSnips.count) { old, new in
+      if new < old { Task { await load(more: false) } }
+    }
     .refreshable { await load(more: false) }
     .navigationDestination(item: $opened) { route in
       SnipPage(snipID: route.id, api: model.api, onChange: replace) {

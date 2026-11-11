@@ -516,6 +516,23 @@ public struct CreateSnip: Codable, Sendable, Hashable {
   public var anchorMs: Int
   public var heardFromMs: Int
   public var capturedAt: Int
+  /// What the owner changed while the tap waited on the phone; nil when nothing.
+  public var owner: Owner?
+
+  /// A title, a note and a span set before the server had the tap. The server still chooses its own span first, then
+  /// puts these over it, so nothing typed offline is lost to what it chose. The span is both ends or neither.
+  public struct Owner: Codable, Sendable, Hashable {
+    public var startMs: Int?
+    public var endMs: Int?
+    public var title: String?
+    public var note: String?
+
+    public init(startMs: Int? = nil, endMs: Int? = nil, title: String? = nil, note: String? = nil) {
+      (self.startMs, self.endMs, self.title, self.note) = (startMs, endMs, title, note)
+    }
+
+    public var isEmpty: Bool { startMs == nil && endMs == nil && title == nil && note == nil }
+  }
 
   public init(clientRequestId: String, assetId: ULID, anchorMs: Int, heardFromMs: Int, capturedAt: Int) {
     self.clientRequestId = clientRequestId

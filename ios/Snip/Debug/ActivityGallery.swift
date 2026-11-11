@@ -29,6 +29,8 @@
           case "snip2":
             item("Named, the longest title the server writes") { lock(.snip(.named, title: Sample.longestSnipTitle)) }
             item("Failed") { lock(.snip(.failed)) }
+            item("No connection: kept on the phone") { lock(.snip(.onPhone)) }
+            item("No connection, island") { expanded(.snip(.onPhone)) }
           case "island":
             item("Playing") { expanded(.playing) }
             item("Paused") { expanded(.paused) }

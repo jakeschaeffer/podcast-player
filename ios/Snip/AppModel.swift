@@ -29,6 +29,10 @@ final class AppModel {
   private var snips: SnipOutbox
   /// The card for the latest snip tap, shown in the player until closed.
   var snipCard: SnipCardModel?
+  /// Taps kept on the phone because the server couldn't be reached, oldest first; each is sent when it can be.
+  private(set) var waitingSnips: [SnipOutbox.Pending] = []
+  /// A waiting tap being given a title, a note or another length (WaitingSnipSheet).
+  var editingWaiting: SnipOutbox.Pending?
   /// A snip whose title the Live Activity asked to rename (`open(_:)`): the player opens on it.
   var renameRequest: ULID?
   /// A snip's page is showing its words sideways, full screen; the mini player hides meanwhile.
@@ -71,6 +75,7 @@ final class AppModel {
     wireQueue()
     wireLiveActivity()
     restoreSaved()
+    Task { await refreshWaiting() }
     // Any 401 outside login means the device was revoked or the token is gone: back to the login screen.
     NotificationCenter.default.addObserver(forName: Self.unauthorized, object: nil, queue: .main) { [weak self] _ in
       MainActor.assumeIsolated { self?.signOut() }
@@ -138,6 +143,7 @@ final class AppModel {
     Task {
       await reporter.flush()
       await snips.flush()
+      await refreshWaiting()
     }
   }
 
@@ -361,13 +367,45 @@ final class AppModel {
     sounds.requested()
     liveActivity.snipStarted(SnipProgress(step: .choosing, anchorMs: point.anchorMs), engine: engine)
     snipCard?.stop()
-    let (pending, snip) = await snips.capture(
-      assetID: point.assetID, episodeID: episodeID, anchorMs: point.anchorMs, heardFromMs: point.heardFromMs)
-    let card = SnipCardModel(pending: pending, snip: snip)
+    // Saved and shown first, then sent: a server that can't be reached may take a long while to say so.
+    let episode = engine.episode
+    let pending = await snips.add(
+      assetID: point.assetID, episodeID: episodeID, anchorMs: point.anchorMs, heardFromMs: point.heardFromMs,
+      episodeTitle: episode?.title, showTitle: episode?.showTitle,
+      imageUrl: episode.flatMap { artwork(episodeImage: $0.imageUrl, feedID: $0.feedId) })
+    let card = SnipCardModel(pending: pending, snip: nil)
     card.onChange = { [weak self] card in self?.snipCardChanged(card) }
     snipCard = card
     snipCardChanged(card)
-    card.follow(api: api)
+    let sent = await snips.flush()
+    // `.sent` (listenForDeliveredSnips) hands the card its snip. Not sent: it stays on the phone, and says so.
+    if sent[pending.id] == nil, case .waiting = card.phase { card.held() }
+    await refreshWaiting()
+  }
+
+  /// Re-read which taps are still on the phone.
+  func refreshWaiting() async {
+    waitingSnips = await snips.pending.filter { !cancelledTaps.contains($0.id) }
+  }
+
+  /// The owner's title, note or length for a tap that is still on the phone. Should the tap have just been sent, the
+  /// edit is too late for it and is dropped: the snip it became is edited on its own page.
+  func editWaiting(_ id: String, owner: CreateSnip.Owner) async {
+    if let edited = await snips.edit(id, owner: owner), let card = snipCard, case .waiting(let shown) = card.phase, shown.id == id {
+      card.edited(edited)
+    }
+    await refreshWaiting()
+  }
+
+  /// Drop a tap that is still on the phone.
+  func deleteWaiting(_ id: String) async {
+    if let card = snipCard, case .waiting(let shown) = card.phase, shown.id == id {
+      cancelSnip(card)
+    } else {
+      cancelledTaps.insert(id)
+      await snips.cancel(id)
+    }
+    await refreshWaiting()
   }
 
   /// The latest card's progress goes to the Live Activity; an older card's doesn't.
@@ -403,7 +441,10 @@ final class AppModel {
     switch card.phase {
     case .waiting(let pending):
       cancelledTaps.insert(pending.id)
-      Task { await snips.cancel(pending.id) }
+      Task {
+        await snips.cancel(pending.id)
+        await refreshWaiting()
+      }
     case .snip(let snip):
       // The snip count on the player's badge is re-read once the server has the delete.
       Task {
@@ -427,6 +468,7 @@ final class AppModel {
             return
           }
           self.sounds.saved()
+          await self.refreshWaiting()
           guard let card = self.snipCard, case .waiting(let waiting) = card.phase, waiting.id == pending.id
           else { return }
           card.delivered(snip, api: self.api)

@@ -3607,6 +3607,15 @@ export interface paths {
                         heard_from_ms: number;
                         /** @description Unix ms on the device's clock when the owner tapped; capped at receipt time */
                         captured_at?: number;
+                        /** @description What the owner changed on the device while the tap waited to be sent (offline). The selector still chooses its span first; a span here (both ends) then replaces it as a manual revision, and a title here is kept as the owner's */
+                        owner?: {
+                            /** @description milliseconds */
+                            start_ms?: number;
+                            /** @description milliseconds */
+                            end_ms?: number;
+                            title?: string;
+                            note?: string;
+                        };
                     };
                 };
             };

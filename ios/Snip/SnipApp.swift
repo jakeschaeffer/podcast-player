@@ -72,6 +72,12 @@ struct RootView: View {
     .modifier(MiniPlayerAccessory(showPlayer: $showPlayer, enabled: !model.readingSideways))
     .sheet(isPresented: $showPlayer) {
       PlayerView()
+        // A waiting snip opened from the snip bar; over the player, which is itself a sheet.
+        .sheet(item: Bindable(model).editingWaiting) { WaitingSnipSheet(pending: $0).environment(model) }
+    }
+    // The same, opened from the Snips tab with the player down.
+    .sheet(item: Binding(get: { showPlayer ? nil : model.editingWaiting }, set: { model.editingWaiting = $0 })) {
+      WaitingSnipSheet(pending: $0)
     }
     // The Live Activity's title was tapped: the player takes it from there (PlayerView.openRename).
     .onChange(of: model.renameRequest, initial: true) { _, id in if id != nil { showPlayer = true } }
