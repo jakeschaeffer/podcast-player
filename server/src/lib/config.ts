@@ -44,6 +44,8 @@ export type Config = {
   refreshIntervalMinutes: number;
   /** Push the server's own commits (prompt versions, eval scorecards) to origin right after making them. Production only. */
   gitAutoPush: boolean;
+  /** The owner's Readwise access token: every snip is sent there as a highlight (services/readwiseSync.ts). Empty disables. */
+  readwiseToken: string | null;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -78,5 +80,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     allowPrivateNetwork: env.ALLOW_PRIVATE_NETWORK === "1",
     refreshIntervalMinutes: Number(env.REFRESH_INTERVAL_MINUTES ?? 30),
     gitAutoPush: env.GIT_AUTO_PUSH === "1",
+    readwiseToken: env.READWISE_TOKEN?.trim() || null,
   };
 }

@@ -19,6 +19,7 @@ import { NonRetryable } from "../jobs/errors.js";
 import { PRIORITY, type Job } from "../jobs/queue.js";
 import { getAssetRow } from "./episodes.js";
 import { applyOwnerEdit, enqueuePreparation, episodeForAsset, getRevisionRow } from "./snips.js";
+import { queueReadwiseSync } from "./readwiseSync.js";
 import { makeSpanPicker } from "./spanPicker.js";
 import { loadTranscript, transcriptForAsset } from "./transcripts.js";
 
@@ -216,9 +217,12 @@ function isCurrent(ctx: AppContext, rev: SnipRevisionRow): boolean {
   return snip.current_revision_id === rev.id && snip.deleted_at === null;
 }
 
-/** A revision is ready once its clip exists and the summary step has concluded one way or another. */
+/** A revision is ready once its clip exists and the summary step has concluded one way or another. Then it goes to Readwise. */
 function markReadyIfComplete(ctx: AppContext, revisionId: string): void {
-  ctx.db.prepare("UPDATE snip_revision SET status = 'ready' WHERE id = ? AND status = 'preparing' AND clip_path IS NOT NULL AND summary_status != 'pending'").run(revisionId);
+  const ready = ctx.db
+    .prepare("UPDATE snip_revision SET status = 'ready' WHERE id = ? AND status = 'preparing' AND clip_path IS NOT NULL AND summary_status != 'pending' RETURNING snip_id")
+    .get(revisionId) as { snip_id: string } | undefined;
+  if (ready) queueReadwiseSync(ctx, ready.snip_id);
 }
 
 /** Remove clip files of superseded revisions older than `olderThanMs`; rows stay. */

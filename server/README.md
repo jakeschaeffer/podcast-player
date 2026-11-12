@@ -37,6 +37,7 @@ In production the server runs as a systemd service behind nginx (`../deploy/READ
 | `TRANSCRIPTION_BUDGET_MINUTES` | Monthly cap on catalog (priority 0) transcription; owner-triggered work ignores it | `6000` |
 | `TRANSCRIPTION_CENTS_PER_HOUR` | Rate used for the cost ledger | `22` |
 | `MEDIA_URL_TTL_SECONDS` | Lifetime of signed audio URLs | `86400` |
+| `READWISE_TOKEN` | The owner's Readwise access token (readwise.io/access_token). Every ready snip is sent there as a podcast highlight, kept up to date on edits and deleted with the snip; the first run sends every snip already made. Empty sends nothing | – |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | A Desktop OAuth client from the Google Cloud console, for read-only Gmail access to the mailbox that receives publisher emails | – |
 | `GOOGLE_REFRESH_TOKEN` | Written by `pnpm gmail:auth`; scope `gmail.readonly` only | – |
 | `EMAIL_SOURCE_QUERY` | Gmail search for newsletters that carry episode text; empty disables the email source (text feeds are the default path) | empty |

@@ -3,6 +3,7 @@ import { mkdtempSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import type { Readwise } from "../../src/adapters/readwise.js";
 import type { TextModel } from "../../src/adapters/textModel.js";
 import type { AppContext } from "../../src/app/context.js";
 import { newId } from "../../src/lib/ids.js";
@@ -31,9 +32,9 @@ export async function makeTone(): Promise<string> {
  * A fresh database holding one feed, one episode, and one recording at `mp3`, with a clock the test can move.
  * Rows are written directly, so no feed fetch or download runs.
  */
-export function recordingFixture(mp3: string, opts: { textModel?: TextModel } = {}): { ctx: AppContext; clock: { now: number }; assetId: string; episodeId: string } {
+export function recordingFixture(mp3: string, opts: { textModel?: TextModel; readwise?: Readwise } = {}): { ctx: AppContext; clock: { now: number }; assetId: string; episodeId: string } {
   const clock = { now: 1_800_000_000_000 };
-  const ctx = testContext({ now: () => clock.now, ...(opts.textModel ? { textModel: opts.textModel } : {}) });
+  const ctx = testContext({ now: () => clock.now, ...(opts.textModel ? { textModel: opts.textModel } : {}), ...(opts.readwise ? { readwise: opts.readwise } : {}) });
   const feedId = newId();
   const episodeId = newId();
   const assetId = newId();

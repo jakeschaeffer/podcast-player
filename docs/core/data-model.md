@@ -145,8 +145,10 @@ CREATE TABLE snip (
   share_token         TEXT NOT NULL UNIQUE, -- 100-bit random, base32; allocated at creation
   share_state         TEXT NOT NULL DEFAULT 'active', -- 'active' | 'revoked'
   current_revision_id TEXT,               -- the only revision a public URL can ever resolve to
-  note                TEXT,               -- owner's own words; never generated, never published automatically
-  created_at          INTEGER NOT NULL, deleted_at INTEGER
+  note                TEXT,               -- owner's own words; never generated, never on a public page (sent to the owner's own Readwise)
+  created_at          INTEGER NOT NULL, deleted_at INTEGER,
+  readwise_highlight_id INTEGER, readwise_revision_id TEXT, -- the snip's highlight in the owner's Readwise, and the revision last sent
+  readwise_synced_at  INTEGER, readwise_gone_at INTEGER     -- gone: deleted in Readwise by the owner, so never sent again
 );
 
 CREATE TABLE snip_revision (
@@ -274,4 +276,4 @@ The response is the snip shape above with `status: "selecting"` and the share UR
 | `refresh_run` table | Runs are recorded as `setting` rows keyed by the idempotency key, pointing at the per-feed job ids; a table is unnecessary at this size |
 | `snip_candidate` (precomputed spans and cached summaries) | An optimization for selection latency; measure the runtime path first |
 | `owner_id` on every table | Single owner for now; adding a column with a default is a one-line migration when a second user exists |
-| Tags, Readwise and Markdown sync, legacy Snipd import | Product features over the snip table, not core functions |
+| Tags, Markdown sync, legacy Snipd import | Product features over the snip table, not core functions (Readwise sync was built 2026-11-11: four columns on `snip`, `services/readwiseSync.ts`) |

@@ -11,6 +11,7 @@ import type { EpisodeRow, FeedRow, SnipRevisionRow, SnipRow } from "../db/rows.j
 import { PRIORITY } from "../jobs/queue.js";
 import { newId, newShareToken } from "../lib/ids.js";
 import { getAssetRow } from "./episodes.js";
+import { queueReadwiseSync } from "./readwiseSync.js";
 import { recordTitleEdit } from "./titleEdits.js";
 import { signMediaUrl } from "./media.js";
 import { transcriptForAsset } from "./transcripts.js";
@@ -189,6 +190,7 @@ export function editSnip(ctx: AppContext, id: string, patch: EditSnipInput, devi
         recordTitleEdit(ctx, before, { title: before.title, source: before.title_source }, ownerTitle);
       })();
     }
+    if (titleChanged || patch.note !== undefined) queueReadwiseSync(ctx, id);
     return getSnip(ctx, id, deviceId);
   }
 
@@ -320,4 +322,5 @@ export function deleteSnip(ctx: AppContext, id: string): void {
   if (!row) throw notFound("snip");
   if (row.deleted_at !== null) return;
   ctx.db.prepare("UPDATE snip SET deleted_at = ?, share_state = 'revoked' WHERE id = ?").run(ctx.now(), id);
+  queueReadwiseSync(ctx, id);
 }

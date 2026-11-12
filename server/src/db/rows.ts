@@ -58,6 +58,8 @@ export type PlaybackStateRow = { device_id: string; audio_asset_id: string; posi
 export type SnipRow = {
   id: string; audio_asset_id: string; anchor_ms: number; heard_from_ms: number; client_request_id: string; share_token: string;
   share_state: "active" | "revoked"; current_revision_id: string | null; note: string | null; created_at: number; deleted_at: number | null; captured_at: number | null;
+  /** The snip's highlight in the owner's Readwise (services/readwiseSync.ts): its id, the revision last sent, when, and when Readwise said it was deleted there. */
+  readwise_highlight_id: number | null; readwise_revision_id: string | null; readwise_synced_at: number | null; readwise_gone_at: number | null;
 };
 
 export type RevisionStatus = "waiting" | "selecting" | "preparing" | "ready" | "failed";

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Run the server on this Mac for testing, with every paid service forced off: no ElevenLabs (transcription and
-# alignment jobs defer), no Codex (TEXT_MODEL=none), no feed refresh, no Gmail, no pushing to GitHub. Variables
+# alignment jobs defer), no Codex (TEXT_MODEL=none), no feed refresh, no Gmail, no pushing to GitHub, nothing sent to
+# Readwise. Variables
 # set here win over .env.local (node's --env-file never overrides the environment).
 #   scripts/dev-server.sh            # API and worker on http://127.0.0.1:8080, data in ./data
 #   scripts/dev-snapshot.sh          # first, to test against a copy of production's data
@@ -19,8 +20,8 @@ if [ ! -f .env.local ]; then
   } > .env.local
   echo "wrote .env.local with a new APP_SECRET and OWNER_PASSWORD"
 fi
-if grep -qE '^(ELEVENLABS_API_KEY|GOOGLE_REFRESH_TOKEN)=.' .env.local; then
-  echo "note: .env.local holds a paid-service key; this script ignores it"
+if grep -qE '^(ELEVENLABS_API_KEY|GOOGLE_REFRESH_TOKEN|READWISE_TOKEN)=.' .env.local; then
+  echo "note: .env.local holds a paid-service or account key; this script ignores it"
 fi
 
 export ELEVENLABS_API_KEY=
@@ -30,6 +31,7 @@ export REFRESH_INTERVAL_MINUTES=0
 export EMAIL_SOURCE_QUERY=
 export GOOGLE_REFRESH_TOKEN=
 export GIT_AUTO_PUSH=0
+export READWISE_TOKEN=
 export PUBLIC_BASE_URL=http://127.0.0.1:8080
 export DATA_DIR="${DATA_DIR:-$PWD/data}"
 mkdir -p "$DATA_DIR"
