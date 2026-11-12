@@ -1204,7 +1204,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;
@@ -1343,7 +1343,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;
@@ -1601,7 +1601,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;
@@ -1744,7 +1744,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;
@@ -1996,7 +1996,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;
@@ -2143,7 +2143,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;
@@ -2627,7 +2627,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;
@@ -2906,7 +2906,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;
@@ -3103,7 +3103,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;
@@ -3252,7 +3252,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;
@@ -3401,7 +3401,7 @@ export interface paths {
                                 prompt_version: string;
                             } | null;
                             snip_count: number;
-                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically */
+                            /** @description Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that */
                             ad_breaks: {
                                 /** @description milliseconds */
                                 start_ms: number;

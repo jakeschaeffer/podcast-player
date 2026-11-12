@@ -51,23 +51,25 @@ struct TransportRow: View {
 
   var body: some View {
     HStack {
-      // One slot for speed and Skip ad, as wide as the wider of the two (Skip ad, kept in the layout unseen), so
-      // Skip ad never spills onto the button beside it and nothing moves when it comes and goes.
+      // One slot for speed and the ad buttons (Skip ad, Undo skip), as wide as the widest of them (kept in the
+      // layout unseen), so neither spills onto the button beside it and nothing moves when they come and go.
+      let offer = AdOffer.of(engine)
       ZStack(alignment: .leading) {
-        skipAd.hidden()
+        adSlot
         Button { press { engine.cycleSpeed() } } label: {
           Text(engine.speed.formatted(.number.precision(.fractionLength(0...2))) + "×")
             .font(.callout.weight(.semibold).monospacedDigit())
             .frame(minWidth: 44, minHeight: 44)
         }
-        .opacity(engine.currentAdBreak == nil ? 1 : 0)
-        .allowsHitTesting(engine.currentAdBreak == nil)
-        if engine.currentAdBreak != nil {
-          Button { press { engine.skipAd() } } label: { skipAd }
+        .opacity(offer == nil ? 1 : 0)
+        .allowsHitTesting(offer == nil)
+        if let offer {
+          Button { press { offer.act(on: engine) } } label: { adButton(offer) }
             .transition(.opacity)
+            .id(offer)
         }
       }
-      .animation(.easeInOut(duration: 0.25), value: engine.currentAdBreak == nil)
+      .animation(.easeInOut(duration: 0.25), value: offer)
       Spacer(minLength: 0)
       Button { press { engine.skip(by: -15_000) } } label: { Image(systemName: "gobackward.15").font(.title2) }
       Spacer(minLength: 0)
@@ -83,7 +85,7 @@ struct TransportRow: View {
       Spacer(minLength: 0)
       // The same slot at this end, with Snip at its edge: with the ends equal, the spacers put play in the middle.
       ZStack(alignment: .trailing) {
-        skipAd.hidden()
+        adSlot
         Button {
           press { Task { await model.snip() } }
         } label: {
@@ -103,8 +105,17 @@ struct TransportRow: View {
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
 
-  private var skipAd: some View {
-    Text("Skip ad")
+  /// Every ad button laid over one another, unseen: what sizes a slot.
+  private var adSlot: some View {
+    ZStack {
+      adButton(.skip)
+      adButton(.undo)
+    }
+    .hidden()
+  }
+
+  private func adButton(_ offer: AdOffer) -> some View {
+    Text(offer.title)
       .font(.footnote.weight(.bold))
       .foregroundStyle(onVideo ? Color.white : Color.primary)
       .padding(.horizontal, 10)

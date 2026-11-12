@@ -301,6 +301,11 @@ final class AppModel {
       guard let self else { return }
       self.liveActivity.update(self.engine)
     }
+    // The owner's setting skipped an ad break: the jump is heard, so it's never a mystery where the episode went.
+    engine.onAdSkipped = { [weak self] _ in
+      self?.sounds.adSkipped()
+      UIAccessibility.post(notification: .announcement, argument: "Skipped an ad")
+    }
   }
 
   /// The activity's Play or pause. The intent waits for the audio to start: iOS may suspend the app once it returns.
