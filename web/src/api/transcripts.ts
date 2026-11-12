@@ -16,11 +16,18 @@ export async function fetchSpeakers(id: string): Promise<Speaker[] | null> {
   return (await unwrap(api.GET("/v1/transcripts/{id}/speakers", { params: { path: { id } } }))).speakers;
 }
 
-/** What a label is shown as: the name when the publisher gives it, else "Host" or "Guest", else "Speaker 2". */
-export function speakerName(label: string, speakers: Speaker[] | null): string {
+/**
+ * What a label is shown as, or null for no heading. Speech recognition's labels ("S1") show as the name when known,
+ * else "Host" or "Guest", else "Speaker 2"; publisher text's labels are names already and show as written, except
+ * "Quote" (a passage the text quotes), which has none. The server's speakerDisplayName is the reference;
+ * contracts/golden/speakers/speaker_names_v1.json holds the cases.
+ */
+export function speakerName(label: string | null, speakers: Speaker[] | null): string | null {
+  if (!label || label === "Quote") return null;
   const who = speakers?.find((s) => s.label === label);
   if (who?.name) return who.name;
+  if (!/^S\d+$/.test(label)) return label;
   if (who?.role === "host") return "Host";
   if (who?.role === "guest") return "Guest";
-  return `Speaker ${label.replace(/^S/, "")}`;
+  return `Speaker ${label.slice(1)}`;
 }

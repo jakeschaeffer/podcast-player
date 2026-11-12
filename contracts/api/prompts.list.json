@@ -82,6 +82,13 @@
       },
       "versions": [
         {
+          "version": "v2",
+          "created_at": 1794346200000,
+          "active": false,
+          "score": null,
+          "edits": null
+        },
+        {
           "version": "v1",
           "created_at": 1792620879000,
           "active": true,

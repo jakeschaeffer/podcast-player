@@ -16,6 +16,8 @@ struct TodayView: View {
   @State private var episodes: [Episode] = []
   @State private var error: String?
   @State private var loaded = false
+  /// How the past month's snips stand with Readwise, for the account menu; nil until read, or when the server is older.
+  @State private var readwise: ReadwiseSummary?
 
   private var current: Episode? {
     episodes
@@ -65,6 +67,7 @@ struct TodayView: View {
           Text(model.serverURL.host() ?? "")
           Button("Downloads", systemImage: "arrow.down.circle") { path.append(DownloadsRoute()) }
           Button("Prompts", systemImage: "text.quote") { path.append(PromptRoute.list) }
+          readwiseItem
           Divider()
           TranscriptTextSize.picker($transcriptTextSize).pickerStyle(.menu)
           SidewaysPlayer.picker($sideways).pickerStyle(.menu)
@@ -77,8 +80,29 @@ struct TodayView: View {
     .promptDestinations()
     .navigationDestination(for: DownloadsRoute.self) { _ in DownloadsView(showPlayer: $showPlayer) }
     .navigationDestination(for: UpNextRoute.self) { _ in UpNextView(showPlayer: $showPlayer) }
+    .navigationDestination(for: ReadwiseRoute.self) { _ in ReadwiseView(summary: readwise) }
     .task { await load() }
     .refreshable { await load() }
+  }
+
+  /// One line in the account menu when the server sends snips to Readwise: how many went this past month, and, only
+  /// when some failed, a way to see them and send them again.
+  @ViewBuilder private var readwiseItem: some View {
+    if let readwise, readwise.enabled {
+      Section("Readwise · past month") {
+        if readwise.failed.isEmpty {
+          Text(readwise.sentLine)
+        } else {
+          Button {
+            path.append(ReadwiseRoute())
+          } label: {
+            // In a menu, a Text after the Label is the item's subtitle.
+            Label("\(readwise.failed.count) send\(readwise.failed.count == 1 ? "" : "s") failed", systemImage: "exclamationmark.triangle")
+            Text(readwise.sentLine)
+          }
+        }
+      }
+    }
   }
 
   private func load() async {
@@ -92,9 +116,11 @@ struct TodayView: View {
       // Up next too, so the queue button opens on it at once and its first episodes download as the setting says.
       async let feeds = model.feeds()
       async let queue: Void = model.refreshQueue()
+      async let readwiseSummary = try? model.api.readwise()
       episodes = try await model.api.episodes(limit: 30).items
       _ = try? await feeds
       await queue
+      if let summary = await readwiseSummary { readwise = summary }
       error = nil
     } catch {
       self.error = error.localizedDescription

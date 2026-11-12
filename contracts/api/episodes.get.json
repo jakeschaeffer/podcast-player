@@ -1,19 +1,19 @@
 {
   "request": {
     "method": "GET",
-    "url": "/v1/episodes/01M72W076WHQPB24PHQQTG1MHS"
+    "url": "/v1/episodes/01M76JZSNEPE9ZH4CD0YM7E9BC"
   },
   "status": 200,
   "body": {
-    "id": "01M72W076WHQPB24PHQQTG1MHS",
-    "feed_id": "01M72W076SJAGEEBA91T199FE3",
+    "id": "01M76JZSNEPE9ZH4CD0YM7E9BC",
+    "feed_id": "01M76JZSNEMXT6ESW96W23Y2KC",
     "show_title": "Fixture Show",
     "title": "Pricing",
     "published_at": null,
     "duration_ms": 120000,
     "image_url": null,
-    "asset_id": "01M72W076WB21QJFR5KGKZ9QP7",
-    "transcript_id": "01M72W07W4BPKCK69RS3MN8B1W",
+    "asset_id": "01M76JZSNE5MCWKHMT6YZPV3D0",
+    "transcript_id": "01M76JZSSFE3312KR0Z2SAB1VH",
     "has_summary": true,
     "processing": {
       "audio": "ready",
@@ -39,7 +39,7 @@
     "text": null,
     "chapters": {
       "source": "ai",
-      "transcript_id": "01M72W07W4BPKCK69RS3MN8B1W",
+      "transcript_id": "01M76JZSSFE3312KR0Z2SAB1VH",
       "items": [
         {
           "start_ms": 0,
@@ -53,18 +53,18 @@
       ]
     },
     "asset": {
-      "id": "01M72W076WB21QJFR5KGKZ9QP7",
+      "id": "01M76JZSNE5MCWKHMT6YZPV3D0",
       "duration_ms": 120000,
       "mime": "audio/mpeg",
       "bytes": 960514,
-      "audio_url": "http://pods.test/m/assets/01M72W076WB21QJFR5KGKZ9QP7?e=1800003600&d=01M72W07VGAQ4BDX419T5CGF7B&s=TaqSJcLUnaQIz_Cz6Uq90txJG4_lWDGiQtjZbSFrHUs",
+      "audio_url": "http://pods.test/m/assets/01M76JZSNE5MCWKHMT6YZPV3D0?e=1800003600&d=01M76JZSS9MRAP1JF76JR5B0AR&s=YCIUNp3iiw64-C0WFTvP9qtGKRw7Y0Nuv4biufy8Bzs",
       "video_url": null,
       "video_width": null,
       "video_height": null,
       "video_bytes": null
     },
     "summary": {
-      "id": "01M72W07WWA7JAFWPGEW64JSP0",
+      "id": "01M76JZSSRZ67ZJB4DC4VE57KQ",
       "preview": "The guest explains why a flat monthly fee failed and what replaced it.",
       "takeaways": [
         {

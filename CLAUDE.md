@@ -80,7 +80,9 @@ Whether a session may merge its own PRs and deploy is the owner's standing instr
 - **Readwise gets every snip** when `READWISE_TOKEN` is set (`server/src/services/readwiseSync.ts`): title, summary,
   transcript and note as a podcast highlight, updated on edits and deleted with the snip. The worker's sweep (at start,
   then hourly) sends every ready snip not yet there, so setting the token on a server with a copy of production's
-  database fills the owner's Readwise from it. `scripts/dev-server.sh` forces it off.
+  database fills the owner's Readwise from it. `scripts/dev-server.sh` forces it off. `GET /v1/readwise` says how
+  the past month's snips stand (the app's account menu shows the line, and the failed sends when there are any);
+  `POST /v1/readwise/retries` sends the failures again.
 - **Private data stays out of git**: eval fixtures and cases are gitignored (`evals/**/fixtures/`, `cases/`) because
   they hold listening history and private-feed text, and the committed scorecards carry aggregate scores only (the
   per-case rows, which quote the owner's own titles, stay in the gitignored JSON). Never commit them, and never put

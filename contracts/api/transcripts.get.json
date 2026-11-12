@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "GET",
-    "url": "/v1/transcripts/01M72W07W4BPKCK69RS3MN8B1W"
+    "url": "/v1/transcripts/01M76JZSSFE3312KR0Z2SAB1VH"
   },
   "status": 200,
   "body": {
@@ -1426,7 +1426,7 @@
       }
     ],
     "events": [],
-    "id": "01M72W07W4BPKCK69RS3MN8B1W",
-    "asset_id": "01M72W076WB21QJFR5KGKZ9QP7"
+    "id": "01M76JZSSFE3312KR0Z2SAB1VH",
+    "asset_id": "01M76JZSNE5MCWKHMT6YZPV3D0"
   }
 }

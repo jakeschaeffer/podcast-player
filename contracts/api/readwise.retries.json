@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/v1/readwise/retries"
+  },
+  "status": 200,
+  "body": {
+    "enabled": true,
+    "days": 30,
+    "since": 1797408000000,
+    "snips": 1,
+    "sent": 1,
+    "waiting": 0,
+    "deleted_in_readwise": 0,
+    "failed": []
+  }
+}

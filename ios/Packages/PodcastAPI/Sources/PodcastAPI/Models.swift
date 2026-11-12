@@ -395,16 +395,64 @@ public struct Speaker: Codable, Sendable, Hashable {
     self.name = name
   }
 
-  /// What a label is shown as: the name when known, else "Host" or "Guest", else "Speaker 2".
-  public static func displayName(_ label: String, in speakers: [Speaker]?) -> String {
+  /// What a label is shown as, or nil for no heading. Speech recognition's labels ("S1") show as the name when known,
+  /// else "Host" or "Guest", else "Speaker 2". Publisher text's labels are names already ("Ari Emanuel", "Host",
+  /// initials) and show as the name identified for them, else as written; its "Quote" (a passage the text quotes) and
+  /// unlabelled prose have no heading. The server's speakerDisplayName is the reference;
+  /// contracts/golden/speakers/speaker_names_v1.json holds the cases.
+  public static func displayName(_ label: String?, in speakers: [Speaker]?) -> String? {
+    guard let label, !label.isEmpty, label != quoteLabel else { return nil }
     let who = speakers?.first { $0.label == label }
     if let name = who?.name { return name }
+    guard isRecognizedLabel(label) else { return label }
     switch who?.role {
     case "host": return "Host"
     case "guest": return "Guest"
-    default: return "Speaker \(label.drop { $0 == "S" })"
+    default: return "Speaker \(label.dropFirst())"
     }
   }
+
+  /// How publisher text marks a quoted passage.
+  public static let quoteLabel = "Quote"
+
+  /// Speech recognition's labels: "S" and a number.
+  static func isRecognizedLabel(_ label: String) -> Bool {
+    label.count > 1 && label.first == "S" && label.dropFirst().allSatisfy(\.isASCIIDigit)
+  }
+
+  /// One voice's run of a clip's words, under the heading shown for it (nil: none). `speaker` is the first label of
+  /// the run, for telling voices apart.
+  public struct Turn: Equatable, Sendable, Decodable {
+    public let speaker: String?
+    public let name: String?
+    public var text: String
+
+    public init(speaker: String?, name: String?, text: String) {
+      self.speaker = speaker
+      self.name = name
+      self.text = text
+    }
+  }
+
+  /// A clip's words by voice, for the snip page: runs that show under the same heading (or under none) join, and the
+  /// turns are worth showing only when more than one heading results; otherwise nil, and the clip reads as one block.
+  /// So an article's prose and the passages it quotes are one block, and an interview's turns carry names.
+  public static func clipTurns(_ runs: [(speaker: String?, text: String)], in speakers: [Speaker]?) -> [Turn]? {
+    var turns: [Turn] = []
+    for run in runs {
+      let name = displayName(run.speaker, in: speakers)
+      if let last = turns.last, last.name == name {
+        turns[turns.count - 1].text += " " + run.text
+      } else {
+        turns.append(Turn(speaker: run.speaker, name: name, text: run.text))
+      }
+    }
+    return turns.count > 1 ? turns : nil
+  }
+}
+
+private extension Character {
+  var isASCIIDigit: Bool { ("0"..."9").contains(self) }
 }
 
 public struct SpeakersResponse: Codable, Sendable {
@@ -689,4 +737,31 @@ public struct EpisodeShare: Codable, Sendable {
 
 public struct Health: Codable, Sendable {
   public let ok: Bool
+}
+
+/// How the last month's snips stand with the owner's Readwise (`GET /v1/readwise`), and every send that failed.
+public struct ReadwiseSummary: Codable, Sendable, Equatable {
+  /// Whether the server sends snips to Readwise at all; the counts are zero when not.
+  public let enabled: Bool
+  public let days: Int
+  public let since: Int
+  /// Ready snips made in the window, less those the owner deleted in Readwise.
+  public let snips: Int
+  /// Of those, how many have a highlight in Readwise now.
+  public let sent: Int
+  /// Of those, how many are still to be sent for the first time.
+  public let waiting: Int
+  public let deletedInReadwise: Int
+  public let failed: [Failure]
+
+  public struct Failure: Codable, Sendable, Equatable, Identifiable {
+    public let snipId: ULID
+    public let title: String
+    public let episodeTitle: String
+    /// The snip was deleted here and taking its highlight out of Readwise failed.
+    public let snipDeleted: Bool
+    public let error: String
+    public let failedAt: Int
+    public var id: ULID { snipId }
+  }
 }

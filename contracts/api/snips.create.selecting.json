@@ -4,33 +4,33 @@
     "url": "/v1/snips",
     "body": {
       "client_request_id": "01EXAMPLE0000000000000003",
-      "asset_id": "01M72W076WB21QJFR5KGKZ9QP7",
+      "asset_id": "01M76JZSNE5MCWKHMT6YZPV3D0",
       "anchor_ms": 110000,
       "heard_from_ms": 0
     }
   },
   "status": 201,
   "body": {
-    "id": "01M72W09YE4VXKT507SKG37RJP",
-    "asset_id": "01M72W076WB21QJFR5KGKZ9QP7",
-    "episode_id": "01M72W076WHQPB24PHQQTG1MHS",
+    "id": "01M76JZTCBB9BDH579AW4896B3",
+    "asset_id": "01M76JZSNE5MCWKHMT6YZPV3D0",
+    "episode_id": "01M76JZSNEPE9ZH4CD0YM7E9BC",
     "episode_title": "Pricing",
     "show_title": "Fixture Show",
     "image_url": null,
     "media_kind": "audio",
     "anchor_ms": 110000,
     "heard_from_ms": 0,
-    "share_url": "http://pods.test/s/he67nkowjj47oixgbjoh",
+    "share_url": "http://pods.test/s/j6xfs76bd3sfktwbho4u",
     "share_state": "active",
     "note": null,
     "created_at": 1800000000000,
     "captured_at": 1800000000000,
     "revision": {
-      "id": "01M72W09YEYBKSG9KBPMS39BHN",
+      "id": "01M76JZTCB2HMA1J45KQYEP0QK",
       "rev": 1,
       "method": "fixed",
       "status": "selecting",
-      "transcript_id": "01M72W07W4BPKCK69RS3MN8B1W",
+      "transcript_id": "01M76JZSSFE3312KR0Z2SAB1VH",
       "start_ms": 50000,
       "end_ms": 110000,
       "start_word": null,
@@ -46,6 +46,12 @@
       "error": null,
       "selection": null,
       "created_at": 1800000000000
+    },
+    "readwise": {
+      "state": "waiting",
+      "highlight_url": null,
+      "synced_at": null,
+      "error": null
     }
   }
 }

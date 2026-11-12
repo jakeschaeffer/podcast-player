@@ -1,11 +1,11 @@
 {
   "request": {
     "method": "GET",
-    "url": "/v1/episodes/01M72W076WHQPB24PHQQTG1MHS/share"
+    "url": "/v1/episodes/01M76JZSNEPE9ZH4CD0YM7E9BC/share"
   },
   "status": 200,
   "body": {
-    "share_url": "http://pods.test/e/vymi334n67kp76noo76b",
+    "share_url": "http://pods.test/e/z4cuopdpkhbhy46h53ra",
     "state": "active",
     "snip_count": 1,
     "created_at": 1800000000000

@@ -14,6 +14,7 @@ import { registerPromptsRoutes } from "./routes/prompts.js";
 import { registerMediaRoutes } from "./routes/media.js";
 import { registerPlaybackRoutes } from "./routes/playback.js";
 import { registerPublicRoutes } from "./routes/public.js";
+import { registerReadwiseRoutes } from "./routes/readwise.js";
 import { registerSnipsRoutes } from "./routes/snips.js";
 import { registerVideoRoutes } from "./routes/video.js";
 
@@ -72,6 +73,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   registerLinksRoutes(app, ctx);
   registerPlaybackRoutes(app, ctx);
   registerSnipsRoutes(app, ctx);
+  registerReadwiseRoutes(app, ctx);
   registerJobsRoutes(app, ctx);
   registerPromptsRoutes(app, ctx);
   registerMediaRoutes(app, ctx);

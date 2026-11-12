@@ -29,9 +29,9 @@ describe("speakers", () => {
     expect(validateSpeakers({ speakers: [good.speakers[0]!, good.speakers[1]!, { label: "S3", role: "other", name: "Ben Thompson" }] }, input)).toEqual([expect.stringMatching(/"other" but has a name/)]);
   });
 
-  it("shows the name, else the role, else a numbered speaker", () => {
+  it("shows the name, else the role, else a numbered speaker; no label has no heading", () => {
     const speakers = [{ label: "S1", role: "host" as const, name: "Ben Thompson" }, { label: "S2", role: "guest" as const, name: null }, { label: "S3", role: "other" as const, name: null }];
-    expect(["S1", "S2", "S3", "S4", null].map((l) => speakerDisplayName(l, speakers))).toEqual(["Ben Thompson", "Guest", "Speaker 3", "Speaker 4", "Speaker"]);
+    expect(["S1", "S2", "S3", "S4", null].map((l) => speakerDisplayName(l, speakers))).toEqual(["Ben Thompson", "Guest", "Speaker 3", "Speaker 4", null]);
     expect(speakerDisplayName("S2", null)).toBe("Speaker 2");
   });
 });

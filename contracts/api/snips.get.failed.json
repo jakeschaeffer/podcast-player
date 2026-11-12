@@ -1,30 +1,30 @@
 {
   "request": {
     "method": "GET",
-    "url": "/v1/snips/01M72W09YE4VXKT507SKG37RJP"
+    "url": "/v1/snips/01M76JZTCBB9BDH579AW4896B3"
   },
   "status": 200,
   "body": {
-    "id": "01M72W09YE4VXKT507SKG37RJP",
-    "asset_id": "01M72W076WB21QJFR5KGKZ9QP7",
-    "episode_id": "01M72W076WHQPB24PHQQTG1MHS",
+    "id": "01M76JZTCBB9BDH579AW4896B3",
+    "asset_id": "01M76JZSNE5MCWKHMT6YZPV3D0",
+    "episode_id": "01M76JZSNEPE9ZH4CD0YM7E9BC",
     "episode_title": "Pricing",
     "show_title": "Fixture Show",
     "image_url": null,
     "media_kind": "audio",
     "anchor_ms": 110000,
     "heard_from_ms": 0,
-    "share_url": "http://pods.test/s/he67nkowjj47oixgbjoh",
+    "share_url": "http://pods.test/s/j6xfs76bd3sfktwbho4u",
     "share_state": "active",
     "note": null,
     "created_at": 1800000000000,
     "captured_at": 1800000000000,
     "revision": {
-      "id": "01M72W09YEYBKSG9KBPMS39BHN",
+      "id": "01M76JZTCB2HMA1J45KQYEP0QK",
       "rev": 1,
       "method": "snap",
       "status": "failed",
-      "transcript_id": "01M72W07W4BPKCK69RS3MN8B1W",
+      "transcript_id": "01M76JZSSFE3312KR0Z2SAB1VH",
       "start_ms": 16200,
       "end_ms": 104890,
       "start_word": 34,
@@ -37,7 +37,7 @@
       "summary_status": "ready",
       "clip_url": null,
       "clip_duration_ms": null,
-      "error": "render_clip failed: Command failed: ffmpeg -nostdin -hide_banner -loglevel error -y -ss 16.200 -i /nonexistent/recording.mp3 -t 88.690 -map_metadata -1 -map_chapters -1 -vn -af afade=t=in:st=0:d=0.03,afade=t=out:st=88.660:d=0.03 -c:a libmp3lame -b:a 128k -ar 44100 -f mp3 /var/folders/gr/960g1njd5d73x9gmfvbwn0t80000gn/T/pp-test-TkZQQW/media/clips/01M72W09YEYBKSG9KBPMS39BHN.mp3.tmp-2607-1794319067386\n[in#0 @ 0x777408000] Error opening input: No such file or directory\nError opening input file /nonexistent/recording.mp3.\nError opening input files: No such file or directory\n",
+      "error": "render_clip failed: Command failed: ffmpeg -nostdin -hide_banner -loglevel error -y -ss 16.200 -i /nonexistent/recording.mp3 -t 88.690 -map_metadata -1 -map_chapters -1 -vn -af afade=t=in:st=0:d=0.03,afade=t=out:st=88.660:d=0.03 -c:a libmp3lame -b:a 128k -ar 44100 -f mp3 /var/folders/gr/960g1njd5d73x9gmfvbwn0t80000gn/T/pp-test-MWcYGe/media/clips/01M76JZTCB2HMA1J45KQYEP0QK.mp3.tmp-5601-1794443831777\n[in#0 @ 0xa19020000] Error opening input: No such file or directory\nError opening input file /nonexistent/recording.mp3.\nError opening input files: No such file or directory\n",
       "selection": {
         "version": "select_v2",
         "window": {
@@ -355,6 +355,12 @@
         ]
       },
       "created_at": 1800000000000
+    },
+    "readwise": {
+      "state": "waiting",
+      "highlight_url": null,
+      "synced_at": null,
+      "error": null
     }
   }
 }
