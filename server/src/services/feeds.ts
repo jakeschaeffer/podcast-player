@@ -347,11 +347,12 @@ export async function fetchFeedDocument<T>(ctx: AppContext, feed: FeedRow, parse
   }
   if (res.status !== 200) {
     await res.body?.cancel();
-    // YouTube intermittently returns 404 for valid channel feeds. Use the queue's bounded
-    // backoff so a temporary upstream failure does not immediately fail the refresh.
+    // YouTube returns 404 for valid channel feeds for hours at a time (in production, most nights). Use the queue's
+    // bounded backoff so a temporary upstream failure does not immediately fail the refresh, and say on the show that
+    // it is temporary: "feed not found" reads as "the show moved", and re-subscribing or unfollowing would not help.
     const transientNotFound = feed.kind === "youtube" && res.status === 404;
     const final = res.status === 401 || res.status === 403 || (res.status === 404 && !transientNotFound) || res.status === 410;
-    recordFeedError(ctx, feed.id, res.status === 401 || res.status === 403 ? "credential rejected (401/403); the private feed link may have expired" : res.status === 404 || res.status === 410 ? `feed not found (${res.status})` : `unexpected status ${res.status}`);
+    recordFeedError(ctx, feed.id, res.status === 401 || res.status === 403 ? "credential rejected (401/403); the private feed link may have expired" : transientNotFound ? "YouTube feed temporarily unavailable (404); retrying" : res.status === 404 || res.status === 410 ? `feed not found (${res.status})` : `unexpected status ${res.status}`);
     if (final) throw new NonRetryable(`feed returned ${res.status}`);
     throw new Error(`feed returned ${res.status}`);
   }

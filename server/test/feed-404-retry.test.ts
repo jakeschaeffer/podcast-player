@@ -18,7 +18,7 @@ it("retries a YouTube 404 with backoff and clears the error on recovery", async 
     const job = () => ctx.db.prepare("SELECT status, attempts, run_after FROM job WHERE key = ?").get(`refresh_feed:${feed.id}`);
     await drain(ctx, { kinds: ["refresh_feed"] });
     expect(job()).toMatchObject({ status: "queued", attempts: 1, run_after: now + 30_000 });
-    expect(getFeedRow(ctx, feed.id).last_error).toBe("feed not found (404)");
+    expect(getFeedRow(ctx, feed.id).last_error).toBe("YouTube feed temporarily unavailable (404); retrying");
     await drain(ctx, { kinds: ["refresh_feed"] });
     expect(requests).toBe(1);
     now += 30_000;
@@ -33,6 +33,7 @@ it("retries a YouTube 404 with backoff and clears the error on recovery", async 
       ctx.queue.enqueue("refresh_feed", `refresh_feed:${feed.id}`, { feed_id: feed.id }, { rerun: true });
       await drain(ctx, { kinds: ["refresh_feed"] });
       expect(job()).toMatchObject({ status: "failed", attempts: 1 });
+      if (code === 404) expect(getFeedRow(ctx, feed.id).last_error).toBe("feed not found (404)");
     }
   } finally {
     ctx.db.close();
