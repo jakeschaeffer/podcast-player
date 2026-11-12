@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildTranscript } from "../../../test/helpers/transcript.js";
-import { speakerDisplayName, speakerSamples, validateSpeakers, type SpeakersInput } from "./identify.js";
+import type { TSchema } from "@sinclair/typebox";
+import { parseAgainstSchema, type GenerateRequest, type TextModel } from "../../adapters/textModel.js";
+import { identifySpeakers, speakerDisplayName, speakerSamples, validateSpeakers, type SpeakersInput } from "./identify.js";
 
 const t = buildTranscript([
   { speaker: "ben", text: "Welcome to Stratechery. My guest today is Shyam Sankar. What does a CTO at Palantir do?" },
@@ -33,5 +35,23 @@ describe("speakers", () => {
     const speakers = [{ label: "S1", role: "host" as const, name: "Ben Thompson" }, { label: "S2", role: "guest" as const, name: null }, { label: "S3", role: "other" as const, name: null }];
     expect(["S1", "S2", "S3", "S4", null].map((l) => speakerDisplayName(l, speakers))).toEqual(["Ben Thompson", "Guest", "Speaker 3", "Speaker 4", null]);
     expect(speakerDisplayName("S2", null)).toBe("Speaker 2");
+  });
+
+  it("accepts a publisher-text label as long as the names it writes, returned exactly", async () => {
+    const label = "CFO Alexandra Whitfield-Moore";
+    const article: SpeakersInput = {
+      show_title: "Stratechery", author: "Ben Thompson", episode_title: "An Interview with Alexandra Whitfield-Moore",
+      description_text: "", labels: [
+        { label: "Host", share: 0.4, turns: 2, questions: 2, lines: ["What changed this quarter?"] },
+        { label, share: 0.6, turns: 2, questions: 0, lines: ["Demand came back faster than we planned for."] },
+      ],
+    };
+    const answer = { speakers: [{ label: "Host", role: "host", name: "Ben Thompson" }, { label, role: "guest", name: "Alexandra Whitfield-Moore" }] };
+    const model: TextModel = {
+      name: "scripted",
+      generate: async <S extends TSchema>(req: GenerateRequest<S>) => ({ data: parseAgainstSchema(req.schema, answer), model: "scripted", elapsed_ms: 0 }),
+    };
+    const res = await identifySpeakers(article, model);
+    expect(res.ok && res.speakers).toEqual([{ label: "Host", role: "host", name: "Ben Thompson" }, { label, role: "guest", name: "Alexandra Whitfield-Moore" }]);
   });
 });

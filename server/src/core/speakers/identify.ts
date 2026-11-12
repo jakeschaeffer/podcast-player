@@ -9,11 +9,17 @@ import { delimited, SchemaMismatchError, type TextModel } from "../../adapters/t
 import { resolvePrompt } from "../summary/prompts.js";
 import type { NormalizedTranscript } from "../transcript/types.js";
 
+/**
+ * Longest label the answer may repeat. Speech recognition's are short ("S12"), but publisher text's are names as
+ * written, up to four words ("CFO Firstname Lastname-Lastname"): a cap shorter than a label means no valid answer.
+ */
+const LABEL_MAX = 80;
+
 export const SpeakersSchema = Type.Object(
   {
     speakers: Type.Array(
       Type.Object({
-        label: Type.String({ minLength: 1, maxLength: 12 }),
+        label: Type.String({ minLength: 1, maxLength: LABEL_MAX }),
         role: Type.Union([Type.Literal("host"), Type.Literal("guest"), Type.Literal("other")]),
         name: Type.String({ maxLength: 80 }),
       }),
