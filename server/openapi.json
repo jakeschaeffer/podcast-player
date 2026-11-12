@@ -11857,6 +11857,73 @@
         }
       }
     },
+    "/v1/episodes/{id}/video/metadata/later": {
+      "post": {
+        "summary": "For the home fetcher: the video's details cannot be read yet (a live stream that has not started or ended, or a failure that may pass). It is not wanted again until retry_at: the time sent, such as the stream's start, kept between an hour and two weeks away, or six hours",
+        "tags": [
+          "video"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "retry_at": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "retry_at"
+                  ],
+                  "properties": {
+                    "retry_at": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/video/captions/wanted": {
       "get": {
         "summary": "For the home fetcher: videos here whose captions failed earlier and are due another try",

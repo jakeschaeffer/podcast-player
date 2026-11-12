@@ -2650,6 +2650,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/episodes/{id}/video/metadata/later": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** For the home fetcher: the video's details cannot be read yet (a live stream that has not started or ended, or a failure that may pass). It is not wanted again until retry_at: the time sent, such as the stream's start, kept between an hour and two weeks away, or six hours */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        message: string;
+                        retry_at?: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            retry_at: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/video/captions/wanted": {
         parameters: {
             query?: never;
