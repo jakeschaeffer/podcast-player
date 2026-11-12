@@ -286,7 +286,7 @@ public struct EpisodeSummary: Codable, Sendable, Hashable {
 }
 
 /// A suspected ad break, in milliseconds on the episode's asset. The player offers "Skip ad" while one plays and seeks
-/// to `endMs`; it never skips on its own.
+/// to `endMs`; with the owner's "Auto-skip ads" on it seeks there by itself as playback reaches one (PlayerKit's AdSkip).
 public struct AdBreak: Codable, Sendable, Hashable {
   public let startMs: Int
   public let endMs: Int

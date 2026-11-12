@@ -85,7 +85,7 @@ export const EpisodeDetailSchema = Type.Composite([
       confidence: Type.Union([Type.Literal("high"), Type.Literal("medium")], { description: "high when two signals agree, medium when one does" }),
       sources: Type.Array(Type.Union([Type.Literal("publisher_gap"), Type.Literal("sponsor_phrase"), Type.Literal("ad_chapter")])),
       cue: Nullable(Type.String({ description: "The sponsor phrase heard in the break, normalized" })),
-    }), { description: "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically" }),
+    }), { description: "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that" }),
   }),
 ]);
 export const PageQuery = Type.Object({ after: Type.Optional(Type.String()), limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200 })) });

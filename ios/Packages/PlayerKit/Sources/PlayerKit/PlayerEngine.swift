@@ -69,6 +69,14 @@ public final class PlayerEngine {
   /// Playback went into or out of a suspected ad break (the Live Activity shows Skip ad only during one).
   public var onAdBreakChange: (() -> Void)?
   private var lastAdBreak: AdBreak?
+  /// An ad break was skipped on its own (`skipsAdsAutomatically`): the app plays its sound.
+  public var onAdSkipped: ((AdBreak) -> Void)?
+  /// The break skipped on its own a moment ago, while "Undo skip" is offered (`AdSkip.undoSeconds`).
+  public private(set) var skippedAd: AdBreak?
+  /// A break the listener went into themselves (a seek landed in it): it plays whatever the setting. Only the next
+  /// seek changes it, never a tick: one from just before a seek lands still reports the old time, and clearing on it
+  /// skipped a break straight after Undo skip.
+  private var chosenAdBreak: AdBreak?
 
   private let api: APIClient
   /// The app's one player. The video surface attaches its layer to it; nothing else should drive it.
@@ -133,6 +141,8 @@ public final class PlayerEngine {
     if let left = episode, status == .ready { onLeave?(left.id, positionMs, finished) }
     detach()
     openTask?.cancel()
+    skippedAd = nil
+    chosenAdBreak = nil
     status = .loading
     // The lock screen keeps the episode being left until the next one is ready: with no Now Playing entry iOS stops
     // sending the app the headphones' buttons, which would strand them if loading is slow or fails.
@@ -263,7 +273,7 @@ public final class PlayerEngine {
     let (at, wasPlaying) = (positionMs, playing)
     detach()
     attach(fresh, autoplay: false)
-    seek(to: at)
+    seek(to: at, byListener: false)
     if wasPlaying { play() }
   }
 
@@ -310,9 +320,18 @@ public final class PlayerEngine {
     return play()
   }
 
-  public func seek(to ms: Int) {
+  public func seek(to ms: Int) { seek(to: ms, byListener: true) }
+
+  /// A listener's seek (a scrub, a skip, a tap on the words or a chapter, Undo skip) plays any ad break it lands in,
+  /// whatever the setting, and ends Undo skip. The engine's own (an ad skipped by itself, a reload back to the same
+  /// spot) leave both as they were.
+  private func seek(to ms: Int, byListener: Bool) {
     guard status == .ready else { return }
     let to = max(0, min(ms, durationMs > 0 ? durationMs : ms))
+    if byListener {
+      chosenAdBreak = AdSkip.breakAt(episode?.adBreaks, positionMs: to)
+      skippedAd = nil
+    }
     heard.jump(fromMs: positionMs, toMs: to)
     positionMs = to
     heardFromMs = heard.heardFrom(to)
@@ -382,9 +401,28 @@ public final class PlayerEngine {
       durationMs = Int(item.duration.seconds * 1000)
     }
     report(force: false)
+    // Skipped before the break is announced, so the Live Activity never shows Skip ad for one that is gone at once.
+    if let b = AdSkip.automatic(episode?.adBreaks, positionMs: ms, playing: playing, chosen: chosenAdBreak, skipped: skippedAd),
+      skipsAdsAutomatically
+    {
+      skipOnItsOwn(b)
+    }
     if currentAdBreak != lastAdBreak {
       lastAdBreak = currentAdBreak
       onAdBreakChange?()
+    }
+  }
+
+  /// Leave an ad break playback reached, tell the app (its sound), and offer Undo skip for a few seconds.
+  private func skipOnItsOwn(_ b: AdBreak) {
+    AudioSessionController.log.notice(
+      "Skipped the ad break \(b.startMs)–\(b.endMs) ms on its own (\(b.confidence, privacy: .public))")
+    seek(to: b.endMs, byListener: false)
+    skippedAd = b
+    onAdSkipped?(b)
+    Task { [weak self] in
+      try? await Task.sleep(for: .seconds(AdSkip.undoSeconds))
+      if self?.skippedAd == b { self?.skippedAd = nil }
     }
   }
 

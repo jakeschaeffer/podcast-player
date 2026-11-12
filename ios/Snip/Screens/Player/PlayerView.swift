@@ -315,7 +315,7 @@ struct MiniPlayer: View {
         Artwork(url: model.artwork(episodeImage: ep.imageUrl, feedID: ep.feedId), size: 32)
         Text(ep.title).font(.subheadline).lineLimit(1)
         Spacer()
-        if engine.currentAdBreak != nil { SkipAdButton(compact: true) }
+        if AdOffer.of(engine) != nil { SkipAdButton(compact: true) }
         if engine.status != .details {
           Button { engine.toggle() } label: { Image(systemName: engine.playing ? "pause.fill" : "play.fill") }
             .buttonStyle(.plain)
@@ -338,24 +338,51 @@ struct MiniPlayer: View {
   }
 }
 
-/// "Skip ad", shown only while a suspected ad break plays, like a streaming app's "Skip intro". Pressing it seeks past
-/// the break; nothing is ever skipped automatically. It fades in and out and takes its space even while hidden, so
-/// place it where hiding it moves nothing (an overlay), or show it conditionally.
+/// What the player offers about ads right now: Skip ad while a suspected break plays, and Undo skip for a few
+/// seconds after one was skipped on its own (the account menu's "Auto-skip ads").
+enum AdOffer: Equatable {
+  case skip, undo
+
+  static func of(_ engine: PlayerEngine) -> AdOffer? {
+    if engine.currentAdBreak != nil { return .skip }
+    return engine.skippedAd != nil ? .undo : nil
+  }
+
+  var title: String { self == .skip ? "Skip ad" : "Undo skip" }
+
+  func act(on engine: PlayerEngine) {
+    switch self {
+    case .skip: engine.skipAd()
+    case .undo: engine.undoAdSkip()
+    }
+  }
+}
+
+/// "Skip ad", shown only while a suspected ad break plays, like a streaming app's "Skip intro"; pressing it seeks past
+/// the break. With ads skipped automatically it says "Undo skip" for a few seconds after each skip instead, which goes
+/// back to the break's start. It fades in and out and takes its space even while hidden, so place it where hiding it
+/// moves nothing (an overlay), or show it conditionally.
 struct SkipAdButton: View {
   @Environment(PlayerEngine.self) private var engine
   var compact = false
+  /// The last thing offered, so the button keeps its words while it fades out.
+  @State private var last = AdOffer.skip
 
   var body: some View {
-    let shown = engine.currentAdBreak != nil
-    Button { engine.skipAd() } label: {
+    let offer = AdOffer.of(engine)
+    let shown = offer != nil
+    let showing = offer ?? last
+    Button { offer?.act(on: engine) } label: {
       HStack(spacing: 2) {
-        Text("Skip ad")
-        Image(systemName: "chevron.forward").imageScale(.small)
+        if showing == .undo { Image(systemName: "arrow.uturn.backward").imageScale(.small) }
+        Text(showing.title)
+        if showing == .skip { Image(systemName: "chevron.forward").imageScale(.small) }
       }
       .font((compact ? Font.footnote : .callout).weight(.bold))
       .foregroundStyle(Color(red: 0x0E / 255, green: 0x0F / 255, blue: 0x11 / 255))  // the icon's dark
-      .padding(.leading, compact ? 10 : 14)
-      .padding(.trailing, compact ? 8 : 10)
+      // The side with the small arrow gets less room, so the words look centred.
+      .padding(.leading, showing == .skip ? (compact ? 10 : 14) : (compact ? 8 : 10))
+      .padding(.trailing, showing == .skip ? (compact ? 8 : 10) : (compact ? 10 : 14))
       .frame(height: compact ? 30 : 38)
       .background(Color(red: 0xF3 / 255, green: 0xF1 / 255, blue: 0xEC / 255), in: .capsule)
       .shadow(color: .black.opacity(compact ? 0 : 0.35), radius: 10, y: 6)
@@ -365,7 +392,8 @@ struct SkipAdButton: View {
     .offset(y: shown || compact ? 0 : 6)
     .allowsHitTesting(shown)
     .accessibilityHidden(!shown)
-    .animation(.easeInOut(duration: 0.25), value: shown)
+    .animation(.easeInOut(duration: 0.25), value: offer)
+    .onChange(of: offer) { _, now in if let now { last = now } }
     // Laid over a video or beside the mini player's title: it keeps a button's size at every text size.
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }

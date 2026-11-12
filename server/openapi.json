@@ -5034,7 +5034,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -5947,7 +5947,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -7035,7 +7035,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -7923,7 +7923,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -9054,7 +9054,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -9952,7 +9952,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -11771,7 +11771,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -12850,7 +12850,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -13831,7 +13831,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -14738,7 +14738,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -15642,7 +15642,7 @@
                       "type": "integer"
                     },
                     "ad_breaks": {
-                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. Never skipped automatically",
+                      "description": "Suspected ad breaks on `asset`, oldest first; offer a skip to end_ms while one plays. A client skips one by itself only when its listener has asked for that",
                       "type": "array",
                       "items": {
                         "type": "object",

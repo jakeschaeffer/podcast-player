@@ -13,6 +13,8 @@ struct TodayView: View {
   @AppStorage(TranscriptTextSize.key) private var transcriptTextSize = TranscriptTextSize.large
   @AppStorage(SidewaysPlayer.key) private var sideways = SidewaysPlayer.karaoke
   @AppStorage(MediaFilter.key) private var mediaFilter = MediaFilter.all
+  /// Read by the player itself (PlayerEngine.skipsAdsAutomatically), so it holds with the app out of sight too.
+  @AppStorage(AdSkip.automaticKey) private var skipsAds = false
   @State private var episodes: [Episode] = []
   @State private var error: String?
   @State private var loaded = false
@@ -71,6 +73,11 @@ struct TodayView: View {
           Divider()
           TranscriptTextSize.picker($transcriptTextSize).pickerStyle(.menu)
           SidewaysPlayer.picker($sideways).pickerStyle(.menu)
+          Toggle(isOn: $skipsAds) {
+            // In a menu, a Text after the Label is the item's subtitle.
+            Label("Auto-skip ads", systemImage: "forward.end")
+            Text("With a sound")
+          }
           Button("Sign out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) { model.signOut() }
         } label: {
           Image(systemName: "person.crop.circle")
