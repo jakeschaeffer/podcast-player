@@ -35,7 +35,7 @@ export function carryPlace(ctx: AppContext, fromAssetId: string, toAssetId: stri
 /**
  * Record a device's playback state. A `seq` not greater than the stored one is ignored, so offline replays
  * and reordered requests cannot move a device backwards. Starting playback on an untranscribed asset
- * raises transcription to play priority.
+ * raises transcription to play priority, and on a transcribed one without a summary, its summary.
  */
 export function reportPlayback(ctx: AppContext, deviceId: string, assetId: string, report: PlaybackReport): { accepted: boolean; state: PlaybackStateRow } {
   const asset = ctx.db.prepare("SELECT * FROM audio_asset WHERE id = ?").get(assetId) as AudioAssetRow | undefined;
@@ -62,8 +62,22 @@ export function reportPlayback(ctx: AppContext, deviceId: string, assetId: strin
     const feed = ctx.db.prepare("SELECT f.auto_process, e.captions_retry_at FROM episode e JOIN feed f ON f.id = e.feed_id WHERE e.id = ?").get(asset.episode_id) as { auto_process: number; captions_retry_at: number | null } | undefined;
     if (feed?.auto_process === 1 && feed.captions_retry_at === null) ctx.queue.enqueue("transcribe", `transcribe:${assetId}`, { asset_id: assetId }, { priority: PRIORITY.play });
   }
+  if (report.playing && asset.transcript_id !== null && asset.summary_id === null) requestSummaryForPlay(ctx, assetId);
   const state = ctx.db.prepare("SELECT * FROM playback_state WHERE device_id = ? AND audio_asset_id = ?").get(deviceId, assetId) as PlaybackStateRow;
   return { accepted: true, state };
+}
+
+/**
+ * Playing a transcribed recording that has no summary queues one at play priority, in the background: the report
+ * only writes a job row. A summary job never queued, or one parked while no text model was configured, runs now. A
+ * failed one is left alone (a rejected summary would cost a Codex call on every report); the owner's Process retries it.
+ */
+function requestSummaryForPlay(ctx: AppContext, assetId: string): void {
+  if (!ctx.textModel) return; // the job would only park itself again
+  const key = `summarize_episode:${assetId}`;
+  const status = ctx.queue.byKey(key)?.status;
+  if (status === "failed" || status === "done") return;
+  ctx.queue.enqueue("summarize_episode", key, { asset_id: assetId }, { priority: PRIORITY.play });
 }
 
 /**
