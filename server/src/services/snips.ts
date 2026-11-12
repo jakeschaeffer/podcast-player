@@ -11,7 +11,7 @@ import type { EpisodeRow, FeedRow, SnipRevisionRow, SnipRow } from "../db/rows.j
 import { PRIORITY } from "../jobs/queue.js";
 import { newId, newShareToken } from "../lib/ids.js";
 import { getAssetRow } from "./episodes.js";
-import { queueReadwiseSync } from "./readwiseSync.js";
+import { queueReadwiseSync, readwiseState, type ReadwiseSnipState } from "./readwiseSync.js";
 import { recordTitleEdit } from "./titleEdits.js";
 import { signMediaUrl } from "./media.js";
 import { transcriptForAsset } from "./transcripts.js";
@@ -29,6 +29,8 @@ export type SnipView = {
   media_kind: "audio" | "video";
   anchor_ms: number; heard_from_ms: number; share_url: string; share_state: SnipRow["share_state"]; note: string | null;
   created_at: number; captured_at: number; revision: RevisionView | null;
+  /** How the snip stands with the owner's Readwise; null when Readwise is not set up. */
+  readwise: ReadwiseSnipState | null;
 };
 
 /** What the owner changed on the device while the tap waited to be sent. The span is both ends or neither. */
@@ -89,6 +91,7 @@ export function toSnipView(ctx: AppContext, s: SnipRow, deviceId: string | null)
     id: s.id, asset_id: s.audio_asset_id, episode_id: episode.id, episode_title: episode.title, show_title: feed.title, image_url: episode.image_url ?? feed.image_url, media_kind: video ? "video" : "audio",
     anchor_ms: s.anchor_ms, heard_from_ms: s.heard_from_ms, share_url: shareUrl(ctx, s.share_token), share_state: s.share_state, note: s.note,
     created_at: s.created_at, captured_at: s.captured_at ?? s.created_at, revision: rev ? toRevisionView(ctx, rev, deviceId) : null,
+    readwise: readwiseState(ctx, s),
   };
 }
 

@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "GET",
-    "url": "/e/vymi334n67kp76noo76b.json"
+    "url": "/e/z4cuopdpkhbhy46h53ra.json"
   },
   "status": 200,
   "body": {
@@ -15,7 +15,7 @@
     },
     "snips": [
       {
-        "token": "bzhgq5xk7lfhn3x6mqgl",
+        "token": "zfd63gnginplkw3orj26",
         "rev": 2,
         "title": "Flat fees left money on the table",
         "summary": "Nobody upgrades for three months.\nA flat fee feels simple and fair.",
@@ -24,8 +24,8 @@
         "turns": null,
         "duration_ms": 50000,
         "start_ms": 40000,
-        "url": "http://pods.test/s/bzhgq5xk7lfhn3x6mqgl",
-        "clip_url": "http://pods.test/s/bzhgq5xk7lfhn3x6mqgl/r2.mp3",
+        "url": "http://pods.test/s/zfd63gnginplkw3orj26",
+        "clip_url": "http://pods.test/s/zfd63gnginplkw3orj26/r2.mp3",
         "video": null
       }
     ]

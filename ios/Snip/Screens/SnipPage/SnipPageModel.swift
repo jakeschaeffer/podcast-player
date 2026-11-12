@@ -99,27 +99,23 @@ final class SnipPageModel {
 
   // MARK: Words
 
-  /// One speaker's run of words in the snip.
+  /// One voice's run of words in the snip, under the heading shown for it (nil: none, as for an article's own prose).
   struct Turn: Identifiable {
     let id: Int
-    let speaker: String?
+    let name: String?
     let text: String
   }
 
-  /// The snip's words by speaker, consecutive segments by the same speaker run together; nil when only one person
-  /// speaks (or the transcript has no speakers), where the excerpt reads as one block.
+  /// The snip's words by voice (`Speaker.clipTurns`, the rule the shared pages use): nil when they would show under
+  /// a single heading, or none, where the excerpt reads as one block.
   var turns: [Turn]? {
-    var turns: [Turn] = []
+    var runs: [(speaker: String?, text: String)] = []
     for segment in transcript?.segments ?? [] where segment.e >= span.startMs && segment.s <= span.endMs {
       let words = segment.words.filter { inSpan($0) }.map(\.text)
       guard !words.isEmpty else { continue }
-      if let last = turns.last, last.speaker == segment.spk {
-        turns[turns.count - 1] = Turn(id: last.id, speaker: last.speaker, text: last.text + " " + words.joined(separator: " "))
-      } else {
-        turns.append(Turn(id: turns.count, speaker: segment.spk, text: words.joined(separator: " ")))
-      }
+      runs.append((segment.spk, words.joined(separator: " ")))
     }
-    return Set(turns.map(\.speaker)).count > 1 ? turns : nil
+    return Speaker.clipTurns(runs, in: speakers)?.enumerated().map { Turn(id: $0.offset, name: $0.element.name, text: $0.element.text) }
   }
 
   /// The snip's own words, in order: what the sideways view reads out.

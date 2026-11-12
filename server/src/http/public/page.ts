@@ -55,17 +55,18 @@ export function quoteHtml(quote: string | null, className: string): string {
 }
 
 /**
- * The excerpt. With more than one speaker, each turn is its own paragraph under its speaker's name (or "Host", "Guest"),
- * and the speakers alternate label colours so a change of voice reads at a glance; otherwise one block.
+ * The excerpt. With more than one voice, each turn is its own paragraph under its speaker's name (or "Host", "Guest";
+ * none for an article's own prose), and the voices alternate label colours so a change reads at a glance; otherwise
+ * one block.
  */
-export function transcriptHtml(excerpt: string | null, turns: { speaker: string | null; name: string; text: string }[] | null): string {
+export function transcriptHtml(excerpt: string | null, turns: { speaker: string | null; name: string | null; text: string }[] | null): string {
   if (!excerpt) return "";
   if (!turns) return `<blockquote>${escapeHtml(excerpt)}</blockquote>`;
-  const order = [...new Set(turns.map((t) => t.speaker))];
+  const order = [...new Set(turns.map((t) => t.name))];
   const body = turns
     .map((t) => {
-      const n = order.indexOf(t.speaker);
-      return `<p class="turn turn--${(n % 2) + 1}"><span class="who">${escapeHtml(t.name)}</span>${escapeHtml(t.text)}</p>`;
+      const n = order.indexOf(t.name);
+      return `<p class="turn turn--${(n % 2) + 1}">${t.name ? `<span class="who">${escapeHtml(t.name)}</span>` : ""}${escapeHtml(t.text)}</p>`;
     })
     .join("");
   return `<blockquote>${body}</blockquote>`;

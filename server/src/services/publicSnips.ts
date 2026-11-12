@@ -6,19 +6,19 @@ import type { AppContext } from "../app/context.js";
 import { posterPath } from "../core/clip/render.js";
 import type { SnipRow } from "../db/rows.js";
 import { SHARE_TOKEN_RE } from "../lib/ids.js";
-import { speakerDisplayName } from "../core/speakers/identify.js";
-import { speakerTurns, type SpeakerTurn } from "../core/transcript/normalize.js";
+import { clipTurns, type NamedTurn } from "../core/speakers/identify.js";
+import { speakerTurns } from "../core/transcript/normalize.js";
 import { speakersFor } from "./speakers.js";
 import { episodeForAsset, getRevisionRow } from "./snips.js";
 import { loadTranscript } from "./transcripts.js";
 
-/** One speaker's turn in a shared excerpt, with the name shown for it: the person, "Host", "Guest", or "Speaker 2". */
-export type PublicTurn = SpeakerTurn & { name: string };
+/** One voice's turn in a shared excerpt, with the heading shown for it (the person, "Host", "Speaker 2"), or none. */
+export type PublicTurn = NamedTurn;
 
 export type PublicSnip =
   | {
       kind: "ready"; token: string; rev: number; title: string; summary: string | null; quote: string | null; excerpt: string | null;
-      /** The excerpt split by speaker, when more than one person speaks in it; otherwise null and the excerpt reads as one block. */
+      /** The excerpt split by voice, when it has more than one heading (core/speakers/identify.ts clipTurns); otherwise null and the excerpt reads as one block. */
       turns: PublicTurn[] | null;
       duration_ms: number; clip_url: string;
       /** The clip with its picture, when the snip was cut from a video and that has been rendered; else it is audio only. */
@@ -77,10 +77,7 @@ export function publicClip(ctx: AppContext, token: string, rev: number, file: Pu
 /** Who said what in the excerpt, read against the transcript the revision was cut from. */
 function turnsFor(ctx: AppContext, transcriptId: string | null, start: number | null, end: number | null): PublicTurn[] | null {
   if (!transcriptId || start === null || end === null) return null;
-  const turns = speakerTurns(loadTranscript(ctx, transcriptId), start, end);
-  if (new Set(turns.map((t) => t.speaker)).size < 2) return null;
-  const speakers = speakersFor(ctx, transcriptId);
-  return turns.map((t) => ({ ...t, name: speakerDisplayName(t.speaker, speakers) }));
+  return clipTurns(speakerTurns(loadTranscript(ctx, transcriptId), start, end), speakersFor(ctx, transcriptId));
 }
 
 function fallbackFromExcerpt(excerpt: string | null): string {

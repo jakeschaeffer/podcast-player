@@ -126,6 +126,30 @@ export const SnipSchema = Type.Object({
   anchor_ms: Ms, heard_from_ms: Ms, share_url: Type.String(), share_state: Type.String(), note: Nullable(Type.String()), created_at: Type.Integer(),
   captured_at: Type.Integer({ description: "When the owner tapped Snip: the device's captured_at, else created_at" }),
   revision: Nullable(RevisionSchema),
+  readwise: Nullable(Type.Object(
+    {
+      state: Type.Union([Type.Literal("sent"), Type.Literal("waiting"), Type.Literal("failed"), Type.Literal("deleted_in_readwise")], {
+        description: "sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again",
+      }),
+      highlight_url: Nullable(Type.String({ description: "The highlight in Readwise" })),
+      synced_at: Nullable(Type.Integer({ description: "When Readwise last took a change" })),
+      error: Nullable(Type.String({ description: "Why the last send failed, when state is failed" })),
+    },
+    { description: "How the snip stands with the owner's Readwise; null when the server has no READWISE_TOKEN" },
+  )),
+});
+export const ReadwiseSummarySchema = Type.Object({
+  enabled: Type.Boolean({ description: "Whether the server sends snips to Readwise (READWISE_TOKEN is set); the counts are zero when not" }),
+  days: Type.Integer(),
+  since: Type.Integer({ description: "Start of the window, unix ms" }),
+  snips: Type.Integer({ description: "Ready snips made in the window, less those deleted in Readwise" }),
+  sent: Type.Integer({ description: "Of those, how many have a highlight in Readwise now" }),
+  waiting: Type.Integer({ description: "Of those, how many are still to be sent for the first time" }),
+  deleted_in_readwise: Type.Integer({ description: "Snips in the window the owner deleted in Readwise; not sent again" }),
+  failed: Type.Array(
+    Type.Object({ snip_id: Id, title: Type.String(), episode_title: Type.String(), snip_deleted: Type.Boolean({ description: "The snip was deleted here and removing its highlight failed" }), error: Type.String(), failed_at: Type.Integer() }),
+    { description: "Every send that failed for good, whenever its snip was made, newest first (at most 100)" },
+  ),
 });
 export const CreateSnipBody = Type.Object({
   client_request_id: Type.String({ minLength: 8, maxLength: 64, description: "Idempotency key generated on the device" }),

@@ -12,6 +12,7 @@ reproduce every expected value. This is the contract; see `docs/cross-repo-snips
 | `span-points/span_points_v1.json` | `web/src/lib/spanPoints.ts` | Where In/Out land when set or nudged, when the other point is carried along, which words count as inside a span |
 | `selection/select_v2.json` | `server/src/core/snip/sentencize.ts`, `select.ts` | Sentences (`sentencizer_v1`), the chosen span and decision record (`select_v2`, no model), midpoint word ranges |
 | `summary/snip_summary_validation_v1.json` | `server/src/core/summary/input.ts`, `snip.ts`, `names.ts` | The excerpt's sentence ids and context lines, the validator's problem strings (exactly: they are reprompt text), fallback titles, sentence counts, the name guard |
+| `speakers/speaker_names_v1.json` | `server/src/core/speakers/identify.ts` | The heading a speaker label shows under (speech recognition's `S1`, publisher text's names and `Quote`, none), and a clip's turns on the snip pages. The web app's `speakerName` and the native app's `Speaker.displayName` / `clipTurns` replay it |
 | `summary/snip_summary_validation_v2.json` | `server/src/core/summary/snip.ts`, `names.ts` | The bulleted summary (snip-summary v3 on): the validator's problem strings, bullet clean-up, and the key the word-for-word quote check compares. v1 still covers excerpts, fallback titles and the name guard |
 
 Transcripts inside the files use the API shape (`GET /v1/transcripts/{id}`): segments `{s, e, spk, w0, words}` with

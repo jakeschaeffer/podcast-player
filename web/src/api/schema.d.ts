@@ -3578,6 +3578,13 @@ export interface paths {
                                     selection: unknown;
                                     created_at: number;
                                 } | null;
+                                readwise: {
+                                    /** @description sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again */
+                                    state: "sent" | "waiting" | "failed" | "deleted_in_readwise";
+                                    highlight_url: string | null;
+                                    synced_at: number | null;
+                                    error: string | null;
+                                } | null;
                             }[];
                             next: string | null;
                         };
@@ -3673,6 +3680,13 @@ export interface paths {
                                 selection: unknown;
                                 created_at: number;
                             } | null;
+                            readwise: {
+                                /** @description sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again */
+                                state: "sent" | "waiting" | "failed" | "deleted_in_readwise";
+                                highlight_url: string | null;
+                                synced_at: number | null;
+                                error: string | null;
+                            } | null;
                         };
                     };
                 };
@@ -3728,6 +3742,13 @@ export interface paths {
                                 error: string | null;
                                 selection: unknown;
                                 created_at: number;
+                            } | null;
+                            readwise: {
+                                /** @description sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again */
+                                state: "sent" | "waiting" | "failed" | "deleted_in_readwise";
+                                highlight_url: string | null;
+                                synced_at: number | null;
+                                error: string | null;
                             } | null;
                         };
                     };
@@ -3811,6 +3832,13 @@ export interface paths {
                                 error: string | null;
                                 selection: unknown;
                                 created_at: number;
+                            } | null;
+                            readwise: {
+                                /** @description sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again */
+                                state: "sent" | "waiting" | "failed" | "deleted_in_readwise";
+                                highlight_url: string | null;
+                                synced_at: number | null;
+                                error: string | null;
                             } | null;
                         };
                     };
@@ -3935,6 +3963,13 @@ export interface paths {
                                 selection: unknown;
                                 created_at: number;
                             } | null;
+                            readwise: {
+                                /** @description sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again */
+                                state: "sent" | "waiting" | "failed" | "deleted_in_readwise";
+                                highlight_url: string | null;
+                                synced_at: number | null;
+                                error: string | null;
+                            } | null;
                         };
                     };
                 };
@@ -4032,6 +4067,13 @@ export interface paths {
                                 selection: unknown;
                                 created_at: number;
                             } | null;
+                            readwise: {
+                                /** @description sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again */
+                                state: "sent" | "waiting" | "failed" | "deleted_in_readwise";
+                                highlight_url: string | null;
+                                synced_at: number | null;
+                                error: string | null;
+                            } | null;
                         };
                     };
                 };
@@ -4116,6 +4158,13 @@ export interface paths {
                                 error: string | null;
                                 selection: unknown;
                                 created_at: number;
+                            } | null;
+                            readwise: {
+                                /** @description sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again */
+                                state: "sent" | "waiting" | "failed" | "deleted_in_readwise";
+                                highlight_url: string | null;
+                                synced_at: number | null;
+                                error: string | null;
                             } | null;
                         };
                     };
@@ -4259,6 +4308,13 @@ export interface paths {
                                 selection: unknown;
                                 created_at: number;
                             } | null;
+                            readwise: {
+                                /** @description sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again */
+                                state: "sent" | "waiting" | "failed" | "deleted_in_readwise";
+                                highlight_url: string | null;
+                                synced_at: number | null;
+                                error: string | null;
+                            } | null;
                         }[];
                     };
                 };
@@ -4300,6 +4356,146 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/readwise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How the snips of the last `days` (30) stand with the owner's Readwise, and every failed send */
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Whether the server sends snips to Readwise (READWISE_TOKEN is set); the counts are zero when not */
+                            enabled: boolean;
+                            days: number;
+                            /** @description Start of the window, unix ms */
+                            since: number;
+                            /** @description Ready snips made in the window, less those deleted in Readwise */
+                            snips: number;
+                            /** @description Of those, how many have a highlight in Readwise now */
+                            sent: number;
+                            /** @description Of those, how many are still to be sent for the first time */
+                            waiting: number;
+                            /** @description Snips in the window the owner deleted in Readwise; not sent again */
+                            deleted_in_readwise: number;
+                            /** @description Every send that failed for good, whenever its snip was made, newest first (at most 100) */
+                            failed: {
+                                /** @description ULID */
+                                snip_id: string;
+                                title: string;
+                                episode_title: string;
+                                /** @description The snip was deleted here and removing its highlight failed */
+                                snip_deleted: boolean;
+                                error: string;
+                                failed_at: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/readwise/retries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send every failed snip to Readwise again now (idempotent); returns the summary. 409 when Readwise is not set up */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Whether the server sends snips to Readwise (READWISE_TOKEN is set); the counts are zero when not */
+                            enabled: boolean;
+                            days: number;
+                            /** @description Start of the window, unix ms */
+                            since: number;
+                            /** @description Ready snips made in the window, less those deleted in Readwise */
+                            snips: number;
+                            /** @description Of those, how many have a highlight in Readwise now */
+                            sent: number;
+                            /** @description Of those, how many are still to be sent for the first time */
+                            waiting: number;
+                            /** @description Snips in the window the owner deleted in Readwise; not sent again */
+                            deleted_in_readwise: number;
+                            /** @description Every send that failed for good, whenever its snip was made, newest first (at most 100) */
+                            failed: {
+                                /** @description ULID */
+                                snip_id: string;
+                                title: string;
+                                episode_title: string;
+                                /** @description The snip was deleted here and removing its highlight failed */
+                                snip_deleted: boolean;
+                                error: string;
+                                failed_at: number;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: {
+                                code: string;
+                                message: string;
+                                /** @description On a 409 from POST /v1/feeds: the feed that already has this URL */
+                                feed_id?: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

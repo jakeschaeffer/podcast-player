@@ -7,15 +7,15 @@
   "body": {
     "items": [
       {
-        "id": "01M72W076WHQPB24PHQQTG1MHS",
-        "feed_id": "01M72W076SJAGEEBA91T199FE3",
+        "id": "01M76JZSNEPE9ZH4CD0YM7E9BC",
+        "feed_id": "01M76JZSNEMXT6ESW96W23Y2KC",
         "show_title": "Fixture Show",
         "title": "Pricing",
         "published_at": null,
         "duration_ms": 120000,
         "image_url": null,
-        "asset_id": "01M72W076WB21QJFR5KGKZ9QP7",
-        "transcript_id": "01M72W07W4BPKCK69RS3MN8B1W",
+        "asset_id": "01M76JZSNE5MCWKHMT6YZPV3D0",
+        "transcript_id": "01M76JZSSFE3312KR0Z2SAB1VH",
         "has_summary": true,
         "processing": {
           "audio": "ready",

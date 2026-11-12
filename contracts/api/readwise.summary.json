@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/readwise?days=30"
+  },
+  "status": 200,
+  "body": {
+    "enabled": true,
+    "days": 30,
+    "since": 1797408000000,
+    "snips": 1,
+    "sent": 1,
+    "waiting": 0,
+    "deleted_in_readwise": 0,
+    "failed": [
+      {
+        "snip_id": "01M76JZSVXTG22PMYY673VNHGF",
+        "title": "Flat fees left money on the table",
+        "episode_title": "Pricing",
+        "snip_deleted": false,
+        "error": "Readwise PATCH /highlights/1001/ answered 401: {\"detail\":\"Invalid token.\"} (check READWISE_TOKEN)",
+        "failed_at": 1800000000000
+      }
+    ]
+  }
+}

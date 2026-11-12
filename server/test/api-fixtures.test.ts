@@ -14,7 +14,9 @@ import { fileURLToPath } from "node:url";
 import type { Static, TSchema } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { Readwise } from "../src/adapters/readwise.js";
 import { parseAgainstSchema, type GenerateRequest, type GenerateResult, type TextModel } from "../src/adapters/textModel.js";
+import { NonRetryable } from "../src/jobs/errors.js";
 import type { AppContext } from "../src/app/context.js";
 import { buildApp } from "../src/http/app.js";
 import { drain } from "../src/jobs/worker.js";
@@ -44,6 +46,20 @@ class ScriptedModel implements TextModel {
   }
 }
 
+/** Readwise that takes the first highlight and then refuses the token, so the recordings hold a sent snip and a failed send. */
+class RefusingAfterFirstReadwise implements Readwise {
+  readonly name = "refusing-after-first";
+  async create() {
+    return { highlight_id: 1001 };
+  }
+  async update(id: number): Promise<"ok"> {
+    throw new NonRetryable(`Readwise PATCH /highlights/${id}/ answered 401: {"detail":"Invalid token."} (check READWISE_TOKEN)`);
+  }
+  async remove() {
+    return "ok" as const;
+  }
+}
+
 type Recorded = { request: { method: string; url: string; body?: unknown }; status: number; body: unknown };
 const recorded = new Map<string, Recorded>();
 
@@ -70,7 +86,7 @@ function shape(v: unknown): unknown {
 
 beforeAll(async () => {
   const mp3 = await makeTone();
-  const fx = recordingFixture(mp3, { textModel: new ScriptedModel() });
+  const fx = recordingFixture(mp3, { textModel: new ScriptedModel(), readwise: new RefusingAfterFirstReadwise() });
   ({ ctx, clock } = fx);
   const { assetId, episodeId } = fx;
   app = await buildApp(ctx);
@@ -108,14 +124,17 @@ beforeAll(async () => {
   // A snip through its states.
   const created = await record("snips.create", { method: "POST", url: "/v1/snips", body: { client_request_id: "01EXAMPLE0000000000000001", asset_id: assetId, anchor_ms: 100_000, heard_from_ms: 0, captured_at: clock.now - 500 } });
   const snipId = (created.body as { id: string }).id;
-  await drain(ctx, { kinds: ["select_snip", "render_clip", "summarize_snip"] });
+  await drain(ctx, { kinds: ["select_snip", "render_clip", "summarize_snip", "sync_readwise"] });
   const ready = await record("snips.get.ready", { method: "GET", url: `/v1/snips/${snipId}` });
   const rev1 = (ready.body as { revision: { id: string } }).revision.id;
   await record("errors.bad_request", { method: "PATCH", url: `/v1/snips/${snipId}`, body: { start_ms: 40_000, end_ms: 90_000 } });
   await record("snips.edit", { method: "PATCH", url: `/v1/snips/${snipId}`, body: { start_ms: 40_000, end_ms: 90_000, if_revision: rev1, title: "Flat fees left money on the table" } });
   await record("errors.conflict", { method: "PATCH", url: `/v1/snips/${snipId}`, body: { start_ms: 41_000, end_ms: 90_000, if_revision: rev1 } });
-  await drain(ctx, { kinds: ["render_clip", "summarize_snip"] });
+  // The edit's revision goes to Readwise too, which refuses it: a failed send.
+  await drain(ctx, { kinds: ["render_clip", "summarize_snip", "sync_readwise"] });
   await record("snips.list", { method: "GET", url: "/v1/snips?limit=30" });
+  await record("readwise.summary", { method: "GET", url: "/v1/readwise?days=30" });
+  await record("readwise.retries", { method: "POST", url: "/v1/readwise/retries" });
 
   // Sharing, and what a recipient's link returns (a native app renders universal links from these).
   const share = await record("episodes.share.create", { method: "POST", url: `/v1/episodes/${episodeId}/share` });
@@ -181,6 +200,10 @@ describe("recorded API responses for the native app", () => {
     expect((recorded.get("snips.get.ready")!.body as { revision: { status: string } }).revision.status).toBe("ready");
     expect((recorded.get("snips.create.waiting")!.body as { revision: { status: string } }).revision.status).toBe("waiting");
     expect((recorded.get("snips.get.failed")!.body as { revision: { status: string } }).revision.status).toBe("failed");
+    expect((recorded.get("snips.get.ready")!.body as { readwise: { state: string } }).readwise.state).toBe("sent");
+    expect((recorded.get("snips.list")!.body as { items: { readwise: { state: string } }[] }).items[0]!.readwise.state).toBe("failed");
+    expect(recorded.get("readwise.summary")!.body).toMatchObject({ enabled: true, snips: 1, sent: 1, waiting: 0, failed: [{ title: "Flat fees left money on the table" }] });
+    expect(recorded.get("readwise.retries")!.body).toMatchObject({ enabled: true, failed: [] });
     expect(recorded.get("errors.conflict")!.status).toBe(409);
     expect(recorded.get("errors.bad_request")!.status).toBe(400);
     expect(recorded.get("errors.unauthorized")!.status).toBe(401);

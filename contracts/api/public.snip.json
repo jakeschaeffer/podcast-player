@@ -1,11 +1,11 @@
 {
   "request": {
     "method": "GET",
-    "url": "/s/bzhgq5xk7lfhn3x6mqgl.json"
+    "url": "/s/zfd63gnginplkw3orj26.json"
   },
   "status": 200,
   "body": {
-    "token": "bzhgq5xk7lfhn3x6mqgl",
+    "token": "zfd63gnginplkw3orj26",
     "rev": 2,
     "title": "Flat fees left money on the table",
     "summary": "Nobody upgrades for three months.\nA flat fee feels simple and fair.",
@@ -13,7 +13,7 @@
     "excerpt": "upgraded for three months. The first thing we tried was a flat monthly fee for everyone. It felt simple and fair. Nobody upgraded for three months. The first thing we tried was a flat monthly fee for everyone. It felt simple and fair. Nobody upgraded for three months. The first thing we tried was a flat monthly fee for everyone. It felt simple and fair. Nobody upgraded for three months. The first thing we tried was a flat monthly fee for everyone. It felt simple and fair. Nobody upgraded for three months. The first thing we tried was a flat monthly fee for everyone.",
     "turns": null,
     "duration_ms": 50000,
-    "clip_url": "http://pods.test/s/bzhgq5xk7lfhn3x6mqgl/r2.mp3",
+    "clip_url": "http://pods.test/s/zfd63gnginplkw3orj26/r2.mp3",
     "video": null,
     "created_at": 1800000000000,
     "episode": {

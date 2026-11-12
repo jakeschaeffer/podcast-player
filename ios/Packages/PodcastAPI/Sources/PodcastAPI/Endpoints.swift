@@ -151,6 +151,18 @@ extension APIClient {
     return response.speakers
   }
 
+  // MARK: Readwise
+
+  /// How the snips of the last `days` stand with Readwise, and every failed send.
+  public func readwise(days: Int = 30) async throws -> ReadwiseSummary {
+    try await send("GET", "/v1/readwise", query: [URLQueryItem(name: "days", value: String(days))])
+  }
+
+  /// Sends every failed snip to Readwise again now (idempotent); the summary after. 409 when Readwise is not set up.
+  public func retryReadwise() async throws -> ReadwiseSummary {
+    try await send("POST", "/v1/readwise/retries")
+  }
+
   // MARK: Playback
 
   public func reportPlayback(assetID: ULID, _ report: PlaybackReport) async throws -> PlaybackAck {

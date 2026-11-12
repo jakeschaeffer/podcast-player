@@ -15967,7 +15967,8 @@
                     "note",
                     "created_at",
                     "captured_at",
-                    "revision"
+                    "revision",
+                    "readwise"
                   ],
                   "properties": {
                     "id": {
@@ -16241,6 +16242,87 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "readwise": {
+                      "anyOf": [
+                        {
+                          "description": "How the snip stands with the owner's Readwise; null when the server has no READWISE_TOKEN",
+                          "type": "object",
+                          "required": [
+                            "state",
+                            "highlight_url",
+                            "synced_at",
+                            "error"
+                          ],
+                          "properties": {
+                            "state": {
+                              "description": "sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "sent"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "waiting"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "deleted_in_readwise"
+                                  ]
+                                }
+                              ]
+                            },
+                            "highlight_url": {
+                              "anyOf": [
+                                {
+                                  "description": "The highlight in Readwise",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "synced_at": {
+                              "anyOf": [
+                                {
+                                  "description": "When Readwise last took a change",
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "error": {
+                              "anyOf": [
+                                {
+                                  "description": "Why the last send failed, when state is failed",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   }
                 }
@@ -16268,7 +16350,8 @@
                     "note",
                     "created_at",
                     "captured_at",
-                    "revision"
+                    "revision",
+                    "readwise"
                   ],
                   "properties": {
                     "id": {
@@ -16535,6 +16618,87 @@
                             "selection": {},
                             "created_at": {
                               "type": "integer"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "readwise": {
+                      "anyOf": [
+                        {
+                          "description": "How the snip stands with the owner's Readwise; null when the server has no READWISE_TOKEN",
+                          "type": "object",
+                          "required": [
+                            "state",
+                            "highlight_url",
+                            "synced_at",
+                            "error"
+                          ],
+                          "properties": {
+                            "state": {
+                              "description": "sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "sent"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "waiting"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "deleted_in_readwise"
+                                  ]
+                                }
+                              ]
+                            },
+                            "highlight_url": {
+                              "anyOf": [
+                                {
+                                  "description": "The highlight in Readwise",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "synced_at": {
+                              "anyOf": [
+                                {
+                                  "description": "When Readwise last took a change",
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "error": {
+                              "anyOf": [
+                                {
+                                  "description": "Why the last send failed, when state is failed",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             }
                           }
                         },
@@ -16637,7 +16801,8 @@
                           "note",
                           "created_at",
                           "captured_at",
-                          "revision"
+                          "revision",
+                          "readwise"
                         ],
                         "properties": {
                           "id": {
@@ -16911,6 +17076,87 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "readwise": {
+                            "anyOf": [
+                              {
+                                "description": "How the snip stands with the owner's Readwise; null when the server has no READWISE_TOKEN",
+                                "type": "object",
+                                "required": [
+                                  "state",
+                                  "highlight_url",
+                                  "synced_at",
+                                  "error"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "description": "sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again",
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "sent"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "waiting"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "failed"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "deleted_in_readwise"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "highlight_url": {
+                                    "anyOf": [
+                                      {
+                                        "description": "The highlight in Readwise",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "synced_at": {
+                                    "anyOf": [
+                                      {
+                                        "description": "When Readwise last took a change",
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "error": {
+                                    "anyOf": [
+                                      {
+                                        "description": "Why the last send failed, when state is failed",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         }
                       }
@@ -16971,7 +17217,8 @@
                     "note",
                     "created_at",
                     "captured_at",
-                    "revision"
+                    "revision",
+                    "readwise"
                   ],
                   "properties": {
                     "id": {
@@ -17238,6 +17485,87 @@
                             "selection": {},
                             "created_at": {
                               "type": "integer"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "readwise": {
+                      "anyOf": [
+                        {
+                          "description": "How the snip stands with the owner's Readwise; null when the server has no READWISE_TOKEN",
+                          "type": "object",
+                          "required": [
+                            "state",
+                            "highlight_url",
+                            "synced_at",
+                            "error"
+                          ],
+                          "properties": {
+                            "state": {
+                              "description": "sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "sent"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "waiting"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "deleted_in_readwise"
+                                  ]
+                                }
+                              ]
+                            },
+                            "highlight_url": {
+                              "anyOf": [
+                                {
+                                  "description": "The highlight in Readwise",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "synced_at": {
+                              "anyOf": [
+                                {
+                                  "description": "When Readwise last took a change",
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "error": {
+                              "anyOf": [
+                                {
+                                  "description": "Why the last send failed, when state is failed",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             }
                           }
                         },
@@ -17359,7 +17687,8 @@
                     "note",
                     "created_at",
                     "captured_at",
-                    "revision"
+                    "revision",
+                    "readwise"
                   ],
                   "properties": {
                     "id": {
@@ -17626,6 +17955,87 @@
                             "selection": {},
                             "created_at": {
                               "type": "integer"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "readwise": {
+                      "anyOf": [
+                        {
+                          "description": "How the snip stands with the owner's Readwise; null when the server has no READWISE_TOKEN",
+                          "type": "object",
+                          "required": [
+                            "state",
+                            "highlight_url",
+                            "synced_at",
+                            "error"
+                          ],
+                          "properties": {
+                            "state": {
+                              "description": "sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "sent"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "waiting"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "deleted_in_readwise"
+                                  ]
+                                }
+                              ]
+                            },
+                            "highlight_url": {
+                              "anyOf": [
+                                {
+                                  "description": "The highlight in Readwise",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "synced_at": {
+                              "anyOf": [
+                                {
+                                  "description": "When Readwise last took a change",
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "error": {
+                              "anyOf": [
+                                {
+                                  "description": "Why the last send failed, when state is failed",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             }
                           }
                         },
@@ -17735,7 +18145,8 @@
                     "note",
                     "created_at",
                     "captured_at",
-                    "revision"
+                    "revision",
+                    "readwise"
                   ],
                   "properties": {
                     "id": {
@@ -18009,6 +18420,87 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "readwise": {
+                      "anyOf": [
+                        {
+                          "description": "How the snip stands with the owner's Readwise; null when the server has no READWISE_TOKEN",
+                          "type": "object",
+                          "required": [
+                            "state",
+                            "highlight_url",
+                            "synced_at",
+                            "error"
+                          ],
+                          "properties": {
+                            "state": {
+                              "description": "sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "sent"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "waiting"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "deleted_in_readwise"
+                                  ]
+                                }
+                              ]
+                            },
+                            "highlight_url": {
+                              "anyOf": [
+                                {
+                                  "description": "The highlight in Readwise",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "synced_at": {
+                              "anyOf": [
+                                {
+                                  "description": "When Readwise last took a change",
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "error": {
+                              "anyOf": [
+                                {
+                                  "description": "Why the last send failed, when state is failed",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   }
                 }
@@ -18056,7 +18548,8 @@
                     "note",
                     "created_at",
                     "captured_at",
-                    "revision"
+                    "revision",
+                    "readwise"
                   ],
                   "properties": {
                     "id": {
@@ -18323,6 +18816,87 @@
                             "selection": {},
                             "created_at": {
                               "type": "integer"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "readwise": {
+                      "anyOf": [
+                        {
+                          "description": "How the snip stands with the owner's Readwise; null when the server has no READWISE_TOKEN",
+                          "type": "object",
+                          "required": [
+                            "state",
+                            "highlight_url",
+                            "synced_at",
+                            "error"
+                          ],
+                          "properties": {
+                            "state": {
+                              "description": "sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "sent"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "waiting"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "deleted_in_readwise"
+                                  ]
+                                }
+                              ]
+                            },
+                            "highlight_url": {
+                              "anyOf": [
+                                {
+                                  "description": "The highlight in Readwise",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "synced_at": {
+                              "anyOf": [
+                                {
+                                  "description": "When Readwise last took a change",
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "error": {
+                              "anyOf": [
+                                {
+                                  "description": "Why the last send failed, when state is failed",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             }
                           }
                         },
@@ -18533,7 +19107,8 @@
                       "note",
                       "created_at",
                       "captured_at",
-                      "revision"
+                      "revision",
+                      "readwise"
                     ],
                     "properties": {
                       "id": {
@@ -18807,6 +19382,87 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "readwise": {
+                        "anyOf": [
+                          {
+                            "description": "How the snip stands with the owner's Readwise; null when the server has no READWISE_TOKEN",
+                            "type": "object",
+                            "required": [
+                              "state",
+                              "highlight_url",
+                              "synced_at",
+                              "error"
+                            ],
+                            "properties": {
+                              "state": {
+                                "description": "sent: in Readwise with this revision; waiting: still to go, or behind an edit; failed: given up on until a retry (POST /v1/readwise/retries) or the hourly sweep; deleted_in_readwise: the owner deleted it there, and it is not sent again",
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "sent"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "waiting"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "failed"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "deleted_in_readwise"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "highlight_url": {
+                                "anyOf": [
+                                  {
+                                    "description": "The highlight in Readwise",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "synced_at": {
+                                "anyOf": [
+                                  {
+                                    "description": "When Readwise last took a change",
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "error": {
+                                "anyOf": [
+                                  {
+                                    "description": "Why the last send failed, when state is failed",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
                     }
                   }
@@ -18826,6 +19482,248 @@
         "responses": {
           "200": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/v1/readwise": {
+      "get": {
+        "summary": "How the snips of the last `days` (30) stand with the owner's Readwise, and every failed send",
+        "tags": [
+          "snips"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 365,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "days",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "enabled",
+                    "days",
+                    "since",
+                    "snips",
+                    "sent",
+                    "waiting",
+                    "deleted_in_readwise",
+                    "failed"
+                  ],
+                  "properties": {
+                    "enabled": {
+                      "description": "Whether the server sends snips to Readwise (READWISE_TOKEN is set); the counts are zero when not",
+                      "type": "boolean"
+                    },
+                    "days": {
+                      "type": "integer"
+                    },
+                    "since": {
+                      "description": "Start of the window, unix ms",
+                      "type": "integer"
+                    },
+                    "snips": {
+                      "description": "Ready snips made in the window, less those deleted in Readwise",
+                      "type": "integer"
+                    },
+                    "sent": {
+                      "description": "Of those, how many have a highlight in Readwise now",
+                      "type": "integer"
+                    },
+                    "waiting": {
+                      "description": "Of those, how many are still to be sent for the first time",
+                      "type": "integer"
+                    },
+                    "deleted_in_readwise": {
+                      "description": "Snips in the window the owner deleted in Readwise; not sent again",
+                      "type": "integer"
+                    },
+                    "failed": {
+                      "description": "Every send that failed for good, whenever its snip was made, newest first (at most 100)",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "snip_id",
+                          "title",
+                          "episode_title",
+                          "snip_deleted",
+                          "error",
+                          "failed_at"
+                        ],
+                        "properties": {
+                          "snip_id": {
+                            "minLength": 26,
+                            "maxLength": 26,
+                            "description": "ULID",
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "episode_title": {
+                            "type": "string"
+                          },
+                          "snip_deleted": {
+                            "description": "The snip was deleted here and removing its highlight failed",
+                            "type": "boolean"
+                          },
+                          "error": {
+                            "type": "string"
+                          },
+                          "failed_at": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/readwise/retries": {
+      "post": {
+        "summary": "Send every failed snip to Readwise again now (idempotent); returns the summary. 409 when Readwise is not set up",
+        "tags": [
+          "snips"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "enabled",
+                    "days",
+                    "since",
+                    "snips",
+                    "sent",
+                    "waiting",
+                    "deleted_in_readwise",
+                    "failed"
+                  ],
+                  "properties": {
+                    "enabled": {
+                      "description": "Whether the server sends snips to Readwise (READWISE_TOKEN is set); the counts are zero when not",
+                      "type": "boolean"
+                    },
+                    "days": {
+                      "type": "integer"
+                    },
+                    "since": {
+                      "description": "Start of the window, unix ms",
+                      "type": "integer"
+                    },
+                    "snips": {
+                      "description": "Ready snips made in the window, less those deleted in Readwise",
+                      "type": "integer"
+                    },
+                    "sent": {
+                      "description": "Of those, how many have a highlight in Readwise now",
+                      "type": "integer"
+                    },
+                    "waiting": {
+                      "description": "Of those, how many are still to be sent for the first time",
+                      "type": "integer"
+                    },
+                    "deleted_in_readwise": {
+                      "description": "Snips in the window the owner deleted in Readwise; not sent again",
+                      "type": "integer"
+                    },
+                    "failed": {
+                      "description": "Every send that failed for good, whenever its snip was made, newest first (at most 100)",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "snip_id",
+                          "title",
+                          "episode_title",
+                          "snip_deleted",
+                          "error",
+                          "failed_at"
+                        ],
+                        "properties": {
+                          "snip_id": {
+                            "minLength": 26,
+                            "maxLength": 26,
+                            "description": "ULID",
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "episode_title": {
+                            "type": "string"
+                          },
+                          "snip_deleted": {
+                            "description": "The snip was deleted here and removing its highlight failed",
+                            "type": "boolean"
+                          },
+                          "error": {
+                            "type": "string"
+                          },
+                          "failed_at": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "feed_id": {
+                          "description": "On a 409 from POST /v1/feeds: the feed that already has this URL",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

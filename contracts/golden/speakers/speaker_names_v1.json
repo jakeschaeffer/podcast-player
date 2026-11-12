@@ -1,0 +1,193 @@
+{
+  "family": "speakers",
+  "version": "speaker_names_v1",
+  "reference": ["server/src/core/speakers/identify.ts"],
+  "display_name": [
+    {
+      "name": "recognized speaker with a name",
+      "label": "S1",
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": "Ben Thompson"
+    },
+    {
+      "name": "recognized guest without a name",
+      "label": "S2",
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": "Guest"
+    },
+    {
+      "name": "recognized other voice",
+      "label": "S3",
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": "Speaker 3"
+    },
+    {
+      "name": "recognized speaker not in the list",
+      "label": "S4",
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": "Speaker 4"
+    },
+    {"name":"recognized speaker before identification","label":"S2","speakers":null,"expect":"Speaker 2"},
+    {"name":"two-digit recognized label","label":"S12","speakers":null,"expect":"Speaker 12"},
+    {"name":"publisher's name","label":"Ari Emanuel","speakers":null,"expect":"Ari Emanuel"},
+    {"name":"publisher's initials","label":"PA","speakers":null,"expect":"PA"},
+    {"name":"publisher's Host, not identified","label":"Host","speakers":null,"expect":"Host"},
+    {
+      "name": "publisher's Host, identified",
+      "label": "Host",
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": "Ben Thompson"
+    },
+    {"name":"a label that only starts with S","label":"Sam","speakers":null,"expect":"Sam"},
+    {
+      "name": "quoted passage",
+      "label": "Quote",
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": null
+    },
+    {
+      "name": "no label",
+      "label": null,
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": null
+    },
+    {"name":"empty label","label":"","speakers":null,"expect":null}
+  ],
+  "clip_turns": [
+    {
+      "name": "one recognized speaker",
+      "turns": [{"speaker":"S1","text":"Just me today."}],
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": null
+    },
+    {
+      "name": "two recognized speakers",
+      "turns": [{"speaker":"S1","text":"Why?"},{"speaker":"S2","text":"Because."},{"speaker":"S1","text":"Fair."}],
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": [
+        {"speaker":"S1","name":"Ben Thompson","text":"Why?"},
+        {"speaker":"S2","name":"Guest","text":"Because."},
+        {"speaker":"S1","name":"Ben Thompson","text":"Fair."}
+      ]
+    },
+    {
+      "name": "no labels at all",
+      "turns": [{"speaker":null,"text":"Captions have no speakers."}],
+      "speakers": null,
+      "expect": null
+    },
+    {
+      "name": "an article quoting a passage",
+      "turns": [
+        {"speaker":"Quote","text":"I'm delighted to invest."},
+        {"speaker":null,"text":"Anthropic needs Nvidia the least."}
+      ],
+      "speakers": null,
+      "expect": null
+    },
+    {
+      "name": "an article, quote in the middle",
+      "turns": [
+        {"speaker":null,"text":"He said:"},
+        {"speaker":"Quote","text":"We will win."},
+        {"speaker":null,"text":"I doubt it."}
+      ],
+      "speakers": null,
+      "expect": null
+    },
+    {
+      "name": "an interview from publisher text",
+      "turns": [{"speaker":"Host","text":"Why buy it?"},{"speaker":"Ari Emanuel","text":"Because it was cheap."}],
+      "speakers": null,
+      "expect": [
+        {"speaker":"Host","name":"Host","text":"Why buy it?"},
+        {"speaker":"Ari Emanuel","name":"Ari Emanuel","text":"Because it was cheap."}
+      ]
+    },
+    {
+      "name": "an interview with the host identified",
+      "turns": [{"speaker":"Host","text":"Why buy it?"},{"speaker":"Ari Emanuel","text":"Because it was cheap."}],
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": [
+        {"speaker":"Host","name":"Ben Thompson","text":"Why buy it?"},
+        {"speaker":"Ari Emanuel","name":"Ari Emanuel","text":"Because it was cheap."}
+      ]
+    },
+    {
+      "name": "the host's prose then a guest",
+      "turns": [{"speaker":null,"text":"I asked him about it."},{"speaker":"Horace Dediu","text":"It is a moat."}],
+      "speakers": null,
+      "expect": [
+        {"speaker":null,"name":null,"text":"I asked him about it."},
+        {"speaker":"Horace Dediu","name":"Horace Dediu","text":"It is a moat."}
+      ]
+    },
+    {
+      "name": "one publisher name alone",
+      "turns": [{"speaker":"Horace Dediu","text":"It is a moat."}],
+      "speakers": null,
+      "expect": null
+    },
+    {
+      "name": "two labels with the same name run together",
+      "turns": [{"speaker":"S1","text":"Hello."},{"speaker":"Host","text":"Again."},{"speaker":"S2","text":"Hi."}],
+      "speakers": [
+        {"label":"S1","role":"host","name":"Ben Thompson"},
+        {"label":"S2","role":"guest","name":null},
+        {"label":"S3","role":"other","name":null},
+        {"label":"Host","role":"host","name":"Ben Thompson"}
+      ],
+      "expect": [{"speaker":"S1","name":"Ben Thompson","text":"Hello. Again."},{"speaker":"S2","name":"Guest","text":"Hi."}]
+    }
+  ]
+}

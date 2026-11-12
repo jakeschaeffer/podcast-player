@@ -3,6 +3,7 @@
  * emails) matched to episodes, extracted to `episode_text`, and aligned to the stored audio with forced
  * alignment so the publisher's own words carry timings. One alignment per recording is kept.
  */
+import { QUOTE_LABEL } from "../core/speakers/identify.js";
 import type { AppContext } from "../app/context.js";
 import { parseTextFeed } from "../core/feed/parse.js";
 import { normalize } from "../core/transcript/normalize.js";
@@ -169,7 +170,7 @@ export function attachParagraphs(text: string, article: Pick<ArticleText, "parag
     }
     const pi = owner[Math.min(tokenIndex, owner.length - 1)] ?? -1;
     const paragraph = article.paragraphs[pi];
-    const speaker = paragraph ? (paragraph.speaker ?? (paragraph.quote ? "Quote" : undefined)) : undefined;
+    const speaker = paragraph ? (paragraph.speaker ?? (paragraph.quote ? QUOTE_LABEL : undefined)) : undefined;
     if (paragraph && !firstWordOfParagraph.has(pi)) firstWordOfParagraph.set(pi, words.length);
     const word: RawWord = { text: w.text, start_ms: w.start_ms, end_ms: w.end_ms, confidence: Math.max(0, Math.min(1, 1 / (1 + w.loss))) };
     if (speaker) word.speaker = speaker;

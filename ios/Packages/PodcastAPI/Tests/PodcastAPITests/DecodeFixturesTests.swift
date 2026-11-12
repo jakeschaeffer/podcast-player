@@ -36,6 +36,8 @@ struct DecodeFixturesTests {
     "snips.get.failed": { try decode(Snip.self, $0) },
     "snips.edit": { try decode(Snip.self, $0) },
     "snips.list": { try decode(Page<Snip>.self, $0) },
+    "readwise.summary": { try decode(ReadwiseSummary.self, $0) },
+    "readwise.retries": { try decode(ReadwiseSummary.self, $0) },
     "errors.unauthorized": { try decode(APIError.Envelope.self, $0) },
     "errors.bad_request": { try decode(APIError.Envelope.self, $0) },
     "errors.conflict": { try decode(APIError.Envelope.self, $0) },

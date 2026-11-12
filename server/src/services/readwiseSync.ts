@@ -7,6 +7,7 @@
  * the clip. The words and the owner's note go to Readwise, private feeds' included, since the account is the owner's.
  */
 import type { AppContext } from "../app/context.js";
+import { conflict } from "../app/errors.js";
 import { speakerDisplayName } from "../core/speakers/identify.js";
 import { READWISE_FORMAT, readwiseHighlight, readwisePatch, type ReadwiseSnip } from "../core/readwise/highlight.js";
 import { speakerTurns } from "../core/transcript/normalize.js";
@@ -120,10 +121,9 @@ export function readwiseSnip(ctx: AppContext, snip: SnipRow, rev: SnipRevisionRo
 }
 
 /**
- * Who said what. Labels come in two kinds. Speech recognition's ("S1", "S2") are named as the apps name them (the
- * person, "Host", "Speaker 2"). Publisher text's are already names ("Ari Emanuel", "Host"), "Quote" for a passage the
- * text quotes, or none for the author's own prose. A turn is named when two or more voices speak, or when its name is
- * a person's: a bare "Speaker 1" or "Host" over one block says nothing. Null leaves the excerpt as one block.
+ * Who said what, with the headings every client shows (speakerDisplayName). A turn is named when two or more voices
+ * speak, or when its name is a person's: a bare "Speaker 1" or "Host" over one block says nothing. Null leaves the
+ * excerpt as one block.
  *
  * Unnamed text (the author's prose, the passages it quotes) runs on as the article does, with a new paragraph only
  * where a sentence ends: aligning the audio to the article's paragraphs can be a few words off at their edges, so a
@@ -134,11 +134,7 @@ function namedTurns(ctx: AppContext, rev: SnipRevisionRow): ReadwiseSnip["turns"
   const turns = speakerTurns(loadTranscript(ctx, rev.transcript_id), rev.start_word, rev.end_word);
   if (turns.length === 0) return null;
   const speakers = speakersFor(ctx, rev.transcript_id);
-  const voice = (label: string | null): string | null => {
-    if (!label || label === QUOTE_LABEL) return null;
-    if (ASR_LABEL.test(label)) return speakerDisplayName(label, speakers);
-    return speakers?.find((s) => s.label === label)?.name ?? label;
-  };
+  const voice = (label: string | null) => speakerDisplayName(label, speakers);
   const several = new Set(turns.map((t) => voice(t.speaker)).filter(Boolean)).size > 1;
   const out: { name: string | null; text: string }[] = [];
   for (const t of turns) {
@@ -151,8 +147,109 @@ function namedTurns(ctx: AppContext, rev: SnipRevisionRow): ReadwiseSnip["turns"
   return out;
 }
 
-/** How publisher text marks a quoted passage (services/publisherText.ts). */
-const QUOTE_LABEL = "Quote";
-const ASR_LABEL = /^S\d+$/;
 const GENERIC_NAME = /^(Speaker( \d+)?|Host|Guest)$/;
 const SENTENCE_END = /[.!?…]["”’)\]]*$/;
+
+/**
+ * Where one snip stands with Readwise: in it with its current revision ("sent"), still to go or behind an edit
+ * ("waiting"), given up on until the next sweep or a retry ("failed", with the error), or deleted there by the owner.
+ */
+export type ReadwiseSnipState = {
+  state: "sent" | "waiting" | "failed" | "deleted_in_readwise";
+  /** The highlight in Readwise, once it has an id. */
+  highlight_url: string | null;
+  synced_at: number | null;
+  error: string | null;
+};
+
+/** Null when Readwise is not set up (no READWISE_TOKEN). */
+export function readwiseState(ctx: AppContext, snip: SnipRow): ReadwiseSnipState | null {
+  if (!ctx.readwise) return null;
+  const job = ctx.db.prepare("SELECT status, last_error FROM job WHERE key = ?").get(`sync_readwise:${snip.id}`) as { status: string; last_error: string | null } | undefined;
+  const state: ReadwiseSnipState["state"] =
+    snip.readwise_gone_at !== null ? "deleted_in_readwise"
+    : job?.status === "failed" ? "failed"
+    : snip.readwise_revision_id !== null && snip.readwise_revision_id === snip.current_revision_id ? "sent"
+    : "waiting";
+  return {
+    state,
+    highlight_url: snip.readwise_highlight_id !== null && state !== "deleted_in_readwise" ? highlightUrl(snip.readwise_highlight_id) : null,
+    synced_at: snip.readwise_synced_at,
+    error: state === "failed" ? (job?.last_error ?? null) : null,
+  };
+}
+
+export const highlightUrl = (id: number) => `https://readwise.io/open/${id}`;
+
+/** A send Readwise refused or that kept failing; it is tried again by the sweep after a while, or by a retry. */
+export type ReadwiseFailure = { snip_id: string; title: string; episode_title: string; snip_deleted: boolean; error: string; failed_at: number };
+
+export type ReadwiseSummary = {
+  enabled: boolean;
+  days: number;
+  since: number;
+  /** Ready snips made in the window, less those the owner deleted in Readwise. */
+  snips: number;
+  /** Of those, how many have a highlight in Readwise now (an edit may still be on its way). */
+  sent: number;
+  /** Of those, how many are still to be sent for the first time. */
+  waiting: number;
+  /** Snips in the window the owner deleted in Readwise, which are not sent again. */
+  deleted_in_readwise: number;
+  /** Every send that has failed for good, whenever its snip was made, newest first. */
+  failed: ReadwiseFailure[];
+};
+
+/** How the last `days` of snips stand with Readwise, and every failed send. */
+export function readwiseSummary(ctx: AppContext, days = 30): ReadwiseSummary {
+  const since = ctx.now() - days * 86_400_000;
+  if (!ctx.readwise) return { enabled: false, days, since, snips: 0, sent: 0, waiting: 0, deleted_in_readwise: 0, failed: [] };
+  const counts = ctx.db
+    .prepare(
+      `SELECT
+         COUNT(*) FILTER (WHERE s.readwise_gone_at IS NULL) AS snips,
+         COUNT(*) FILTER (WHERE s.readwise_gone_at IS NULL AND s.readwise_revision_id IS NOT NULL) AS sent,
+         COUNT(*) FILTER (WHERE s.readwise_gone_at IS NULL AND s.readwise_revision_id IS NULL AND (j.status IS NULL OR j.status != 'failed')) AS waiting,
+         COUNT(*) FILTER (WHERE s.readwise_gone_at IS NOT NULL) AS deleted_in_readwise
+         FROM snip s
+         JOIN snip_revision r ON r.id = s.current_revision_id
+         LEFT JOIN job j ON j.key = 'sync_readwise:' || s.id
+        WHERE s.deleted_at IS NULL AND r.status = 'ready' AND COALESCE(s.captured_at, s.created_at) >= ?`,
+    )
+    .get(since) as { snips: number; sent: number; waiting: number; deleted_in_readwise: number };
+  const failed = ctx.db
+    .prepare(
+      `SELECT s.id, s.audio_asset_id, s.deleted_at, r.title, r.excerpt, j.last_error, j.updated_at
+         FROM job j JOIN snip s ON j.key = 'sync_readwise:' || s.id
+         LEFT JOIN snip_revision r ON r.id = s.current_revision_id
+        WHERE j.kind = 'sync_readwise' AND j.status = 'failed' AND s.readwise_gone_at IS NULL
+        ORDER BY j.updated_at DESC LIMIT 100`,
+    )
+    .all() as { id: string; audio_asset_id: string; deleted_at: number | null; title: string | null; excerpt: string | null; last_error: string | null; updated_at: number }[];
+  return {
+    enabled: true,
+    days,
+    since,
+    ...counts,
+    failed: failed.map((f) => ({
+      snip_id: f.id,
+      title: f.title ?? "Snip",
+      episode_title: episodeForAsset(ctx, f.audio_asset_id).episode.title,
+      snip_deleted: f.deleted_at !== null,
+      error: f.last_error ?? "failed",
+      failed_at: f.updated_at,
+    })),
+  };
+}
+
+/** Queue every failed send again now. Idempotent: what is not failed is left as it is. Returns how many were queued. */
+export function retryReadwiseFailures(ctx: AppContext): number {
+  if (!ctx.readwise) throw conflict("Readwise is not set up on this server (READWISE_TOKEN)");
+  const ids = ctx.db
+    .prepare("SELECT s.id FROM job j JOIN snip s ON j.key = 'sync_readwise:' || s.id WHERE j.kind = 'sync_readwise' AND j.status = 'failed' AND s.readwise_gone_at IS NULL")
+    .pluck()
+    .all() as string[];
+  for (const id of ids) queueReadwiseSync(ctx, id);
+  if (ids.length > 0) ctx.log("readwise failures queued again", { snips: ids.length });
+  return ids.length;
+}

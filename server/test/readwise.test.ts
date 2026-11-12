@@ -5,10 +5,10 @@ import type { SnipRow } from "../src/db/rows.js";
 import { NonRetryable } from "../src/jobs/errors.js";
 import { drain } from "../src/jobs/worker.js";
 import { newId } from "../src/lib/ids.js";
-import { queueReadwiseSweep, readwiseSnip } from "../src/services/readwiseSync.js";
+import { queueReadwiseSweep, readwiseSnip, readwiseSummary, retryReadwiseFailures } from "../src/services/readwiseSync.js";
 import { highlightText, READWISE_FORMAT } from "../src/core/readwise/highlight.js";
 import type { SnipRevisionRow } from "../src/db/rows.js";
-import { createSnip, deleteSnip, editSnip } from "../src/services/snips.js";
+import { createSnip, deleteSnip, editSnip, getSnip } from "../src/services/snips.js";
 import { storeTranscript } from "../src/services/transcripts.js";
 import { makeTone, PRICING, recordingFixture, transcriptAbout } from "./helpers/fixture.js";
 import { buildTranscript, type Turn } from "./helpers/transcript.js";
@@ -157,6 +157,81 @@ describe("Readwise sync", () => {
     expect(textOf([{ speaker: "Horace Dediu", text: "Just me today." }])).toBe("Horace Dediu\nJust me today.");
     expect(textOfAsr([{ speaker: "S1", text: "One." }, { speaker: "S2", text: "Two." }])).toBe("Speaker 1\nOne.\n\nSpeaker 2\nTwo.");
     expect(textOfAsr([{ speaker: "S1", text: "Alone." }])).toBe("Alone.");
+  });
+});
+
+describe("Readwise status", () => {
+  /** Takes highlights until told to refuse the token. */
+  class SwitchableReadwise extends FakeReadwise {
+    refuse = false;
+    override async create(h: ReadwiseHighlight) {
+      if (this.refuse) throw new NonRetryable("Readwise POST /highlights/ answered 401 (check READWISE_TOKEN)");
+      return super.create(h);
+    }
+    override async update(id: number, patch: ReadwiseHighlightPatch) {
+      if (this.refuse) throw new NonRetryable(`Readwise PATCH /highlights/${id}/ answered 401 (check READWISE_TOKEN)`);
+      return super.update(id, patch);
+    }
+  }
+
+  it("says where each snip stands, counts the month's snips, lists the failures, and sends them again on a retry", async () => {
+    const readwise = new SwitchableReadwise();
+    const { ctx, assetId, clock } = recordingFixture(mp3, { readwise });
+    queueReadwiseSweep(ctx);
+    storeTranscript(ctx, assetId, transcriptAbout(PRICING), {});
+    const old = await readySnip(ctx, assetId);
+    await drain(ctx, { kinds: ["sync_readwise"] });
+    clock.now += 40 * 86_400_000; // `old` falls out of the month
+    // A second apart, so their sends run in this order.
+    const sent = await readySnip(ctx, assetId);
+    clock.now += 1000;
+    const refused = await readySnip(ctx, assetId);
+    clock.now += 1000;
+    const gone = await readySnip(ctx, assetId);
+    expect(getSnip(ctx, sent.id, null).readwise).toMatchObject({ state: "waiting", highlight_url: null });
+    // `sent` goes through; `gone` does too and is then deleted in Readwise; `refused` is refused.
+    await drain(ctx, { kinds: ["sync_readwise"], max: 1 });
+    readwise.refuse = true;
+    await drain(ctx, { kinds: ["sync_readwise"], max: 1 });
+    readwise.refuse = false;
+    await drain(ctx, { kinds: ["sync_readwise"] });
+    const goneId = snipRow(ctx, gone.id).readwise_highlight_id!;
+    readwise.highlights.delete(goneId);
+    editSnip(ctx, gone.id, { note: "noticed" }, null);
+    await drain(ctx, { kinds: ["sync_readwise"] });
+
+    expect(getSnip(ctx, sent.id, null).readwise).toMatchObject({ state: "sent", highlight_url: expect.stringMatching(/^https:\/\/readwise\.io\/open\/\d+$/), error: null });
+    expect(getSnip(ctx, refused.id, null).readwise).toMatchObject({ state: "failed", highlight_url: null, error: expect.stringContaining("401") });
+    expect(getSnip(ctx, gone.id, null).readwise).toMatchObject({ state: "deleted_in_readwise", highlight_url: null });
+    const summary = readwiseSummary(ctx);
+    expect(summary).toMatchObject({ enabled: true, days: 30, snips: 2, sent: 1, waiting: 0, deleted_in_readwise: 1 });
+    expect(summary.failed).toEqual([expect.objectContaining({ snip_id: refused.id, episode_title: "Pricing", snip_deleted: false, error: expect.stringContaining("401") })]);
+    expect(getSnip(ctx, old.id, null).readwise?.state).toBe("sent");
+    expect(readwiseSummary(ctx, 60)).toMatchObject({ snips: 3, sent: 2 }); // `old` counts again
+
+    // An edit while the token is refused fails a snip that is already in Readwise: still sent, and failed.
+    readwise.refuse = true;
+    editSnip(ctx, sent.id, { title: "Renamed while refused" }, null);
+    await drain(ctx, { kinds: ["sync_readwise"] });
+    expect(readwiseSummary(ctx)).toMatchObject({ sent: 1, failed: [expect.objectContaining({ snip_id: sent.id, title: "Renamed while refused" }), expect.objectContaining({ snip_id: refused.id })] });
+
+    readwise.refuse = false;
+    expect(retryReadwiseFailures(ctx)).toBe(2);
+    expect(readwiseSummary(ctx).failed).toEqual([]);
+    await drain(ctx, { kinds: ["sync_readwise"] });
+    expect(readwiseSummary(ctx)).toMatchObject({ snips: 2, sent: 2, failed: [] });
+    expect(getSnip(ctx, refused.id, null).readwise?.state).toBe("sent");
+    expect(retryReadwiseFailures(ctx)).toBe(0);
+    expect(readwise.highlights.size).toBe(3);
+  });
+
+  it("is off without a token: no state on snips, an empty summary, and a retry refused", async () => {
+    const { ctx, assetId } = recordingFixture(mp3);
+    storeTranscript(ctx, assetId, transcriptAbout(PRICING), {});
+    const snip = await readySnip(ctx, assetId);
+    expect(getSnip(ctx, snip.id, null).readwise).toBeNull();
+    expect(readwiseSummary(ctx)).toMatchObject({ enabled: false, snips: 0, failed: [] });
+    expect(() => retryReadwiseFailures(ctx)).toThrow(/not set up/);
   });
 });
 

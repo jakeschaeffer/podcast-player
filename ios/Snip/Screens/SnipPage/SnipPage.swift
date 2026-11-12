@@ -170,7 +170,7 @@ struct SnipPage: View {
         }
         if model.revision?.status != .selecting {
           if let turns = model.turns {
-            TurnsText(turns: turns, speakers: model.speakers)
+            TurnsText(turns: turns)
           } else if let excerpt = model.revision?.excerpt {
             Text("“\(excerpt)”").font(.title2).foregroundStyle(.secondary)
           }
@@ -474,22 +474,23 @@ private struct SummaryText: View {
   }
 }
 
-/// The clip's words split by speaker, when more than one person speaks: each turn under its speaker's name (or Host,
-/// Guest, Speaker 2), the labels alternating colour so a change of voice reads at a glance.
+/// The clip's words split by voice, when there is more than one: each turn under its speaker's name (or Host, Guest,
+/// Speaker 2; none for an article's own prose), the names alternating colour so a change of voice reads at a glance.
 private struct TurnsText: View {
   let turns: [SnipPageModel.Turn]
-  let speakers: [Speaker]?
 
   var body: some View {
-    let order = turns.map(\.speaker).reduce(into: [String?]()) { if !$0.contains($1) { $0.append($1) } }
+    let order = turns.map(\.name).reduce(into: [String?]()) { if !$0.contains($1) { $0.append($1) } }
     VStack(alignment: .leading, spacing: 16) {
       ForEach(turns) { turn in
-        let n = order.firstIndex(of: turn.speaker) ?? 0
+        let n = order.firstIndex(of: turn.name) ?? 0
         VStack(alignment: .leading, spacing: 4) {
-          Text(turn.speaker.map { Speaker.displayName($0, in: speakers) } ?? "Speaker")
-            .font(.subheadline.weight(.bold))
-            .textCase(.uppercase)
-            .foregroundStyle(n.isMultiple(of: 2) ? Color.secondary : Color.accentColor)
+          if let name = turn.name {
+            Text(name)
+              .font(.subheadline.weight(.bold))
+              .textCase(.uppercase)
+              .foregroundStyle(n.isMultiple(of: 2) ? Color.secondary : Color.accentColor)
+          }
           Text(turn.text).font(.title2).foregroundStyle(.secondary)
         }
       }

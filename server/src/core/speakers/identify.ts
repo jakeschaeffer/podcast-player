@@ -138,13 +138,42 @@ export async function identifySpeakers(input: SpeakersInput, model: TextModel, o
 }
 
 /**
- * What a label is shown as: the name when known, else "Host" or "Guest", else "Speaker 2" and so on. Used by the
- * shared pages; the apps have the same rule.
+ * What a label is shown as, or null for no heading. Labels come in two kinds. Speech recognition's ("S1", "S2") show
+ * as the name when known, else "Host" or "Guest", else "Speaker 2". Publisher text's are already names ("Ari Emanuel",
+ * "Host", initials): the name identified for them, else the label as written; its "Quote" (a passage the text quotes)
+ * and unlabelled prose have no heading. The rule is contracts/golden/speakers/speaker_names_v1.json; the web app and
+ * the native app replay it.
  */
-export function speakerDisplayName(label: string | null, speakers: SpeakerIdentity[] | null): string {
+export function speakerDisplayName(label: string | null, speakers: SpeakerIdentity[] | null): string | null {
+  if (!label || label === QUOTE_LABEL) return null;
   const who = speakers?.find((s) => s.label === label);
   if (who?.name) return who.name;
+  if (!ASR_LABEL.test(label)) return label;
   if (who?.role === "host") return "Host";
   if (who?.role === "guest") return "Guest";
-  return label ? `Speaker ${label.replace(/^S/, "")}` : "Speaker";
+  return `Speaker ${label.slice(1)}`;
+}
+
+/** How publisher text marks a quoted passage (services/publisherText.ts). */
+export const QUOTE_LABEL = "Quote";
+/** Speech recognition's labels, numbered in order of first appearance by normalize(). */
+const ASR_LABEL = /^S\d+$/;
+
+/** A clip's words in turns, each under the heading to show for it (null: none). */
+export type NamedTurn = { speaker: string | null; name: string | null; text: string };
+
+/**
+ * A clip's words by voice, for the snip pages: turns that show under the same heading (or under none) run together,
+ * and the turns are worth showing only when more than one heading results; otherwise null, and the clip reads as one
+ * block. So an article's prose and the passages it quotes are one block, and an interview's turns carry names.
+ */
+export function clipTurns(turns: { speaker: string | null; text: string }[], speakers: SpeakerIdentity[] | null): NamedTurn[] | null {
+  const out: NamedTurn[] = [];
+  for (const t of turns) {
+    const name = speakerDisplayName(t.speaker, speakers);
+    const last = out[out.length - 1];
+    if (last && last.name === name) last.text += ` ${t.text}`;
+    else out.push({ speaker: t.speaker, name, text: t.text });
+  }
+  return out.length > 1 ? out : null;
 }

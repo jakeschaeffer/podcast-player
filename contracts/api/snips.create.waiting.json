@@ -4,29 +4,29 @@
     "url": "/v1/snips",
     "body": {
       "client_request_id": "01EXAMPLE0000000000000002",
-      "asset_id": "01M72W09Y9XHVDCZ3CAZY84NFG",
+      "asset_id": "01M76JZTCA7SFBN5F7AM4TDVBV",
       "anchor_ms": 60000,
       "heard_from_ms": 0
     }
   },
   "status": 201,
   "body": {
-    "id": "01M72W09YBJ84C8DKB3SYRK2DS",
-    "asset_id": "01M72W09Y9XHVDCZ3CAZY84NFG",
-    "episode_id": "01M72W09Y94FEK2H9VY6ADZF94",
+    "id": "01M76JZTCAKHXENREZGF5V3JDN",
+    "asset_id": "01M76JZTCA7SFBN5F7AM4TDVBV",
+    "episode_id": "01M76JZTCANEAHQB1M1XEWGFQQ",
     "episode_title": "Untranscribed",
     "show_title": "Fixture Show",
     "image_url": null,
     "media_kind": "audio",
     "anchor_ms": 60000,
     "heard_from_ms": 0,
-    "share_url": "http://pods.test/s/qnkvlpyy723sm3zlwsw6",
+    "share_url": "http://pods.test/s/yj55yutyhvolfcse355u",
     "share_state": "active",
     "note": null,
     "created_at": 1800000000000,
     "captured_at": 1800000000000,
     "revision": {
-      "id": "01M72W09YB57GVXT6VVBH600BR",
+      "id": "01M76JZTCBGG1W3VWC2Y813DV4",
       "rev": 1,
       "method": "fixed",
       "status": "waiting",
@@ -46,6 +46,12 @@
       "error": null,
       "selection": null,
       "created_at": 1800000000000
+    },
+    "readwise": {
+      "state": "waiting",
+      "highlight_url": null,
+      "synced_at": null,
+      "error": null
     }
   }
 }
