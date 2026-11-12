@@ -93,15 +93,36 @@ export function listingFailed(ctx: AppContext, feedId: string, message: string):
 
 export type WantedMetadata = { episode_id: string; youtube_id: string; title: string };
 
-/** Channel videos whose details have not come yet, the most recently listed first. */
+/** Channel videos whose details have not come yet and are not put off, the most recently listed first. */
 export function wantedMetadata(ctx: AppContext, limit = 10): WantedMetadata[] {
   return ctx.db
     .prepare(
       `SELECT e.id AS episode_id, e.youtube_id, e.title FROM episode e
        WHERE e.metadata_at IS NULL AND e.media_kind = 'video' AND e.youtube_id IS NOT NULL AND e.video_url_enc IS NULL
+         AND (e.metadata_retry_at IS NULL OR e.metadata_retry_at <= ?)
        ORDER BY e.first_seen_at DESC, COALESCE(e.published_at, 0) DESC LIMIT ?`,
     )
-    .all(limit) as WantedMetadata[];
+    .all(ctx.now(), limit) as WantedMetadata[];
+}
+
+/** How long details are put off when the fetcher names no time, and the bounds on a time it names. */
+export const DETAILS_RETRY_DEFAULT_MS = 6 * 60 * 60 * 1000;
+const DETAILS_RETRY_MIN_MS = 60 * 60 * 1000;
+const DETAILS_RETRY_MAX_MS = 14 * 24 * 60 * 60 * 1000;
+
+/**
+ * The details cannot be read yet: a live stream that has not started or ended (YouTube has no length or chapters
+ * until it has), or a failure that may pass. The video is not wanted again until `retry_at` (the fetcher's time,
+ * such as a stream's start, kept between an hour and two weeks away), or in six hours when it names none.
+ */
+export function metadataLater(ctx: AppContext, episodeId: string, message: string, retryAt?: number | null): { retry_at: number } {
+  getEpisodeRow(ctx, episodeId);
+  const now = ctx.now();
+  const wanted = retryAt ?? now + DETAILS_RETRY_DEFAULT_MS;
+  const retry_at = Math.min(now + DETAILS_RETRY_MAX_MS, Math.max(now + DETAILS_RETRY_MIN_MS, wanted));
+  ctx.db.prepare("UPDATE episode SET metadata_retry_at = ? WHERE id = ? AND metadata_at IS NULL").run(retry_at, episodeId);
+  ctx.log("video details put off", { episode_id: episodeId, retry_at, reason: message });
+  return { retry_at };
 }
 
 export type VideoMetadata = {
@@ -123,7 +144,7 @@ export function storeMetadata(ctx: AppContext, episodeId: string, m: VideoMetada
   ctx.db
     .prepare(
       `UPDATE episode SET title = COALESCE(?, title), description_html = COALESCE(?, description_html), duration_hint_ms = COALESCE(?, duration_hint_ms),
-       image_url = COALESCE(?, image_url), published_at = COALESCE(?, published_at), feed_chapters = COALESCE(?, feed_chapters), metadata_at = ? WHERE id = ?`,
+       image_url = COALESCE(?, image_url), published_at = COALESCE(?, published_at), feed_chapters = COALESCE(?, feed_chapters), metadata_at = ?, metadata_retry_at = NULL WHERE id = ?`,
     )
     .run(m.title ?? null, description, m.duration_ms ?? null, m.thumbnail_url ?? null, m.published_at ?? null, chapters, ctx.now(), episodeId);
   if (m.unavailable) ctx.log("video details unavailable", { episode_id: episodeId, reason: m.unavailable });

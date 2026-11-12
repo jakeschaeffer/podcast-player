@@ -54,6 +54,12 @@ none yet (description, length, thumbnail, date, chapters), a few a pass. A 429 f
 `SNIP_BACKOFF_SECONDS` (an hour); a video the owner asked for is still tried. "More videos" pressed during that hour
 answers at once with when to ask again, rather than waiting.
 
+A live stream that has not started or ended has no length or chapters yet, so its details are put off on the server
+(`POST /v1/episodes/{id}/video/metadata/later`) until three hours after its scheduled start, or six hours for one
+already live or still processing; any other failure that may pass is put off six hours. The server lists the video
+as wanted again when that time comes. (Until 2026-11-12 such a video was skipped until the fetcher restarted, and
+so waited for good.)
+
 ## When a download fails
 
 The failure's message shows on the episode in the apps. "Sign in to confirm you're not a bot" means YouTube wants

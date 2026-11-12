@@ -10,7 +10,7 @@ import { badRequest } from "../../app/errors.js";
 import type { Json3 } from "../../core/transcript/captions.js";
 import { newId } from "../../lib/ids.js";
 import { getEpisode } from "../../services/episodes.js";
-import { captionsLater, listingFailed, requestMoreVideos, storeListing, storeMetadata, wantedCaptions, wantedListings, wantedMetadata } from "../../services/channelVideos.js";
+import { captionsLater, listingFailed, metadataLater, requestMoreVideos, storeListing, storeMetadata, wantedCaptions, wantedListings, wantedMetadata } from "../../services/channelVideos.js";
 import { getFeedRow, toFeedView } from "../../services/feeds.js";
 import { addYouTubeVideo, requestVideo, setYouTubeVideo, storeCaptions, storeVideoFile, videoDone, videoFailed, wantedVideos } from "../../services/video.js";
 import * as S from "../schemas.js";
@@ -59,6 +59,7 @@ export function registerVideoRoutes(instance: FastifyInstance, ctx: AppContext):
     storeMetadata(ctx, request.params.id, request.body);
     return getEpisode(ctx, request.params.id, request.device.id);
   });
+  app.post("/v1/episodes/:id/video/metadata/later", { schema: { tags: ["video"], summary: "For the home fetcher: the video's details cannot be read yet (a live stream that has not started or ended, or a failure that may pass). It is not wanted again until retry_at: the time sent, such as the stream's start, kept between an hour and two weeks away, or six hours", params: Id, body: Type.Object({ message: Type.String({ maxLength: 500 }), retry_at: Type.Optional(S.Nullable(Type.Integer())) }), response: { 200: Type.Object({ retry_at: Type.Integer() }) } } }, async (request) => metadataLater(ctx, request.params.id, request.body.message, request.body.retry_at));
 
   app.get("/v1/video/captions/wanted", { schema: { tags: ["video"], summary: "For the home fetcher: videos here whose captions failed earlier and are due another try", response: { 200: Type.Object({ items: Type.Array(S.WantedDetailsSchema) }) } } }, async () => ({ items: wantedCaptions(ctx) }));
   app.post("/v1/episodes/:id/video/captions/later", { schema: { tags: ["video"], summary: "For the home fetcher: the video arrived but fetching its captions failed. Nothing is transcribed; the captions are wanted again later. retry_at null: no more tries", params: Id, body: Type.Object({ message: Type.String({ maxLength: 500 }) }), response: { 200: Type.Object({ retry_at: S.Nullable(Type.Integer()) }) } } }, async (request) => captionsLater(ctx, request.params.id, request.body.message));

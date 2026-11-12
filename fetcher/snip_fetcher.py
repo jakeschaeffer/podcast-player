@@ -20,6 +20,7 @@ When no video is wanted, and paced so it stays well behind real fetches, it also
     POST /v1/feeds/{id}/videos/failed             with a message, when a channel cannot be listed
     GET  /v1/video/metadata/wanted                videos whose details have not come yet
     PUT  /v1/episodes/{id}/video/metadata         a video's title, description, length, thumbnail, date and chapters
+    POST /v1/episodes/{id}/video/metadata/later   its details cannot be read yet (a live stream not started or ended)
 
 YouTube's 429 stops all of that for SNIP_BACKOFF_SECONDS. A wanted video is still tried: the owner asked for it.
 
@@ -138,7 +139,8 @@ class RateLimited(RuntimeError):
     """YouTube said to slow down."""
 
 
-# Background work waits until this time, after a 429; videos that failed to give details are skipped until a restart.
+# Background work waits until this time, after a 429. Videos whose details failed are put off on the server; one the
+# server could not be told about (an older server) is skipped until a restart.
 quiet_until = 0.0
 skip_details: set[str] = set()
 
@@ -303,22 +305,50 @@ def details_of(info: dict) -> dict:
     return body
 
 
+# A live stream has no length or chapters until it has ended and YouTube has processed it.
+NOT_YET = ("is_upcoming", "is_live", "post_live")
+# How long after a scheduled stream's start to ask again: most have ended by then.
+AFTER_START_SECONDS = 3 * 3600
+
+
+def details_later(episode_id: str, video_id: str, message: str, retry_at_ms: int | None = None) -> None:
+    """Tell the server to stop asking for these details until later; if it cannot be told, skip them until a restart."""
+    body: dict = {"message": message[:500]}
+    if retry_at_ms is not None:
+        body["retry_at"] = retry_at_ms
+    try:
+        r = call("POST", f"/v1/episodes/{episode_id}/video/metadata/later", body=json.dumps(body).encode(), content_type="application/json")
+        log(f"  details of {video_id} put off until {time.strftime('%Y-%m-%d %H:%M', time.gmtime(r['retry_at'] / 1000))}Z: {message[:120]}")
+    except Exception as e:  # noqa: BLE001
+        log(f"  details of {video_id} skipped until a restart (the server could not be told: {e})")
+        skip_details.add(video_id)
+
+
 def fetch_details(item: dict) -> None:
-    """One video's details, from one request. A 429 stops the background work; a video that is gone is told once."""
+    """One video's details, from one request. A 429 stops the background work; a video that is gone is told once; a
+    live stream that has not started or ended, or a failure that may pass, is put off on the server."""
     episode_id, video_id = item["episode_id"], item["youtube_id"]
     try:
-        res = ytdlp(["--skip-download", "--dump-json", "--no-warnings", f"https://youtu.be/{video_id}"])
-        body = details_of(json.loads(res.stdout.splitlines()[-1]))
+        # A scheduled stream has no formats yet; without this yt-dlp fails on it instead of describing it.
+        res = ytdlp(["--skip-download", "--dump-json", "--no-warnings", "--ignore-no-formats-error", f"https://youtu.be/{video_id}"])
+        info = json.loads(res.stdout.splitlines()[-1])
     except RateLimited:
         raise
     except Exception as e:  # noqa: BLE001
         message = str(e)[:500]
         log(f"  details of {video_id} failed: {message}")
-        if any(word in message.lower() for word in GONE):
-            body = {"unavailable": message}
-        else:
-            skip_details.add(video_id)
+        if not any(word in message.lower() for word in GONE):
+            details_later(episode_id, video_id, message)
             return
+        body = {"unavailable": message}
+    else:
+        status = info.get("live_status")
+        if status in NOT_YET:
+            start = info.get("release_timestamp")
+            retry_at = int((start + AFTER_START_SECONDS) * 1000) if status == "is_upcoming" and isinstance(start, (int, float)) else None
+            details_later(episode_id, video_id, f"live stream {status.replace('_', ' ')}", retry_at)
+            return
+        body = details_of(info)
     call("PUT", f"/v1/episodes/{episode_id}/video/metadata", body=json.dumps(body).encode(), content_type="application/json")
     log(f"  details of {video_id} sent")
 

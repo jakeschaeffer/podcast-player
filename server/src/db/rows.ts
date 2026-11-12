@@ -27,7 +27,7 @@ export type EpisodeRow = {
   /** A feed's own video file, when the episode has an audio enclosure too. */
   video_url_enc: Buffer | null;
   /** When the home fetcher sent the video's details; when to try its captions again, and how many tries so far. */
-  metadata_at: number | null; captions_retry_at: number | null; captions_tries: number;
+  metadata_at: number | null; metadata_retry_at: number | null; captions_retry_at: number | null; captions_tries: number;
 };
 
 export type AudioAssetRow = {

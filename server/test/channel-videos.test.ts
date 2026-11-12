@@ -58,6 +58,43 @@ describe("channel videos", () => {
     expect(jobs("fetch_video")).toBe(0);
   });
 
+  it("puts off a video whose details cannot be read yet (a stream not started), then wants it again", async () => {
+    const live = newId();
+    const otherFeed = newId();
+    const otherUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCzyxwvutsrqponmlkjihgfe";
+    ctx.db.prepare("INSERT INTO feed (id, url_enc, url_hash, title, kind, created_at) VALUES (?, ?, ?, 'Other channel', 'youtube', 0)").run(otherFeed, ctx.secrets.encrypt(otherUrl), otherFeed);
+    ctx.db
+      .prepare("INSERT INTO episode (id, feed_id, guid, title, published_at, first_seen_at, enclosure_url_enc, enclosure_type, media_kind, youtube_id) VALUES (?, ?, 'yt:video:lllllllllll', 'Live soon', 2000000, 1, ?, 'video/youtube', 'video', 'lllllllllll')")
+      .run(live, otherFeed, ctx.secrets.encrypt("https://www.youtube.com/watch?v=lllllllllll"));
+    const wantedIds = async () => (await app.inject({ method: "GET", url: "/v1/video/metadata/wanted", headers: auth() })).json().items.map((w: { episode_id: string }) => w.episode_id);
+    expect(await wantedIds()).toContain(live);
+
+    const start = ctx.now() + 3 * 24 * 60 * 60 * 1000;
+    const later = await app.inject({ method: "POST", url: `/v1/episodes/${live}/video/metadata/later`, headers: auth(), payload: { message: "live stream not started", retry_at: start } });
+    expect(later.statusCode).toBe(200);
+    expect(later.json().retry_at).toBe(start);
+    expect(await wantedIds()).not.toContain(live);
+
+    // A time too soon, or none, is kept to the bounds: never asked again within the hour; six hours by default.
+    const H = 60 * 60 * 1000;
+    const before = ctx.now();
+    const soon = await app.inject({ method: "POST", url: `/v1/episodes/${live}/video/metadata/later`, headers: auth(), payload: { message: "x", retry_at: before } });
+    const none = await app.inject({ method: "POST", url: `/v1/episodes/${live}/video/metadata/later`, headers: auth(), payload: { message: "x" } });
+    const after = ctx.now();
+    expect(soon.json().retry_at).toBeGreaterThanOrEqual(before + H);
+    expect(soon.json().retry_at).toBeLessThanOrEqual(after + H);
+    expect(none.json().retry_at).toBeGreaterThanOrEqual(before + 6 * H);
+    expect(none.json().retry_at).toBeLessThanOrEqual(after + 6 * H);
+
+    // Once the time has come it is wanted again, and details stop the asking for good.
+    ctx.db.prepare("UPDATE episode SET metadata_retry_at = ? WHERE id = ?").run(ctx.now() - 1, live);
+    expect(await wantedIds()).toContain(live);
+    const stored = await app.inject({ method: "PUT", url: `/v1/episodes/${live}/video/metadata`, headers: auth(), payload: { duration_ms: 3600000 } });
+    expect(stored.statusCode).toBe(200);
+    expect(await wantedIds()).not.toContain(live);
+    expect((ctx.db.prepare("SELECT metadata_retry_at AS r FROM episode WHERE id = ?").get(live) as { r: number | null }).r).toBeNull();
+  });
+
   it("lists the next fifteen new videos, walking past ones it has, with no downloads", async () => {
     const asked = await app.inject({ method: "POST", url: `/v1/feeds/${feedId}/more-videos`, headers: auth() });
     expect(asked.statusCode).toBe(202);
