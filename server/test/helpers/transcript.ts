@@ -12,9 +12,10 @@ export type Turn = {
 
 /**
  * Lay turns out on a timeline and normalize them. Words within a turn are evenly spaced with a
- * 60 ms gap; sentences inside a turn get an extra 300 ms gap after terminal punctuation.
+ * 60 ms gap; sentences inside a turn get an extra 300 ms gap after terminal punctuation. `relabel_speakers: false` keeps
+ * the labels as given, as publisher text does.
  */
-export function buildTranscript(turns: Turn[], opts: { start_ms?: number } = {}): NormalizedTranscript {
+export function buildTranscript(turns: Turn[], opts: { start_ms?: number; relabel_speakers?: boolean } = {}): NormalizedTranscript {
   let t = opts.start_ms ?? 0;
   const words: RawWord[] = [];
   for (const turn of turns) {
@@ -29,7 +30,7 @@ export function buildTranscript(turns: Turn[], opts: { start_ms?: number } = {})
       if (/[.!?]$/.test(text)) t += 300;
     }
   }
-  return normalize({ provider: "test", model: "builder", language: "eng", words, events: [] });
+  return normalize({ provider: "test", model: "builder", language: "eng", words, events: [] }, opts.relabel_speakers === false ? { relabel_speakers: false } : {});
 }
 
 /** Deterministic pseudo-random generator for property-style tests. */

@@ -8,6 +8,12 @@ import type { ReadwiseHighlight, ReadwiseHighlightPatch } from "../../adapters/r
 
 export const READWISE_SOURCE_TYPE = "snip_podcasts";
 
+/**
+ * The layout's version. Changing what `highlightText` makes calls for a new one: the sync sends every highlight again
+ * when the version it last sent differs (services/readwiseSync.ts). "2": publisher text's names, and its unnamed paragraphs.
+ */
+export const READWISE_FORMAT = "2";
+
 /** Readwise's field limits (characters). */
 export const READWISE_LIMITS = { text: 8191, title: 511, author: 1024, note: 8191, url: 2047 } as const;
 
@@ -17,7 +23,7 @@ export type ReadwiseSnip = {
   summary: string | null;
   /** The words of the span; null without a transcript. */
   excerpt: string | null;
-  /** The words by speaker turn, each with the name to show or null when no one is named; null to show `excerpt` as one block. */
+  /** The words in paragraphs, each under the name to show or none. Null shows `excerpt` as one block. */
   turns: { name: string | null; text: string }[] | null;
   note: string | null;
   episode_title: string;

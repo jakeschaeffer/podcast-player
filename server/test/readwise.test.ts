@@ -5,10 +5,13 @@ import type { SnipRow } from "../src/db/rows.js";
 import { NonRetryable } from "../src/jobs/errors.js";
 import { drain } from "../src/jobs/worker.js";
 import { newId } from "../src/lib/ids.js";
-import { queueReadwiseSweep } from "../src/services/readwiseSync.js";
+import { queueReadwiseSweep, readwiseSnip } from "../src/services/readwiseSync.js";
+import { highlightText, READWISE_FORMAT } from "../src/core/readwise/highlight.js";
+import type { SnipRevisionRow } from "../src/db/rows.js";
 import { createSnip, deleteSnip, editSnip } from "../src/services/snips.js";
 import { storeTranscript } from "../src/services/transcripts.js";
 import { makeTone, PRICING, recordingFixture, transcriptAbout } from "./helpers/fixture.js";
+import { buildTranscript, type Turn } from "./helpers/transcript.js";
 
 /** Readwise as a map of highlights; remembers every call. */
 class FakeReadwise implements Readwise {
@@ -53,6 +56,7 @@ describe("Readwise sync", () => {
   it("sends a snip once it is ready, updates it on edits, and deletes it with the snip", async () => {
     const readwise = new FakeReadwise();
     const { ctx, assetId } = recordingFixture(mp3, { readwise });
+    expect(queueReadwiseSweep(ctx)).toBe(0); // the worker's sweep at start
     storeTranscript(ctx, assetId, transcriptAbout(PRICING), {});
     const snip = await readySnip(ctx, assetId);
     expect(readwise.calls).toEqual([]); // queued when ready, not sent inside the snip pipeline
@@ -88,6 +92,7 @@ describe("Readwise sync", () => {
   it("leaves a highlight the owner deleted in Readwise deleted", async () => {
     const readwise = new FakeReadwise();
     const { ctx, assetId } = recordingFixture(mp3, { readwise });
+    queueReadwiseSweep(ctx);
     storeTranscript(ctx, assetId, transcriptAbout(PRICING), {});
     const snip = await readySnip(ctx, assetId);
     await drain(ctx, { kinds: ["sync_readwise"] });
@@ -114,6 +119,44 @@ describe("Readwise sync", () => {
     await drain(ctx, { kinds: ["sync_readwise"] });
     expect(new Set([...readwise.highlights.values()].map((h) => h.highlight_url))).toEqual(new Set([a.share_url, b.share_url]));
     expect(queueReadwiseSweep(ctx)).toBe(0);
+  });
+
+  it("sends every highlight again once when the layout changes", async () => {
+    const readwise = new FakeReadwise();
+    const { ctx, assetId } = recordingFixture(mp3, { readwise });
+    queueReadwiseSweep(ctx);
+    storeTranscript(ctx, assetId, transcriptAbout(PRICING), {});
+    await readySnip(ctx, assetId);
+    await readySnip(ctx, assetId);
+    await drain(ctx, { kinds: ["sync_readwise"] });
+    expect(readwise.calls).toEqual(["create", "create"]);
+    ctx.db.prepare("UPDATE setting SET value = 'old' WHERE key = 'readwise_format'").run();
+    expect(queueReadwiseSweep(ctx)).toBe(2);
+    await drain(ctx, { kinds: ["sync_readwise"] });
+    expect(readwise.calls.slice(2).every((c) => c.startsWith("update "))).toBe(true);
+    expect(readwise.calls).toHaveLength(4);
+    expect(ctx.db.prepare("SELECT value FROM setting WHERE key = 'readwise_format'").pluck().get()).toBe(READWISE_FORMAT);
+    expect(queueReadwiseSweep(ctx)).toBe(0);
+  });
+
+  it("names publisher text's voices as written, and runs its unnamed text on in paragraphs that end at a sentence", () => {
+    const { ctx, assetId } = recordingFixture(mp3);
+    const textOf = (turns: Turn[], asr = false) => {
+      const t = storeTranscript(ctx, assetId, buildTranscript(turns, asr ? {} : { relabel_speakers: false }), {});
+      const words = (ctx.db.prepare("SELECT SUM(json_array_length(words)) FROM transcript_segment WHERE transcript_id = ?").pluck().get(t.id) as number) ?? 0;
+      const snip = createSnip(ctx, { client_request_id: newId(), asset_id: assetId, anchor_ms: 1000, heard_from_ms: 0 }, null).snip;
+      const rev = { ...(ctx.db.prepare("SELECT * FROM snip_revision WHERE id = ?").get(snip.revision!.id) as SnipRevisionRow), transcript_id: t.id, start_word: 0, end_word: words, title: "T", summary: null };
+      return highlightText(readwiseSnip(ctx, snipRow(ctx, snip.id), rev)).replace(/^T\n\nTranscript:\n/, "");
+    };
+    const textOfAsr = (turns: Turn[]) => textOf(turns, true);
+    expect(textOf([{ speaker: "Quote", text: "I'm delighted to invest." }, { text: "Anthropic needs Nvidia the least." }])).toBe("I'm delighted to invest.\n\nAnthropic needs Nvidia the least.");
+    // The quoted passage's last words aligned to the prose after it: one sentence, not two paragraphs.
+    expect(textOf([{ speaker: "Quote", text: "The Americans found hospitals, to send" }, { text: "missionaries abroad. I met them." }])).toBe("The Americans found hospitals, to send missionaries abroad. I met them.");
+    expect(textOf([{ speaker: "Ari Emanuel", text: "We bought it." }, { speaker: "Host", text: "Why?" }])).toBe("Ari Emanuel\nWe bought it.\n\nHost\nWhy?");
+    expect(textOf([{ speaker: "Host", text: "Just me today." }])).toBe("Just me today.");
+    expect(textOf([{ speaker: "Horace Dediu", text: "Just me today." }])).toBe("Horace Dediu\nJust me today.");
+    expect(textOfAsr([{ speaker: "S1", text: "One." }, { speaker: "S2", text: "Two." }])).toBe("Speaker 1\nOne.\n\nSpeaker 2\nTwo.");
+    expect(textOfAsr([{ speaker: "S1", text: "Alone." }])).toBe("Alone.");
   });
 });
 
