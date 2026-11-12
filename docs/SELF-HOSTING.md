@@ -56,6 +56,7 @@ server with every paid service forced off, which is the right first run. For a r
 | `SHARE_BY_NAME` | the name on share cards ("10 clips from Ada"); empty leaves just the count |
 | `VIDEO_MAX_HEIGHT` | videos the server fetches are scaled down to this height (480) before they are kept; `0` keeps them as they come |
 | `TRANSCRIPTION_BUDGET_MINUTES` | a monthly cap on automatic transcription (default 6000 minutes) |
+| `READWISE_TOKEN` | optional: your token from readwise.io/access_token. Every snip goes to Readwise as a podcast highlight (title, summary, transcript, your note, a link that plays the clip); the first run sends the snips you already have |
 | `PODCASTINDEX_KEY`, `PODCASTINDEX_SECRET` | optional: show search through Podcast Index instead of the keyless iTunes API |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `EMAIL_SOURCE_QUERY` | optional: publisher emails as a text source (`pnpm --dir server gmail:auth`) |
 

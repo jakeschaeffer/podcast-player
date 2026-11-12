@@ -8,6 +8,7 @@ import { alignTextJob } from "../services/publisherText.js";
 import { detectAdsJob } from "../services/adBreaks.js";
 import { pruneOldClips, queueMissingVideoClips, renderClipJob, renderVideoClipJob, revisionGaveUp, selectSnipJob, summarizeSnipGaveUp, summarizeSnipJob } from "../services/snipJobs.js";
 import { evalRunJob } from "../services/evalRuns.js";
+import { queueReadwiseSweep, syncReadwiseJob } from "../services/readwiseSync.js";
 import { summarizeEpisodeJob } from "../services/summaries.js";
 import { transcribeJob } from "../services/transcripts.js";
 import { DeferJob, NonRetryable } from "./errors.js";
@@ -33,6 +34,7 @@ export const handlers: Record<JobKind, Handler> = {
   detect_ads: (ctx, job) => detectAdsJob(ctx, job as Job<{ asset_id: string }>),
   eval_run: (ctx, job) => evalRunJob(ctx, job as Job<{ eval: "titles" | "selection"; version: string; stamp: string }>),
   identify_speakers: (ctx, job) => identifySpeakersJob(ctx, job as Job<{ transcript_id: string }>),
+  sync_readwise: (ctx, job) => syncReadwiseJob(ctx, job as Job<{ snip_id: string }>),
 };
 
 /**
@@ -64,6 +66,8 @@ export const CONCURRENCY: Record<JobKind, number> = {
   // Evals are dozens to hundreds of model calls; one at a time keeps them from crowding out snips.
   eval_run: 1,
   identify_speakers: 1,
+  // One at a time keeps a backfill of every snip well inside Readwise's rate limit.
+  sync_readwise: 1,
 };
 
 export type JobOutcome = "done" | "deferred" | "retry" | "failed";
@@ -117,7 +121,7 @@ export async function drain(ctx: AppContext, opts: { kinds?: JobKind[]; max?: nu
 }
 
 /**
- * The long-running worker loop: polls the queue, keeps per-kind concurrency, prunes old clips hourly, and queues any video clips still owed.
+ * The long-running worker loop: polls the queue, keeps per-kind concurrency, prunes old clips hourly, and queues any video clips and Readwise syncs still owed.
  * Resolve `stop()` to let in-flight jobs finish.
  */
 export function startWorker(ctx: AppContext, opts: { pollMs?: number; concurrency?: Partial<Record<JobKind, number>> } = {}): { stop: () => Promise<void> } {
@@ -148,6 +152,7 @@ export function startWorker(ctx: AppContext, opts: { pollMs?: number; concurrenc
       lastPrune = ctx.now();
       void pruneOldClips(ctx).catch((err) => ctx.log("prune failed", { error: String(err) }));
       queueMissingVideoClips(ctx);
+      queueReadwiseSweep(ctx);
       void pruneVideosToCap(ctx).catch((err) => ctx.log("video prune failed", { error: String(err) }));
     }
     if (refreshEvery > 0 && ctx.now() - lastRefresh > refreshEvery) {

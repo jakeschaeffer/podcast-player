@@ -6,6 +6,7 @@ import type { TextModel } from "../../src/adapters/textModel.js";
 import type { Transcriber } from "../../src/adapters/transcriber.js";
 import type { ShowResult, ShowSearch } from "../../src/adapters/showSearch.js";
 import type { ForcedAligner } from "../../src/adapters/forcedAlignment.js";
+import type { Readwise } from "../../src/adapters/readwise.js";
 import type { Config } from "../../src/lib/config.js";
 
 export function testConfig(overrides: Partial<Config> = {}): Config {
@@ -33,11 +34,12 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     allowPrivateNetwork: true,
     refreshIntervalMinutes: 0,
     gitAutoPush: false,
+    readwiseToken: null,
     ...overrides,
   };
 }
 
-export function testContext(opts: { transcriber?: Transcriber | null; aligner?: ForcedAligner | null; textModel?: TextModel | null; showSearch?: ShowSearch; config?: Partial<Config>; now?: () => number } = {}): AppContext {
+export function testContext(opts: { transcriber?: Transcriber | null; aligner?: ForcedAligner | null; textModel?: TextModel | null; showSearch?: ShowSearch; readwise?: Readwise | null; config?: Partial<Config>; now?: () => number } = {}): AppContext {
   const logs: unknown[] = [];
   return createContext(testConfig(opts.config), {
     transcriber: opts.transcriber ?? null,
@@ -45,6 +47,8 @@ export function testContext(opts: { transcriber?: Transcriber | null; aligner?: 
     textModel: opts.textModel ?? null,
     // Tests never reach a real directory: an unconfigured search answers with nothing.
     showSearch: opts.showSearch ?? new FixedShowSearch([]),
+    // Nothing reaches the owner's Readwise from a test.
+    readwise: opts.readwise ?? null,
     ...(opts.now ? { now: opts.now } : {}),
     log: (msg, extra) => logs.push({ msg, ...extra }),
   });

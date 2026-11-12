@@ -77,6 +77,10 @@ Whether a session may merge its own PRs and deploy is the owner's standing instr
 - **Port 8080 is the systemd service in production.** Stop it (`sudo systemctl stop podcast-player`, as the service
   user) before `pnpm dev` on that host.
 - **Snips publish automatically.** Creating a snip mints a live public link (`/s/{token}`), private feeds included.
+- **Readwise gets every snip** when `READWISE_TOKEN` is set (`server/src/services/readwiseSync.ts`): title, summary,
+  transcript and note as a podcast highlight, updated on edits and deleted with the snip. The worker's sweep (at start,
+  then hourly) sends every ready snip not yet there, so setting the token on a server with a copy of production's
+  database fills the owner's Readwise from it. `scripts/dev-server.sh` forces it off.
 - **Private data stays out of git**: eval fixtures and cases are gitignored (`evals/**/fixtures/`, `cases/`) because
   they hold listening history and private-feed text, and the committed scorecards carry aggregate scores only (the
   per-case rows, which quote the owner's own titles, stay in the gitignored JSON). Never commit them, and never put

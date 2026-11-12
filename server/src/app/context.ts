@@ -5,6 +5,7 @@ import { ElevenLabsTranscriber } from "../adapters/elevenlabs.js";
 import { ElevenLabsForcedAligner, type ForcedAligner } from "../adapters/forcedAlignment.js";
 import type { TextModel } from "../adapters/textModel.js";
 import type { Transcriber } from "../adapters/transcriber.js";
+import { ReadwiseApi, type Readwise } from "../adapters/readwise.js";
 import { showSearchFromEnv, type ShowSearch } from "../adapters/showSearch.js";
 import { openDb, type Db } from "../db/index.js";
 import { JobQueue } from "../jobs/queue.js";
@@ -25,11 +26,13 @@ export type AppContext = {
   textModel: TextModel | null;
   /** Finds public shows to subscribe to (iTunes Search, or Podcast Index when its keys are set). */
   showSearch: ShowSearch;
+  /** The owner's Readwise, when READWISE_TOKEN is set; every snip goes there as a highlight. */
+  readwise: Readwise | null;
   now: () => number;
   log: (msg: string, extra?: Record<string, unknown>) => void;
 };
 
-export type ContextOverrides = Partial<Pick<AppContext, "transcriber" | "aligner" | "textModel" | "showSearch" | "now" | "log">> & { dbPath?: string };
+export type ContextOverrides = Partial<Pick<AppContext, "transcriber" | "aligner" | "textModel" | "showSearch" | "readwise" | "now" | "log">> & { dbPath?: string };
 
 export function createContext(config: Config, overrides: ContextOverrides = {}): AppContext {
   const paths = pathsFor(config.dataDir);
@@ -60,6 +63,7 @@ export function createContext(config: Config, overrides: ContextOverrides = {}):
     aligner,
     textModel,
     showSearch: overrides.showSearch ?? showSearchFromEnv(),
+    readwise: overrides.readwise !== undefined ? overrides.readwise : config.readwiseToken ? new ReadwiseApi({ token: config.readwiseToken }) : null,
     now,
     log: overrides.log ?? ((msg, extra) => console.error(JSON.stringify({ t: new Date().toISOString(), msg, ...extra }))),
   };
