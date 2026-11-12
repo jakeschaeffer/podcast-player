@@ -30,7 +30,7 @@ const ASSEMBLY: Record<PromptName, string> = {
   "snip-summary": "sha256:5738e79a94ee1283",
   "episode-summary": "sha256:fa969bb8c1b7866b",
   "span-picker": "sha256:afbf22ca68e4295a",
-  speakers: "sha256:9760afab05d0cec4",
+  speakers: "sha256:f5327a008c04674c",
   "title-judge": "sha256:31ffd800597cdba1",
 };
 

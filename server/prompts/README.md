@@ -56,7 +56,7 @@ One call per transcript decides, for each speaker label (S1, S2…), whether it 
 
 - **When it runs.** The `identify_speakers` job: `identifySpeakersJob` in [services/speakers.ts](../src/services/speakers.ts). It is queued when a transcript is stored, and for older transcripts the first time `GET /v1/transcripts/{id}/speakers` is asked (the apps ask when they show a transcript).
 - **The message around the instructions.** `buildSpeakersPrompt` in [core/speakers/identify.ts](../src/core/speakers/identify.ts): show, author, episode title, the start of the show notes, and for each label its share of the words, its turns and questions, and its first four lines.
-- **What counts as a valid answer.** `SpeakersSchema` and `validateSpeakers` in the same file: every label exactly once, names only from the author, titles or show notes, and no name on an "other" voice. One retry with the reasons.
+- **What counts as a valid answer.** `SpeakersSchema` and `validateSpeakers` in the same file: every label exactly once (publisher text's labels are names as written, so a label may be up to 80 characters), names only from the author, titles or show notes, and no name on an "other" voice. One retry with the reasons.
 - **Where it is used.** The shared pages' transcripts, the apps' transcripts and snip pages, and snip summaries, which may name the speakers it names (`speaker_names`).
 
 ## Title judge
