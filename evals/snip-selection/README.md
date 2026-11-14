@@ -60,6 +60,27 @@ What it says:
 - **It moves far too often.** It kept the default start on 5 of 48, started earlier on 35 (median 51 s earlier) and later on 8 (median 28 s later). The owner moved the start earlier on 11 and later on 4. So it changed 28 of the 31 snips nobody touched, 25 of them past the one-sentence slack, 24 of those earlier, and the median clip grew from 90 s to 126 s. A left-alone snip is a weak label, so 16% overstates the harm, but a picker that rewrites nine in ten of the spans the owner accepted is not one to turn on. The prompt reads "where does this thought begin" as an invitation to go back; a next version has to make the default the answer unless there is a reason against it, and be scored on both groups.
 - **It is far too slow to run at the tap.** Seconds per call: median 32, p90 46, longest 61, with four calls at a time on a laptop. The production picker gives up after 8 s (`makeSpanPicker`'s default) and the rules' span stands, so 47 of these 48 picks would have been thrown away. A start chosen by a model this way has to be chosen before the tap (per episode, after transcription) or by a much faster call.
 
+### An episode map, November 14, 2026
+
+An experiment in choosing the start before the tap. One model call per transcript (`episodeMap.ts`, prompt `episode-map-v1.md` beside this file, not in the prompt registry while it is an experiment) marks where every thought begins and whether the topic changes there. A rule then picks among the marked starts the selector offers within 240 s, with no model at the tap. `eval:snips:run --app --map` makes the maps (cached in `results/episode-maps.jsonl`, so rescoring is free) and scores the rules. Codex CLI at medium effort, the 14 episodes behind the same 48 snips: 14 calls, 17 to 100 s each, 1,581 starts (126 an hour, a median of 26 s apart), 267 of them topic changes.
+
+| Method | Both, all 48 | Left alone (31) | Edited (17) |
+| --- | ---: | ---: | ---: |
+| snap-90 (production) | 63% | 97% | 0% |
+| map-nearest-default: the marked start nearest the rules' start | 25% | 39% | 0% |
+| map-latest: the last marked start before the tap | 8% | 10% | 6% |
+| map-second-latest | 15% | 19% | 6% |
+| map-latest-major: the last topic change | 35% | 39% | 29% |
+| map-ceiling: a marked start in the acceptable range, when there is one | 79% | 100% | 41% |
+| ceiling-240s (any sentence) | 85% | 100% | 59% |
+
+What it says:
+
+- **The map holds most of the owner's starts.** Of the 10 edited snips any start picker could fix, a marked start is where the owner put theirs for 7.
+- **No simple lookup finds them.** The v1 map is far finer than a snip: the owner's start is 3 to 9 marked thoughts back from the tap, so "the thought the tap ended" gives a clip of under a minute and is almost never right. The topic-change marks are nearer the right grain: 5 of the 17 edited snips, where the rules get none and span-picker v2 got 8 at 30 s a call.
+- **Left-alone snips fall** under every map rule, because the rules' own start is seldom a marked one. As before, that label is weak, but it means a map rule would change most snips.
+- Next to try, each costing 14 calls for a new map and nothing to rescore: a coarser map whose unit is what the owner keeps (one to three minutes, a question with its answer), with the fine marks kept only as candidate ends; and letting the tap choose the level, since where it falls inside a thought is information the map lacks.
+
 ## What the Readwise export says about snip length
 
 Word counts of the transcript part of the owner's Snipd snips (deduplicated, 644 snips): min 43, p25 272, median 394, p75 587, p90 702, max 1,315. At typical speech rates that is a median of roughly 2.5 minutes and a p75 near 4 minutes, with a downward trend by year (median 579 words in 2023, 272 in 2026). Two consequences for the selector:

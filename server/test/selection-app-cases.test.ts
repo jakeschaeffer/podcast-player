@@ -139,4 +139,33 @@ describe("selection eval cases from the app's snips", () => {
     const keys = readFileSync(join(dir, "model-picks.jsonl"), "utf8").trim().split("\n").map((l) => (JSON.parse(l) as { key: string }).key);
     expect(keys.filter((k) => k.includes("(earliest)|v2|reach240000|")).length).toBe(2);
   });
+  it("scores what an episode map's rules would choose, making each transcript's map once", async () => {
+    // Marks every tenth sentence as the start of a thought.
+    let calls = 0;
+    const everyTenth: TextModel = {
+      name: "every-tenth",
+      async generate(req) {
+        calls++;
+        const ids = [...req.user.matchAll(/^\[(\d+)\] /gm)].map((m) => Number(m[1])).filter((id) => id % 10 === 0);
+        return { data: parseAgainstSchema(req.schema, { thoughts: [...ids, 99_999].map((start_id) => ({ start_id, title: `Thought ${start_id}`, major: false })) }), model: "every-tenth", elapsed_ms: 1 };
+      },
+    };
+    const run = async (stamp: string) => {
+      await runSelectionEval({ app: appSnipCases(ctx), stamp, map: { model: everyTenth, label: "every-tenth" } });
+      const file = join(process.env.EVALS_DIR!, "snip-selection/results", `${stamp}-selection.json`);
+      return (JSON.parse(readFileSync(file, "utf8")) as { rows: { method: string; selection_method: string; violations: string[] }[] }).rows;
+    };
+    const rows = await run("2026-01-02T03-04-07");
+    expect(calls).toBe(1); // both snips are in one recording
+    for (const rule of ["nearest-default", "latest", "second-latest", "latest-major", "ceiling"]) {
+      const mine = rows.filter((r) => r.method === `map-${rule}`);
+      expect(mine).toHaveLength(2);
+      for (const r of mine) expect(r.violations).toEqual([]);
+    }
+    // A marked start was on offer, so the rule's choice was taken as a model's would be.
+    expect(rows.filter((r) => r.method === "map-latest").every((r) => r.selection_method === "model")).toBe(true);
+    await run("2026-01-02T03-04-08");
+    expect(calls).toBe(1); // the map came from the cache
+  });
+
 });
