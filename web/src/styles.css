@@ -215,6 +215,9 @@ img { display: block; }
 .player__titles--compact { margin-top: 10px; flex-direction: row; align-items: center; gap: 12px; }
 .player__titles--compact h1 { font-size: 18px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .player__show { font-size: 17px; color: var(--text-2); }
+/* The show's name in the player opens its page. */
+.show-link { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; display: inline; text-align: inherit; }
+.show-link:hover { text-decoration: underline; }
 .player__scrub { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; position: relative; }
 /* "Skip ad": floats just above the seek bar, right-aligned, and takes no space until a suspected ad plays. */
 .ad-skip { position: absolute; right: 0; bottom: calc(100% + 10px); z-index: 3; height: 40px; padding: 0 10px 0 16px; border-radius: 20px; background: var(--text); color: var(--bg); font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 2px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35); white-space: nowrap; opacity: 0; transform: translateY(6px); visibility: hidden; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s linear 0.25s; }
