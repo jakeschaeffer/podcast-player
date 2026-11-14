@@ -81,6 +81,34 @@ What it says:
 - **Left-alone snips fall** under every map rule, because the rules' own start is seldom a marked one. As before, that label is weak, but it means a map rule would change most snips.
 - Next to try, each costing 14 calls for a new map and nothing to rescore: a coarser map whose unit is what the owner keeps (one to three minutes, a question with its answer), with the fine marks kept only as candidate ends; and letting the tap choose the level, since where it falls inside a thought is information the map lacks.
 
+### Climbing the episode map, November 14, 2026
+
+**The left-alone label is mostly "not looked at".** Of the 31 left-alone snips, 3 were renamed; most were made on days with no edits at all. More than half of all defaults open mid-sentence or on a word that points back (a bare "Right.", an "and" picking up the sentence before, a "still" or "that" answering something earlier), including those the owner kept. So "keep the default" scores well against these labels without being right, and climbing on them rewards changing nothing.
+
+**A judge for the rest.** Three Claude subagents, blind to the default and to any map, each chose the start of a clip ending at the tap for 16 of the 48 taps, from the five minutes before it (the instruction: capture what most plausibly prompted the press, make sense on its own, no longer than needed). Checked against the owner's 17 edits, the judge chose the owner's start (within one sentence) on 8 and came within 15 s on 10; the default gets 0. The judge kept the default on 4 of the 31 left-alone snips. Below, "no edit" means the owner's span on the 17 edited snips and the judge's start (one sentence of slack, as for every label here) on the 31 others. The judge labels and the scripts that made them stayed in a scratch folder; only these aggregates are kept.
+
+| Method (no model at the tap unless noted) | No edit, 48 | Owner's 17 edits | Judge-labelled 31 |
+| --- | ---: | ---: | ---: |
+| snap-90 (production) | 4 | 0 | 4 |
+| v1 map: last topic change | 16 | 5 | 11 |
+| v2 map (passages): `passage` rule | 19 | 6 | 13 |
+| **v3 map (passages, medium effort): `passage` rule** | **21** | **6** | **15** |
+| v3 map at high effort | 22 | 6 | 16 |
+| v4 map (shorter passages) | 22 | 4 | 18 |
+| Per-tap Codex pick, any sentence in 240 s (median 8 s, p90 17 s a call) | 22 | 4 | 18 |
+| Per-tap Codex pick among the v1 map's thought starts (median 7 s) | 16 | 4 | 12 |
+| Per-tap Codex choice of default or a map start, told the default is usually right (5 s) | 16 | 3 | 13 |
+| Ceiling: the best v3 passage start | 24 | 7 | 17 |
+| Ceiling: the best sentence in 240 s | 39 | 10 | 29 |
+
+The `passage` rule (`mapPicker`, `episodeMap.ts`): start where the passage that was playing 10 s before the tap began, or the passage before it if that leaves under 30 s. Its two settings barely matter (every setting from 0 to 20 s and 30 to 60 s scores 21 on v3). Within 15 s of the label it gets 26 of 48 against the default's 14.
+
+**Held out.** Eight transcribed episodes behind none of the app's snips (at most two a show), three taps each at random points, v3 maps (8 calls), labelled by two fresh blind judges: the `passage` rule agreed with the judge on 14 of 24 taps (17 within 15 s); the default on 4 (3 within 15 s). The gain is not an artifact of tuning on the 48.
+
+What did not work: a per-passage "needs its start" flag (v3 set it on two thirds of passages, and it did not separate the owner's edits from the snips they kept); falling back to the fine v1 marks inside long passages; any rule that keeps the default unless the map objects; extending the end to finish the thought (it would fix 2 of the 8 end edits and break about 8 kept ends). The per-tap pickers do no better than the v3 map against the owner's edits, and cost a call at the tap.
+
+What it would cost in production: one Codex call per transcript after transcription (17 to 120 s at medium effort; the last two weeks brought about two transcripts a day), and nothing at the tap. Each passage also comes with a title, which could stand in until the snip's own title is written.
+
 ## What the Readwise export says about snip length
 
 Word counts of the transcript part of the owner's Snipd snips (deduplicated, 644 snips): min 43, p25 272, median 394, p75 587, p90 702, max 1,315. At typical speech rates that is a median of roughly 2.5 minutes and a p75 near 4 minutes, with a downward trend by year (median 579 words in 2023, 272 in 2026). Two consequences for the selector:

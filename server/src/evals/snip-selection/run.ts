@@ -256,7 +256,7 @@ export type SelectionEvalOptions = {
   /** Version of prompts/span-picker to test; the active one by default. */
   version?: string;
   /** With this, an episode map is made for every transcript the cases use (one model call each, kept in a cache) and the map's rules are scored as further methods (episodeMap.ts). */
-  map?: { model: TextModel; label: string; timeoutMs?: number };
+  map?: { model: TextModel; label: string; timeoutMs?: number; version?: string };
   concurrency?: number;
   modelTimeoutMs?: number;
   stamp?: string;
@@ -333,19 +333,20 @@ export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise
     rows.push(...modelRows);
   }
   if (opts.map) {
-    const prompt = await readFile(join(REPO, "evals", "snip-selection", `episode-map-${MAP_PROMPT_VERSION}.md`), "utf8");
+    const mapVersion = opts.map.version ?? MAP_PROMPT_VERSION;
+    const prompt = await readFile(join(REPO, "evals", "snip-selection", `episode-map-${mapVersion}.md`), "utf8");
     const cachePath = join(EVAL_DIR, "results", "episode-maps.jsonl");
     const cache = await readMapCache(cachePath);
     const fixtures = [...new Set(cases.map((c) => c.transcript_fixture))];
     const maps = new Map<string, EpisodeMap>();
     let made = 0;
     await pool(fixtures, Number(values.concurrency), async (fixture) => {
-      const key = `${fixture}|${MAP_PROMPT_VERSION}|${opts.map!.label}`;
+      const key = `${fixture}|${mapVersion}|${opts.map!.label}`;
       let map = cache.get(key);
       if (!map) {
         const entry = transcripts.get(fixture)!;
         try {
-          const built = await buildEpisodeMap(opts.map!.model, prompt, entry.t, opts.map!.timeoutMs ?? 900_000);
+          const built = await buildEpisodeMap(opts.map!.model, prompt, entry.t, opts.map!.timeoutMs ?? 900_000, mapVersion);
           map = built.map;
           await writeMapCache(cachePath, key, map, { sentences: built.sentences, elapsed_ms: built.elapsed_ms, duration_ms: entry.duration_ms });
           made++;
@@ -358,7 +359,7 @@ export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise
       maps.set(fixture, map);
     });
     console.error(`map: ${maps.size}/${fixtures.length} transcripts mapped, ${made} made now`);
-    const rules: MapRule[] = ["nearest-default", "latest", "second-latest", "latest-major", "ceiling"];
+    const rules: MapRule[] = ["passage", "nearest-default", "latest", "second-latest", "latest-major", "ceiling"];
     for (const rule of rules) {
       const name = `map-${rule}`;
       methods.push(name);
@@ -435,6 +436,7 @@ async function main(): Promise<void> {
       "cases-dir": { type: "string", default: "cases" },
       app: { type: "boolean", default: false },
       map: { type: "boolean", default: false },
+      "map-version": { type: "string" },
     },
   });
   // The app's snips are read from the database the server's configuration names (DATA_DIR); nothing is written to it.
@@ -448,7 +450,7 @@ async function main(): Promise<void> {
     ...(values.limit ? { limit: Number(values.limit) } : {}),
     ...(values.model ? { model: new CodexCliTextModel({ model: process.env.CODEX_MODEL ?? "", reasoningEffort: process.env.CODEX_REASONING_EFFORT ?? "" }), modelLabel: `snap-90+model (${codex})` } : {}),
     ...(values.version ? { version: values.version } : {}),
-    ...(values.map ? { map: { model: new CodexCliTextModel({ model: process.env.CODEX_MODEL ?? "", reasoningEffort: process.env.CODEX_REASONING_EFFORT ?? "", defaultTimeoutMs: 900_000 }), label: codex } } : {}),
+    ...(values.map ? { map: { model: new CodexCliTextModel({ model: process.env.CODEX_MODEL ?? "", reasoningEffort: process.env.CODEX_REASONING_EFFORT ?? "", defaultTimeoutMs: 900_000 }), label: codex, ...(values["map-version"] ? { version: values["map-version"] } : {}) } } : {}),
     concurrency: Number(values.concurrency),
     modelTimeoutMs: Number(values["model-timeout-ms"]),
   });

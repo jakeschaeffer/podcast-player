@@ -157,7 +157,7 @@ describe("selection eval cases from the app's snips", () => {
     };
     const rows = await run("2026-01-02T03-04-07");
     expect(calls).toBe(1); // both snips are in one recording
-    for (const rule of ["nearest-default", "latest", "second-latest", "latest-major", "ceiling"]) {
+    for (const rule of ["passage", "nearest-default", "latest", "second-latest", "latest-major", "ceiling"]) {
       const mine = rows.filter((r) => r.method === `map-${rule}`);
       expect(mine).toHaveLength(2);
       for (const r of mine) expect(r.violations).toEqual([]);
