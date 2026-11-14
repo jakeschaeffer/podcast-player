@@ -17,7 +17,8 @@
  * same function (`runSelectionEval`, always with the model and the app's snips) when a run is started from the
  * Prompts screen.
  */
-import { buildEpisodeMap, mapPicker, MAP_PROMPT_VERSION, readMapCache, writeMapCache, type EpisodeMap, type MapRule } from "./episodeMap.js";
+import { buildEpisodeMap, mapPicker, readMapCache, writeMapCache, type EpisodeMap, type MapRule } from "./episodeMap.js";
+import { resolvePrompt } from "../../core/summary/prompts.js";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -333,8 +334,8 @@ export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise
     rows.push(...modelRows);
   }
   if (opts.map) {
-    const mapVersion = opts.map.version ?? MAP_PROMPT_VERSION;
-    const prompt = await readFile(join(REPO, "evals", "snip-selection", `episode-map-${mapVersion}.md`), "utf8");
+    const prompt = resolvePrompt("episode-map", opts.map.version);
+    const mapVersion = prompt.version;
     const cachePath = join(EVAL_DIR, "results", "episode-maps.jsonl");
     const cache = await readMapCache(cachePath);
     const fixtures = [...new Set(cases.map((c) => c.transcript_fixture))];
@@ -346,7 +347,7 @@ export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise
       if (!map) {
         const entry = transcripts.get(fixture)!;
         try {
-          const built = await buildEpisodeMap(opts.map!.model, prompt, entry.t, opts.map!.timeoutMs ?? 900_000, mapVersion);
+          const built = await buildEpisodeMap(opts.map!.model, prompt, entry.t, opts.map!.timeoutMs ?? 900_000);
           map = built.map;
           await writeMapCache(cachePath, key, map, { sentences: built.sentences, elapsed_ms: built.elapsed_ms, duration_ms: entry.duration_ms });
           made++;

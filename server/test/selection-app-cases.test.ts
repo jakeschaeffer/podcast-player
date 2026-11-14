@@ -147,7 +147,7 @@ describe("selection eval cases from the app's snips", () => {
       async generate(req) {
         calls++;
         const ids = [...req.user.matchAll(/^\[(\d+)\] /gm)].map((m) => Number(m[1])).filter((id) => id % 10 === 0);
-        return { data: parseAgainstSchema(req.schema, { thoughts: [...ids, 99_999].map((start_id) => ({ start_id, title: `Thought ${start_id}`, major: false })) }), model: "every-tenth", elapsed_ms: 1 };
+        return { data: parseAgainstSchema(req.schema, { thoughts: [...ids, 99_999].map((start_id) => ({ start_id, title: `Thought ${start_id}`, major: false, needs_start: false })) }), model: "every-tenth", elapsed_ms: 1 };
       },
     };
     const run = async (stamp: string) => {

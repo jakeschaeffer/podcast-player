@@ -66,7 +66,7 @@ export type RevisionStatus = "waiting" | "selecting" | "preparing" | "ready" | "
 export type SummaryStatus = "pending" | "ready" | "failed" | "skipped";
 
 export type SnipRevisionRow = {
-  id: string; snip_id: string; rev: number; method: "model" | "heuristic" | "fixed" | "manual"; transcript_id: string | null;
+  id: string; snip_id: string; rev: number; method: "map" | "model" | "snap" | "heuristic" | "fixed" | "manual"; transcript_id: string | null;
   start_ms: number; end_ms: number; start_word: number | null; end_word: number | null; excerpt: string | null;
   title: string | null; summary: string | null; quote: string | null; summary_model: string | null; summary_prompt_version: string | null; summary_status: SummaryStatus;
   /** Who wrote `title`: the summary model, the excerpt-based fallback, or the owner. */

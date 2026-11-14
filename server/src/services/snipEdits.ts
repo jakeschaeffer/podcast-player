@@ -21,9 +21,10 @@ export type ChosenSpan = {
   edited: boolean;
   start_moved_ms: number;
   end_moved_ms: number;
-  /** The selector's version, and the start picker's prompt version when its pick was the one used. */
+  /** The selector's version, and the start picker's or episode map's prompt version when its pick was the one used. */
   selector: string | null;
   picker_version: string | null;
+  map_version: string | null;
 };
 
 const unsettled = (r: SnipRevisionRow) => r.status === "waiting" || r.status === "selecting" || r.status === "failed";
@@ -46,7 +47,7 @@ export function chosenSpans(ctx: AppContext): ChosenSpan[] {
     if (!first || !current || first.method === "manual" || unsettled(first) || unsettled(current)) continue;
     const start_moved_ms = current.start_ms - first.start_ms;
     const end_moved_ms = current.end_ms - first.end_ms;
-    let selection: { version?: string; picker_prompt_version?: string } = {};
+    let selection: { version?: string; picker_prompt_version?: string; map_prompt_version?: string } = {};
     try {
       selection = JSON.parse(first.selection ?? "{}") as typeof selection;
     } catch {
@@ -57,25 +58,28 @@ export function chosenSpans(ctx: AppContext): ChosenSpan[] {
       edited: current.id !== first.id && (Math.abs(start_moved_ms) > SAME_SPAN_MS || Math.abs(end_moved_ms) > SAME_SPAN_MS),
       selector: selection.version ?? null,
       picker_version: first.method === "model" ? (selection.picker_prompt_version ?? null) : null,
+      map_version: first.method === "map" ? (selection.map_prompt_version ?? null) : null,
     });
   }
   return out;
 }
 
-/** Spans moved, by what chose them: each start-picker version whose pick was used, and the fixed rules for the rest. */
-export function boundaryEditRates(ctx: AppContext): { rules: EditRate; versions: Map<string, EditRate> } {
+/** Spans moved, by what chose them: each start-picker or episode-map version whose pick was used, and the fixed rules for the rest. */
+export function boundaryEditRates(ctx: AppContext): { rules: EditRate; versions: Map<string, EditRate>; maps: Map<string, EditRate> } {
   const rules: EditRate = { snips: 0, edited: 0 };
   const versions = new Map<string, EditRate>();
+  const maps = new Map<string, EditRate>();
   for (const span of chosenSpans(ctx)) {
     let rate = rules;
-    if (span.picker_version) {
-      rate = versions.get(span.picker_version) ?? { snips: 0, edited: 0 };
-      versions.set(span.picker_version, rate);
+    const [table, version] = span.map_version ? [maps, span.map_version] : [versions, span.picker_version];
+    if (version) {
+      rate = table.get(version) ?? { snips: 0, edited: 0 };
+      table.set(version, rate);
     }
     rate.snips++;
     if (span.edited) rate.edited++;
   }
-  return { rules, versions };
+  return { rules, versions, maps };
 }
 
 /**

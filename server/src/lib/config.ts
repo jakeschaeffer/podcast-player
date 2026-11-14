@@ -31,6 +31,8 @@ export type Config = {
   codexReasoningEffort: string;
   /** Whether the text model may adjust snip starts. Off by default: it scored below the deterministic snap on the owner's snips. */
   selectionModel: boolean;
+  /** Whether played episodes get an episode map and snips start where its passages do (services/episodeMaps.ts). On unless EPISODE_MAPS=off; needs a text model. */
+  episodeMaps: boolean;
   /** Gmail search for publisher newsletters that carry episode text. Empty disables the email source (text feeds are the default path). */
   emailSourceQuery: string;
   /** Episode kinds for which a transcript aligned from publisher text becomes the current transcript (ASR stays current for the rest). */
@@ -73,6 +75,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     codexModel: env.CODEX_MODEL ?? "",
     codexReasoningEffort: env.CODEX_REASONING_EFFORT ?? "",
     selectionModel: env.SELECTION_MODEL === "on",
+    episodeMaps: env.EPISODE_MAPS !== "off",
     emailSourceQuery: env.EMAIL_SOURCE_QUERY ?? "",
     textPreferredKinds: new Set((env.TEXT_PREFERRED_KINDS ?? "update,article").split(",").map((k) => k.trim()).filter(Boolean)),
     mediaUrlTtlSeconds: Number(env.MEDIA_URL_TTL_SECONDS ?? 86_400),

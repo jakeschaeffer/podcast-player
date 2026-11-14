@@ -79,7 +79,7 @@ describe("prompts and evals API", () => {
     const res = await app.inject({ method: "GET", url: "/v1/prompts", headers: auth() });
     expect(res.statusCode).toBe(200);
     const prompts = res.json() as { name: string; active: string; in_use: boolean; eval: { id: string } | null; versions: { version: string; active: boolean }[] }[];
-    expect(prompts.map((p) => p.name)).toEqual(["snip-summary", "episode-summary", "span-picker", "speakers", "title-judge"]);
+    expect(prompts.map((p) => p.name)).toEqual(["snip-summary", "episode-summary", "episode-map", "span-picker", "speakers", "title-judge"]);
     const snip = prompts[0]!;
     expect(snip).toMatchObject({ active: "v1", in_use: true, eval: { id: "titles" } });
     expect(snip.versions[0]).toMatchObject({ version: "v1", active: true });

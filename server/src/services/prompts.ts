@@ -13,9 +13,9 @@ import { boundaryEditRates, titleRewriteRates, type EditRate } from "./snipEdits
  * files that are never edited; activating one changes registry.json, which the model calls read each time. Each
  * change is committed to the repository that holds the folder, so the history lives in git too.
  */
-export const PROMPT_LABELS: Record<PromptName, string> = { "snip-summary": "Snip summary", "episode-summary": "Episode summary", "span-picker": "Snip start", speakers: "Speakers", "title-judge": "Title judge (evals)" };
+export const PROMPT_LABELS: Record<PromptName, string> = { "snip-summary": "Snip summary", "episode-summary": "Episode summary", "episode-map": "Episode map (snip start)", "span-picker": "Snip start picker", speakers: "Speakers", "title-judge": "Title judge (evals)" };
 /** What the owner's edit of a prompt's output is called, for the prompts whose output can be edited. */
-const EDITS_LABELS: Partial<Record<PromptName, string>> = { "snip-summary": "titles rewritten", "span-picker": "spans moved" };
+const EDITS_LABELS: Partial<Record<PromptName, string>> = { "snip-summary": "titles rewritten", "episode-map": "spans moved", "span-picker": "spans moved" };
 const MAX_CHARS = 20_000;
 
 export type PromptVersionItem = { version: string; created_at: number; active: boolean; score: Score | null; edits: EditRate | null };
@@ -29,10 +29,11 @@ export function promptName(name: string): PromptName {
 
 const num = (v: string) => Number(v.slice(1));
 
-/** Whether production calls this prompt at all: summaries need a text model, the start picker also SELECTION_MODEL. */
+/** Whether production calls this prompt at all: everything needs a text model; the map also EPISODE_MAPS (on by default); the start picker also SELECTION_MODEL, and only where no map is made. */
 function inUse(ctx: AppContext, name: PromptName): boolean {
   if (!ctx.textModel) return false;
-  return name === "span-picker" ? ctx.config.selectionModel : true;
+  if (name === "episode-map") return ctx.config.episodeMaps;
+  return name === "span-picker" ? ctx.config.selectionModel && !ctx.config.episodeMaps : true;
 }
 
 export function getPrompt(ctx: AppContext, name: PromptName, registry: PromptRegistry = readRegistry()): PromptView {
@@ -40,8 +41,8 @@ export function getPrompt(ctx: AppContext, name: PromptName, registry: PromptReg
   const ev = evalForPrompt(name);
   const scores = ev ? latestScores(ctx, ev.id) : new Map<string, Score>();
   // How the versions fared in use, beside how they scored: what the owner changed of what each wrote.
-  const spans = name === "span-picker" ? boundaryEditRates(ctx) : null;
-  const edits = spans ? spans.versions : name === "snip-summary" ? titleRewriteRates(ctx) : new Map<string, EditRate>();
+  const spans = name === "span-picker" || name === "episode-map" ? boundaryEditRates(ctx) : null;
+  const edits = spans ? (name === "episode-map" ? spans.maps : spans.versions) : name === "snip-summary" ? titleRewriteRates(ctx) : new Map<string, EditRate>();
   const versions = Object.entries(entry.versions)
     .sort(([a], [b]) => num(b) - num(a))
     .map(([version, v]) => ({ version, created_at: Date.parse(v.created_at), active: version === entry.active, score: scores.get(version) ?? null, edits: edits.get(version) ?? null }));

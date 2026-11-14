@@ -21,6 +21,8 @@ import { getAssetRow } from "./episodes.js";
 import { applyOwnerEdit, enqueuePreparation, episodeForAsset, getRevisionRow } from "./snips.js";
 import { queueReadwiseSync } from "./readwiseSync.js";
 import { makeSpanPicker } from "./spanPicker.js";
+import { mapPicker, passageAt } from "../core/snip/episodeMap.js";
+import { loadEpisodeMap, queueEpisodeMap } from "./episodeMaps.js";
 import { loadTranscript, transcriptForAsset } from "./transcripts.js";
 
 /** Job body: choose the span for a revision. Defers until the asset has a transcript. */
@@ -36,13 +38,29 @@ export async function selectSnipJob(ctx: AppContext, job: Job<{ revision_id: str
     ctx.queue.enqueue("transcribe", `transcribe:${asset.id}`, { asset_id: asset.id }, { priority: PRIORITY.snip });
     throw new DeferJob("waiting for transcript");
   }
-  const picker = ctx.textModel && ctx.config.selectionModel ? makeSpanPicker(ctx.textModel) : undefined;
+  // The episode's map, when it has one, chooses the start with no model call (core/snip/episodeMap.ts). Without one
+  // the rules choose, and the map is asked for so the next snip in the episode has it.
+  const map = ctx.config.episodeMaps && asset.transcript_id ? loadEpisodeMap(ctx, asset.transcript_id) : null;
+  if (!map && asset.transcript_id) queueEpisodeMap(ctx, asset.transcript_id);
+  const spanPicker = !map && ctx.textModel && ctx.config.selectionModel ? makeSpanPicker(ctx.textModel) : undefined;
+  const picker = map ? mapPicker(map.map, "passage") : spanPicker;
   const selection = await selectSpan({ transcript, anchor_ms: snip.anchor_ms, heard_from_ms: snip.heard_from_ms, duration_ms: asset.duration_ms, ...(picker ? { picker } : {}) });
+  const fromMap = map !== null && selection.method === "model";
+  const method = fromMap ? "map" : selection.method;
   const excerpt = selection.start_word !== null && selection.end_word !== null ? sliceWords(transcript, selection.start_word, selection.end_word).map((w) => w[2]).join(" ") : null;
+  // The passage's title stands in while the snip's own is written, so the snip has a name within seconds. It is
+  // never the owner's, and the summary replaces it.
+  const passage = fromMap ? passageAt(map.map, selection.start_word) : null;
+  const record = { ...compactSelection(selection), ...(spanPicker ? { picker_prompt_version: spanPicker.prompt_version } : {}), ...(map ? { map_prompt_version: map.prompt_version } : {}) };
   ctx.db
-    .prepare("UPDATE snip_revision SET method = ?, transcript_id = ?, start_ms = ?, end_ms = ?, start_word = ?, end_word = ?, excerpt = ?, status = 'preparing', selection = ? WHERE id = ?")
-    .run(selection.method, asset.transcript_id, selection.start_ms, selection.end_ms, selection.start_word, selection.end_word, excerpt, JSON.stringify({ ...compactSelection(selection), ...(picker ? { picker_prompt_version: picker.prompt_version } : {}) }), rev.id);
-  ctx.log("snip selected", { snip_id: snip.id, revision_id: rev.id, method: selection.method, start_ms: selection.start_ms, end_ms: selection.end_ms, model_rejection: selection.model_rejection });
+    .prepare(
+      `UPDATE snip_revision SET method = ?, transcript_id = ?, start_ms = ?, end_ms = ?, start_word = ?, end_word = ?, excerpt = ?, status = 'preparing', selection = ?,
+         title = CASE WHEN title_source IS NULL AND ? IS NOT NULL THEN ? ELSE title END,
+         title_source = CASE WHEN title_source IS NULL AND ? IS NOT NULL THEN 'map' ELSE title_source END WHERE id = ?`,
+    )
+    .run(method, asset.transcript_id, selection.start_ms, selection.end_ms, selection.start_word, selection.end_word, excerpt, JSON.stringify(record),
+      passage?.title ?? null, passage?.title ?? null, passage?.title ?? null, rev.id);
+  ctx.log("snip selected", { snip_id: snip.id, revision_id: rev.id, method, start_ms: selection.start_ms, end_ms: selection.end_ms, model_rejection: selection.model_rejection });
   if (!applyOwnerEdit(ctx, snip.id, rev.id)) enqueuePreparation(ctx, rev.id);
 }
 
@@ -135,8 +153,8 @@ export async function summarizeSnipJob(ctx: AppContext, job: Job<{ revision_id: 
     // Replaces any earlier placeholder title (such as "Snip" from before a transcript existed), never the owner's.
     ctx.db
       .prepare(
-        `UPDATE snip_revision SET summary_status = 'skipped', title = CASE WHEN title_source = 'owner' THEN title ELSE ? END,
-           title_source = CASE WHEN title_source = 'owner' THEN 'owner' ELSE 'fallback' END WHERE id = ?`,
+        `UPDATE snip_revision SET summary_status = 'skipped', title = CASE WHEN title_source IN ('owner', 'map') THEN title ELSE ? END,
+           title_source = CASE WHEN title_source IN ('owner', 'map') THEN title_source ELSE 'fallback' END WHERE id = ?`,
       )
       .run(fallbackTitle(excerpt), rev.id);
     return markReadyIfComplete(ctx, rev.id);
@@ -172,8 +190,8 @@ export async function summarizeSnipJob(ctx: AppContext, job: Job<{ revision_id: 
   } else {
     ctx.db
       .prepare(
-        `UPDATE snip_revision SET title = CASE WHEN title_source = 'owner' THEN title ELSE ? END,
-           title_source = CASE WHEN title_source = 'owner' THEN 'owner' ELSE 'fallback' END,
+        `UPDATE snip_revision SET title = CASE WHEN title_source IN ('owner', 'map') THEN title ELSE ? END,
+           title_source = CASE WHEN title_source IN ('owner', 'map') THEN title_source ELSE 'fallback' END,
            summary = NULL, quote = NULL, summary_model = ?, summary_prompt_version = ?, summary_status = 'failed', error = ? WHERE id = ?`,
       )
       .run(result.fallback_title, result.model, result.prompt_version, `summary rejected: ${result.problems.join("; ")}`.slice(0, 1000), rev.id);
@@ -198,8 +216,8 @@ function settleWithFallback(ctx: AppContext, rev: SnipRevisionRow, error: string
   const fallback = rev.excerpt ? fallbackTitleFromText(rev.excerpt) : "Snip";
   ctx.db
     .prepare(
-      `UPDATE snip_revision SET title = CASE WHEN title_source = 'owner' THEN title ELSE ? END,
-         title_source = CASE WHEN title_source = 'owner' THEN 'owner' ELSE 'fallback' END,
+      `UPDATE snip_revision SET title = CASE WHEN title_source IN ('owner', 'map') THEN title ELSE ? END,
+         title_source = CASE WHEN title_source IN ('owner', 'map') THEN title_source ELSE 'fallback' END,
          summary = NULL, summary_status = 'failed', error = ? WHERE id = ?`,
     )
     .run(fallback, error.slice(0, 1000), rev.id);

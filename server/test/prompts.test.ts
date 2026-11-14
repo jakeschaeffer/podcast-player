@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { buildEpisodeMap } from "../src/services/episodeMaps.js";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -29,6 +30,7 @@ import { buildTranscript, conversation } from "./helpers/transcript.js";
 const ASSEMBLY: Record<PromptName, string> = {
   "snip-summary": "sha256:5738e79a94ee1283",
   "episode-summary": "sha256:fa969bb8c1b7866b",
+  "episode-map": "sha256:55263e19f1ebff5c",
   "span-picker": "sha256:afbf22ca68e4295a",
   speakers: "sha256:f5327a008c04674c",
   "title-judge": "sha256:31ffd800597cdba1",
@@ -157,6 +159,21 @@ async function speakersCalls(): Promise<Call[]> {
   return model.calls;
 }
 
+/** Episode map: the whole transcript in one call, for the active version (v3, which adds needs_start) and one before it. */
+async function episodeMapCalls(): Promise<Call[]> {
+  const t = buildTranscript([
+    { speaker: "host", text: "Can I ask about pricing? What did you try first?" },
+    { speaker: "guest", text: "We started with a flat monthly fee. It felt simple and fair. Almost nobody upgraded. So we moved to usage tiers." },
+  ]);
+  const model = new RecordingModel([
+    { thoughts: [{ start_id: 0, title: "Pricing first tries", major: true, needs_start: true }] },
+    { thoughts: [{ start_id: 0, title: "Pricing first tries", major: true }] },
+  ]);
+  await buildEpisodeMap(model, { version: "v3", text: "<instructions>" }, t);
+  await buildEpisodeMap(model, { version: "v2", text: "<instructions>" }, t);
+  return model.calls;
+}
+
 /** The title judge (evals only): one comparison. */
 async function titleJudgeCalls(): Promise<Call[]> {
   const model = new RecordingModel([{ score: 4, missing: "the three months" }]);
@@ -167,6 +184,7 @@ async function titleJudgeCalls(): Promise<Call[]> {
 const SCENARIOS: Record<PromptName, () => Promise<Call[]>> = {
   "snip-summary": snipSummaryCalls,
   "episode-summary": episodeSummaryCalls,
+  "episode-map": episodeMapCalls,
   "span-picker": spanPickerCalls,
   speakers: speakersCalls,
   "title-judge": titleJudgeCalls,
