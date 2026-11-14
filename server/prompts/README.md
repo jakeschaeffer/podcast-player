@@ -10,7 +10,8 @@ In the app, the profile sheet's **Prompts** screen lists each prompt's versions 
 |---|---|---|---|
 | [Snip title and summary](#snip-title-and-summary) | On, for every new snip and every boundary edit | [snip-summary/](snip-summary/) | each snip revision: `summary_prompt_version`, with `summary_model` |
 | [Episode preview, takeaways, and chapters](#episode-preview-takeaways-and-chapters) | On, for every transcribed episode | [episode-summary/](episode-summary/) | each episode summary: `prompt_version`, with `model` |
-| [Snip start](#snip-start) | Off unless `SELECTION_MODEL=on`; fixed rules choose the span | [span-picker/](span-picker/) | the revision's `selection.picker_prompt_version` |
+| Episode map (snip start) | On, once per transcript of an episode that is played or snipped (`EPISODE_MAPS=off` stops it); a snip in a mapped episode starts where its passage does | [episode-map/](episode-map/) | the `episode_map` row's `prompt_version`, with `model`; each snip it chose, `selection.map_prompt_version` and `method = 'map'` |
+| [Snip start](#snip-start) | Off unless `SELECTION_MODEL=on`, and never where a map exists; fixed rules choose the span otherwise | [span-picker/](span-picker/) | the revision's `selection.picker_prompt_version` |
 | [Speakers](#speakers) | On, once per transcript | [speakers/](speakers/) | the transcript's `speakers` JSON, with `model` |
 | [Title judge](#title-judge) | Evals only | [title-judge/](title-judge/) | each title eval's scorecard: `judge` (`judge_v1` for v1) |
 

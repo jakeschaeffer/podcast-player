@@ -17,7 +17,8 @@ export type JobKind =
   | "detect_ads"
   | "eval_run"
   | "identify_speakers"
-  | "sync_readwise";
+  | "sync_readwise"
+  | "map_episode";
 
 export type JobStatus = "queued" | "running" | "done" | "failed" | "deferred";
 

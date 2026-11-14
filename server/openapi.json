@@ -16236,7 +16236,7 @@
                             "title_source": {
                               "anyOf": [
                                 {
-                                  "description": "Who wrote the title: model, fallback, or owner",
+                                  "description": "Who wrote the title: model, fallback, owner, or map (the passage title from the episode map, shown until the summary is written)",
                                   "type": "string"
                                 },
                                 {
@@ -16619,7 +16619,7 @@
                             "title_source": {
                               "anyOf": [
                                 {
-                                  "description": "Who wrote the title: model, fallback, or owner",
+                                  "description": "Who wrote the title: model, fallback, owner, or map (the passage title from the episode map, shown until the summary is written)",
                                   "type": "string"
                                 },
                                 {
@@ -17070,7 +17070,7 @@
                                   "title_source": {
                                     "anyOf": [
                                       {
-                                        "description": "Who wrote the title: model, fallback, or owner",
+                                        "description": "Who wrote the title: model, fallback, owner, or map (the passage title from the episode map, shown until the summary is written)",
                                         "type": "string"
                                       },
                                       {
@@ -17486,7 +17486,7 @@
                             "title_source": {
                               "anyOf": [
                                 {
-                                  "description": "Who wrote the title: model, fallback, or owner",
+                                  "description": "Who wrote the title: model, fallback, owner, or map (the passage title from the episode map, shown until the summary is written)",
                                   "type": "string"
                                 },
                                 {
@@ -17956,7 +17956,7 @@
                             "title_source": {
                               "anyOf": [
                                 {
-                                  "description": "Who wrote the title: model, fallback, or owner",
+                                  "description": "Who wrote the title: model, fallback, owner, or map (the passage title from the episode map, shown until the summary is written)",
                                   "type": "string"
                                 },
                                 {
@@ -18414,7 +18414,7 @@
                             "title_source": {
                               "anyOf": [
                                 {
-                                  "description": "Who wrote the title: model, fallback, or owner",
+                                  "description": "Who wrote the title: model, fallback, owner, or map (the passage title from the episode map, shown until the summary is written)",
                                   "type": "string"
                                 },
                                 {
@@ -18817,7 +18817,7 @@
                             "title_source": {
                               "anyOf": [
                                 {
-                                  "description": "Who wrote the title: model, fallback, or owner",
+                                  "description": "Who wrote the title: model, fallback, owner, or map (the passage title from the episode map, shown until the summary is written)",
                                   "type": "string"
                                 },
                                 {
@@ -19376,7 +19376,7 @@
                               "title_source": {
                                 "anyOf": [
                                   {
-                                    "description": "Who wrote the title: model, fallback, or owner",
+                                    "description": "Who wrote the title: model, fallback, owner, or map (the passage title from the episode map, shown until the summary is written)",
                                     "type": "string"
                                   },
                                   {

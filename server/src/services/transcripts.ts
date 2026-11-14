@@ -10,6 +10,7 @@ import { newId } from "../lib/ids.js";
 import { getAssetRow } from "./episodes.js";
 import { applyTextPolicyForAsset } from "./textPolicy.js";
 import { queueAdDetection } from "./adBreaks.js";
+import { queueEpisodeMap } from "./episodeMaps.js";
 import { DeferJob } from "../jobs/errors.js";
 
 export function getTranscriptRow(ctx: AppContext, id: string): TranscriptRow {
@@ -77,6 +78,9 @@ export function storeTranscript(ctx: AppContext, assetId: string, t: NormalizedT
   attachWordsToEditedRevisions(ctx, assetId, id, t);
   ctx.queue.enqueue("summarize_episode", `summarize_episode:${assetId}`, { asset_id: assetId }, { priority: PRIORITY.catalog });
   queueSpeakers(ctx, id);
+  // An episode being listened to (or snipped) gets its map now, so its next snip starts where a passage does.
+  const listened = ctx.db.prepare("SELECT 1 FROM playback_state WHERE audio_asset_id = ? UNION SELECT 1 FROM snip WHERE audio_asset_id = ? AND deleted_at IS NULL").get(assetId, assetId);
+  if (listened) queueEpisodeMap(ctx, id);
   return getTranscriptRow(ctx, id);
 }
 

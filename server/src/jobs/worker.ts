@@ -8,6 +8,7 @@ import { alignTextJob } from "../services/publisherText.js";
 import { detectAdsJob } from "../services/adBreaks.js";
 import { pruneOldClips, queueMissingVideoClips, renderClipJob, renderVideoClipJob, revisionGaveUp, selectSnipJob, summarizeSnipGaveUp, summarizeSnipJob } from "../services/snipJobs.js";
 import { evalRunJob } from "../services/evalRuns.js";
+import { mapEpisodeJob } from "../services/episodeMaps.js";
 import { queueReadwiseSweep, syncReadwiseJob } from "../services/readwiseSync.js";
 import { summarizeEpisodeJob } from "../services/summaries.js";
 import { transcribeJob } from "../services/transcripts.js";
@@ -35,6 +36,7 @@ export const handlers: Record<JobKind, Handler> = {
   eval_run: (ctx, job) => evalRunJob(ctx, job as Job<{ eval: "titles" | "selection"; version: string; stamp: string }>),
   identify_speakers: (ctx, job) => identifySpeakersJob(ctx, job as Job<{ transcript_id: string }>),
   sync_readwise: (ctx, job) => syncReadwiseJob(ctx, job as Job<{ snip_id: string }>),
+  map_episode: (ctx, job) => mapEpisodeJob(ctx, job as Job<{ transcript_id: string; version: string }>),
 };
 
 /**
@@ -68,6 +70,8 @@ export const CONCURRENCY: Record<JobKind, number> = {
   identify_speakers: 1,
   // One at a time keeps a backfill of every snip well inside Readwise's rate limit.
   sync_readwise: 1,
+  // A whole episode in one model call: one at a time, so maps never crowd out snip titles.
+  map_episode: 1,
 };
 
 export type JobOutcome = "done" | "deferred" | "retry" | "failed";

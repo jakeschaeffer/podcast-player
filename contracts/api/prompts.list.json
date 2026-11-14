@@ -67,8 +67,50 @@
       ]
     },
     {
+      "name": "episode-map",
+      "label": "Episode map (snip start)",
+      "active": "v3",
+      "in_use": false,
+      "eval": null,
+      "edits_label": "spans moved",
+      "rules_edits": {
+        "snips": 1,
+        "edited": 1
+      },
+      "versions": [
+        {
+          "version": "v4",
+          "created_at": 1794654600000,
+          "active": false,
+          "score": null,
+          "edits": null
+        },
+        {
+          "version": "v3",
+          "created_at": 1794651600000,
+          "active": true,
+          "score": null,
+          "edits": null
+        },
+        {
+          "version": "v2",
+          "created_at": 1794650700000,
+          "active": false,
+          "score": null,
+          "edits": null
+        },
+        {
+          "version": "v1",
+          "created_at": 1794648600000,
+          "active": false,
+          "score": null,
+          "edits": null
+        }
+      ]
+    },
+    {
       "name": "span-picker",
-      "label": "Snip start",
+      "label": "Snip start picker",
       "active": "v1",
       "in_use": false,
       "eval": {
@@ -100,16 +142,23 @@
     {
       "name": "speakers",
       "label": "Speakers",
-      "active": "v1",
+      "active": "v2",
       "in_use": true,
       "eval": null,
       "edits_label": null,
       "rules_edits": null,
       "versions": [
         {
+          "version": "v2",
+          "created_at": 1794504914000,
+          "active": true,
+          "score": null,
+          "edits": null
+        },
+        {
           "version": "v1",
           "created_at": 1793292026000,
-          "active": true,
+          "active": false,
           "score": null,
           "edits": null
         }

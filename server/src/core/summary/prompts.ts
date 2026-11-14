@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** The prompts the app runs. Each has a folder of versions under prompts/ (see prompts/README.md). */
-export const PROMPT_NAMES = ["snip-summary", "episode-summary", "span-picker", "speakers", "title-judge"] as const;
+export const PROMPT_NAMES = ["snip-summary", "episode-summary", "episode-map", "span-picker", "speakers", "title-judge"] as const;
 export type PromptName = (typeof PROMPT_NAMES)[number];
 
 export type PromptVersionEntry = { created_at: string; sha256: string };

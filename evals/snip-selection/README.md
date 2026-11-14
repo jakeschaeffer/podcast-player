@@ -62,7 +62,7 @@ What it says:
 
 ### An episode map, November 14, 2026
 
-An experiment in choosing the start before the tap. One model call per transcript (`episodeMap.ts`, prompt `episode-map-v1.md` beside this file, not in the prompt registry while it is an experiment) marks where every thought begins and whether the topic changes there. A rule then picks among the marked starts the selector offers within 240 s, with no model at the tap. `eval:snips:run --app --map` makes the maps (cached in `results/episode-maps.jsonl`, so rescoring is free) and scores the rules. Codex CLI at medium effort, the 14 episodes behind the same 48 snips: 14 calls, 17 to 100 s each, 1,581 starts (126 an hour, a median of 26 s apart), 267 of them topic changes.
+An experiment in choosing the start before the tap. One model call per transcript (`episodeMap.ts`; the prompt versions are now `server/prompts/episode-map/`) marks where every thought begins and whether the topic changes there. A rule then picks among the marked starts the selector offers within 240 s, with no model at the tap. `eval:snips:run --app --map` makes the maps (cached in `results/episode-maps.jsonl`, so rescoring is free) and scores the rules. Codex CLI at medium effort, the 14 episodes behind the same 48 snips: 14 calls, 17 to 100 s each, 1,581 starts (126 an hour, a median of 26 s apart), 267 of them topic changes.
 
 | Method | Both, all 48 | Left alone (31) | Edited (17) |
 | --- | ---: | ---: | ---: |

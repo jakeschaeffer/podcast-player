@@ -52,7 +52,7 @@ bundle id are in ../CLAUDE.local.md and the gitignored `Config/Local.xcconfig` a
   mute first (`xcrun simctl spawn <udid> defaults write <bundle id> muteAudio -bool YES`): the system's relaunch
   carries no launch arguments. The simulator never suspends a paused app, so "the app is suspended" is tested by
   ending it.
-- **Design checks of the Live Activity.** A script can't lock the simulator, so `-activityGallery lock|ad|snip|snip2|
+- **Design checks of the Live Activity.** A script can't lock the simulator, so `-activityGallery lock|ad|snip|snip2|snip3|
   island|island2|compact|paused|paused2` (DEBUG) draws every state at real size with the activity's own views. The compact island shows
   for real once the app is in the background (`xcrun simctl launch <udid> com.apple.Preferences`); `-openEpisode <id>
   -seekTo <ms> -autoSnipAfter <s> -renameAfter <s>` plays into an ad break, snips, and opens the rename link.

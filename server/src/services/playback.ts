@@ -3,6 +3,7 @@ import { notFound } from "../app/errors.js";
 import type { AudioAssetRow, PlaybackStateRow } from "../db/rows.js";
 import { PRIORITY } from "../jobs/queue.js";
 import { scheduleVideoPrune } from "./video.js";
+import { queueEpisodeMap } from "./episodeMaps.js";
 
 export type PlaybackReport = { position_ms: number; speed: number; playing: boolean; finished: boolean; seq: number; observed_at?: number };
 export type Resume = { position_ms: number; speed: number; finished: boolean; device_name: string; updated_at: number };
@@ -63,6 +64,8 @@ export function reportPlayback(ctx: AppContext, deviceId: string, assetId: strin
     if (feed?.auto_process === 1 && feed.captions_retry_at === null) ctx.queue.enqueue("transcribe", `transcribe:${assetId}`, { asset_id: assetId }, { priority: PRIORITY.play });
   }
   if (report.playing && asset.transcript_id !== null && asset.summary_id === null) requestSummaryForPlay(ctx, assetId);
+  // Made while the episode plays, so a snip later in it starts where a passage does (services/episodeMaps.ts).
+  if (report.playing && asset.transcript_id !== null) queueEpisodeMap(ctx, asset.transcript_id);
   const state = ctx.db.prepare("SELECT * FROM playback_state WHERE device_id = ? AND audio_asset_id = ?").get(deviceId, assetId) as PlaybackStateRow;
   return { accepted: true, state };
 }

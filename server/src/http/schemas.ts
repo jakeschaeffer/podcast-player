@@ -115,7 +115,7 @@ export const RevisionSchema = Type.Object({
   id: Id, rev: Type.Integer(), method: Type.String(), status: Type.String(),
   transcript_id: Nullable(Type.String({ description: "The transcript start_word and end_word index into" })),
   start_ms: Ms, end_ms: Ms, start_word: Nullable(Type.Integer()), end_word: Nullable(Type.Integer()),
-  excerpt: Nullable(Type.String()), title: Nullable(Type.String()), title_source: Nullable(Type.String({ description: "Who wrote the title: model, fallback, or owner" })), summary: Nullable(Type.String({ description: "Since snip-summary v3, bullets, one per line; earlier summaries are prose" })),
+  excerpt: Nullable(Type.String()), title: Nullable(Type.String()), title_source: Nullable(Type.String({ description: "Who wrote the title: model, fallback, owner, or map (the passage title from the episode map, shown until the summary is written)" })), summary: Nullable(Type.String({ description: "Since snip-summary v3, bullets, one per line; earlier summaries are prose" })),
   quote: Nullable(Type.String({ description: "A line copied word for word from the excerpt, chosen by the summary; null when there is none" })), summary_status: Type.String(),
   clip_url: Nullable(Type.String()), clip_duration_ms: Nullable(Type.Integer()), error: Nullable(Type.String()), selection: Type.Unknown(), created_at: Type.Integer(),
 });

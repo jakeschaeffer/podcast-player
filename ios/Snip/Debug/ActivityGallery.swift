@@ -26,6 +26,11 @@
             item("Moment chosen") { lock(.snip(.cutting)) }
             item("Clip ready") { lock(.snip(.naming)) }
             item("Named") { lock(.snip(.named)) }
+          case "snip3":
+            item("Moment chosen from the episode map: its passage title") { lock(.snip(.cutting, early: "How elevator operators learned the building's secrets")) }
+            item("Clip ready, passage title") { lock(.snip(.naming, early: "How elevator operators learned the building's secrets")) }
+            item("Clip ready, passage title, island") { expanded(.snip(.naming, early: "How elevator operators learned the building's secrets")) }
+            item("Paused, passage title") { lock(.snip(.naming, playing: false, early: "How elevator operators learned the building's secrets")) }
           case "snip2":
             item("Named, the longest title the server writes") { lock(.snip(.named, title: Sample.longestSnipTitle)) }
             item("Failed") { lock(.snip(.failed)) }
@@ -163,10 +168,11 @@
       "Hard Fork", "The A.I. Phone Is Here", at: 760_000, of: 3_482_000, ad: 712_000...808_000,
       snip: SnipProgress(step: .cutting, snipID: "sample", anchorMs: 744_000))
 
-    fileprivate static func snip(_ step: SnipProgress.Step, title: String = "Elevator operators knew everyone’s secrets", playing: Bool = true) -> PlaybackState {
+    /// `early`: the passage title an episode map gives before the snip's own is written.
+    fileprivate static func snip(_ step: SnipProgress.Step, title: String = "Elevator operators knew everyone’s secrets", playing: Bool = true, early: String? = nil) -> PlaybackState {
       let progress = SnipProgress(
         step: step, snipID: "sample", anchorMs: 439_000, lengthMs: step == .named ? 42_000 : nil,
-        title: step == .named ? title : nil, error: step == .failed ? "render failed: ffmpeg exited with code 1" : nil)
+        title: step == .named ? title : early, error: step == .failed ? "render failed: ffmpeg exited with code 1" : nil)
       return episode("99% Invisible", "The Lost Art of the Elevator Operator", at: 441_000, of: 2_712_000, playing: playing, snip: progress)
     }
   }

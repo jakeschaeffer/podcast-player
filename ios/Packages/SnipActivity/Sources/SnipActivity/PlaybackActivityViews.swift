@@ -190,7 +190,8 @@ struct SkipAdButton: View {
 /// After a snip: a headline and, under it, the step under way with three marks for choose, cut and name. When a step
 /// finishes, both lines roll up (a push from the bottom, clipped to each line): the headline to what just finished,
 /// the line under it to what's next. The last headline is the generated title, at a size that keeps any title the
-/// server writes (60 characters at most) to two lines. Paused, Play stands at the edge, where it is on the episode's
+/// server writes (60 characters at most) to two lines. A snip whose start came from the episode map has a title as
+/// soon as its moment is chosen (the passage's), which stands in the headline while the clip is cut and named. Paused, Play stands at the edge, where it is on the episode's
 /// card, and the title may take a third line on the lock screen for the room Play takes.
 struct SnipRelay: View {
   let snip: SnipProgress
@@ -215,6 +216,11 @@ struct SnipRelay: View {
 
   @ViewBuilder private var headline: some View {
     switch snip.step {
+    case .cutting where snip.title != nil, .naming where snip.title != nil:
+      Text(snip.title ?? "Snip")
+        .font(.system(size: titleSize, weight: .semibold))
+        .lineLimit(paused && !island ? 3 : 2)
+        .minimumScaleFactor(paused ? 0.75 : 0.85)
     case .named:
       Text(snip.title ?? "Snip")
         .font(.system(size: titleSize, weight: .semibold))
