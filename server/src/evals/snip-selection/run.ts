@@ -17,6 +17,7 @@
  * same function (`runSelectionEval`, always with the model and the app's snips) when a run is started from the
  * Prompts screen.
  */
+import { buildEpisodeMap, mapPicker, MAP_PROMPT_VERSION, readMapCache, writeMapCache, type EpisodeMap, type MapRule } from "./episodeMap.js";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -254,6 +255,8 @@ export type SelectionEvalOptions = {
   modelLabel?: string;
   /** Version of prompts/span-picker to test; the active one by default. */
   version?: string;
+  /** With this, an episode map is made for every transcript the cases use (one model call each, kept in a cache) and the map's rules are scored as further methods (episodeMap.ts). */
+  map?: { model: TextModel; label: string; timeoutMs?: number };
   concurrency?: number;
   modelTimeoutMs?: number;
   stamp?: string;
@@ -329,6 +332,49 @@ export async function runSelectionEval(opts: SelectionEvalOptions = {}): Promise
     });
     rows.push(...modelRows);
   }
+  if (opts.map) {
+    const prompt = await readFile(join(REPO, "evals", "snip-selection", `episode-map-${MAP_PROMPT_VERSION}.md`), "utf8");
+    const cachePath = join(EVAL_DIR, "results", "episode-maps.jsonl");
+    const cache = await readMapCache(cachePath);
+    const fixtures = [...new Set(cases.map((c) => c.transcript_fixture))];
+    const maps = new Map<string, EpisodeMap>();
+    let made = 0;
+    await pool(fixtures, Number(values.concurrency), async (fixture) => {
+      const key = `${fixture}|${MAP_PROMPT_VERSION}|${opts.map!.label}`;
+      let map = cache.get(key);
+      if (!map) {
+        const entry = transcripts.get(fixture)!;
+        try {
+          const built = await buildEpisodeMap(opts.map!.model, prompt, entry.t, opts.map!.timeoutMs ?? 900_000);
+          map = built.map;
+          await writeMapCache(cachePath, key, map, { sentences: built.sentences, elapsed_ms: built.elapsed_ms, duration_ms: entry.duration_ms });
+          made++;
+          console.error(`map: ${fixture} ${built.sentences} sentences, ${map.starts.length} starts, ${(built.elapsed_ms / 1000).toFixed(0)} s`);
+        } catch (err) {
+          console.error(`map: ${fixture} failed: ${err instanceof Error ? err.message : String(err)}`);
+          return;
+        }
+      }
+      maps.set(fixture, map);
+    });
+    console.error(`map: ${maps.size}/${fixtures.length} transcripts mapped, ${made} made now`);
+    const rules: MapRule[] = ["nearest-default", "latest", "second-latest", "latest-major", "ceiling"];
+    for (const rule of rules) {
+      const name = `map-${rule}`;
+      methods.push(name);
+      for (const c of cases) {
+        const entry = transcripts.get(c.transcript_fixture)!;
+        const map = maps.get(c.transcript_fixture);
+        const [from, to] = c.label.acceptable_start_ms;
+        const t0 = performance.now();
+        const sel = await selectSpan({
+          transcript: entry.t, anchor_ms: c.anchor_ms, heard_from_ms: c.heard_from_ms, duration_ms: entry.duration_ms,
+          ...(map ? { picker: mapPicker(map, rule, { from, to, ideal: c.label.ideal_start_ms }) } : {}),
+        });
+        rows.push(score(c, name, sel, performance.now() - t0, true, entry.t));
+      }
+    }
+  }
   const overall = Object.fromEntries(methods.map((m) => [m, summarize(rows.filter((r) => r.method === m))]));
   const tagGroups = [...new Set(cases.flatMap((c) => c.tags))].filter((t) => /^(source:|app:|words:|anchor:|ends-|year:)/.test(t)).sort();
   const byTag = Object.fromEntries(tagGroups.map((tag) => [tag, Object.fromEntries(methods.map((m) => [m, summarize(rows.filter((r) => r.method === m && r.tags.includes(tag)))]))]));
@@ -388,6 +434,7 @@ async function main(): Promise<void> {
       "model-timeout-ms": { type: "string", default: "90000" },
       "cases-dir": { type: "string", default: "cases" },
       app: { type: "boolean", default: false },
+      map: { type: "boolean", default: false },
     },
   });
   // The app's snips are read from the database the server's configuration names (DATA_DIR); nothing is written to it.
@@ -401,6 +448,7 @@ async function main(): Promise<void> {
     ...(values.limit ? { limit: Number(values.limit) } : {}),
     ...(values.model ? { model: new CodexCliTextModel({ model: process.env.CODEX_MODEL ?? "", reasoningEffort: process.env.CODEX_REASONING_EFFORT ?? "" }), modelLabel: `snap-90+model (${codex})` } : {}),
     ...(values.version ? { version: values.version } : {}),
+    ...(values.map ? { map: { model: new CodexCliTextModel({ model: process.env.CODEX_MODEL ?? "", reasoningEffort: process.env.CODEX_REASONING_EFFORT ?? "", defaultTimeoutMs: 900_000 }), label: codex } } : {}),
     concurrency: Number(values.concurrency),
     modelTimeoutMs: Number(values["model-timeout-ms"]),
   });
