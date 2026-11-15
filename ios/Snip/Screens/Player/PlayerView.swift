@@ -16,7 +16,8 @@ import SwiftUI
 /// On the iPhone Duo open the player fills the display (`fullScreen`, with a close button) and, held wide, becomes two
 /// pages split at the fold (`spread`): the episode on the left, large, with its controls under it, and the reading on
 /// the right, the snip bar at its foot. Turned tall it splits at the fold the other way (`tall`): the whole cover and
-/// the titles above, the controls and the reading below. Open, the cover is shown whole at its own shape
+/// the titles above, the controls and the reading below; standing half open that way, like a small laptop
+/// (`standing`), the upright half is the cover and titles alone and the flat half all controls, or all snip. Open, the cover is shown whole at its own shape
 /// (FittedArtwork), never a square cut from a wide one. The read-along and full-screen video stay for a phone (or the closed Duo) on its side.
 struct PlayerView: View {
   @Environment(AppModel.self) private var model
@@ -66,7 +67,13 @@ struct PlayerView: View {
           wide(ep)
         } else if UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) {
           GeometryReader { geo in
-            if geo.size.width > geo.size.height { spread(ep) } else { tall(ep) }
+            if geo.size.width > geo.size.height {
+              spread(ep)
+            } else if Fold.isStanding(in: geo) {
+              standing(ep)
+            } else {
+              tall(ep)
+            }
           }
         } else {
           upright(ep)
@@ -205,6 +212,55 @@ struct PlayerView: View {
       }
       .padding(.horizontal, 16)
       .overlay(alignment: .bottom) { pill.padding(.bottom, 8) }
+    }
+  }
+
+  /// The iPhone Duo standing half open and turned tall, like a small laptop: the upright top half is the cover and the
+  /// titles alone, to be seen from a little way off; the flat bottom half is the seek bar and the controls, large, with
+  /// the close button. After a snip tap the bottom half is the snip (SnipPanel) until it is done or Done is pressed.
+  private func standing(_ ep: EpisodeDetail) -> some View {
+    HingeStack {
+      VStack(spacing: 14) {
+        GeometryReader { geo in
+          Group {
+            if engine.video {
+              VideoSurface()
+            } else {
+              FittedArtwork(url: model.artwork(episodeImage: ep.imageUrl, feedID: ep.feedId), width: geo.size.width, height: geo.size.height)
+            }
+          }
+          .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .frame(minHeight: 96)
+        VStack(spacing: 4) {
+          Text(ep.title).font(.title2.weight(.bold)).lineLimit(2).multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+          Text(ep.showTitle ?? "").font(.title3).foregroundStyle(.secondary).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+      }
+      .padding(.horizontal, 24)
+      .padding(.top, 8)
+    } bottom: {
+      Group {
+        if let card = model.snipCard {
+          SnipPanel(card: card, onOpen: { openSnip = SnipRoute(id: $0) }, onCancel: { model.cancelSnip(card) }) {
+            model.closeSnip(card)
+          }
+          .transition(.move(edge: .bottom).combined(with: .opacity))
+        } else {
+          VStack(spacing: 28) {
+            Scrubber(large: true)
+            TransportRow(large: true)
+            loadError
+            Spacer(minLength: 0)
+            HStack { closeButton; Spacer() }
+          }
+          .transition(.opacity)
+        }
+      }
+      .padding(.horizontal, 24)
+      .padding(.bottom, 8)
     }
   }
 
