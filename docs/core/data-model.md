@@ -163,8 +163,10 @@ CREATE TABLE snip_revision (
   title         TEXT, summary TEXT,
   summary_model TEXT, summary_prompt_version TEXT,
   summary_status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'ready' | 'failed' | 'skipped'; ready requires the clip and a concluded summary step
-  title_source  TEXT,                     -- 'model' | 'fallback' | 'owner'; an owner's title is never overwritten and carries over to later revisions
+  title_source  TEXT,                     -- 'model' | 'fallback' | 'owner' | 'map'; an owner's title is never overwritten and carries over to later revisions
   generated_title TEXT,                   -- the summary model's title for this span, kept after the owner rewrites it
+  summary_source TEXT,                    -- 'model' | 'owner'; the owner's bullets are never overwritten and carry over to later revisions
+  generated_summary TEXT,                 -- the summary model's bullets for this span, kept under the owner's (clearing those shows these)
   clip_path     TEXT, clip_sha256 TEXT, clip_duration_ms INTEGER,
   status        TEXT NOT NULL,            -- 'waiting' | 'selecting' | 'preparing' | 'ready' | 'failed'
   error         TEXT,

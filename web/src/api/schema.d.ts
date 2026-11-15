@@ -3617,6 +3617,7 @@ export interface paths {
                                     title: string | null;
                                     title_source: string | null;
                                     summary: string | null;
+                                    summary_source: string | null;
                                     quote: string | null;
                                     summary_status: string;
                                     clip_url: string | null;
@@ -3661,7 +3662,7 @@ export interface paths {
                         heard_from_ms: number;
                         /** @description Unix ms on the device's clock when the owner tapped; capped at receipt time */
                         captured_at?: number;
-                        /** @description What the owner changed on the device while the tap waited to be sent (offline). The selector still chooses its span first; a span here (both ends) then replaces it as a manual revision, and a title here is kept as the owner's */
+                        /** @description What the owner changed on the device while the tap waited to be sent (offline). The selector still chooses its span first; a span here (both ends) then replaces it as a manual revision, and a title or summary here is kept as the owner's */
                         owner?: {
                             /** @description milliseconds */
                             start_ms?: number;
@@ -3669,6 +3670,8 @@ export interface paths {
                             end_ms?: number;
                             title?: string;
                             note?: string;
+                            /** @description The owner's own bullets, one per line */
+                            summary?: string;
                         };
                     };
                 };
@@ -3719,6 +3722,7 @@ export interface paths {
                                 title: string | null;
                                 title_source: string | null;
                                 summary: string | null;
+                                summary_source: string | null;
                                 quote: string | null;
                                 summary_status: string;
                                 clip_url: string | null;
@@ -3782,6 +3786,7 @@ export interface paths {
                                 title: string | null;
                                 title_source: string | null;
                                 summary: string | null;
+                                summary_source: string | null;
                                 quote: string | null;
                                 summary_status: string;
                                 clip_url: string | null;
@@ -3872,6 +3877,7 @@ export interface paths {
                                 title: string | null;
                                 title_source: string | null;
                                 summary: string | null;
+                                summary_source: string | null;
                                 quote: string | null;
                                 summary_status: string;
                                 clip_url: string | null;
@@ -3924,7 +3930,7 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        /** Edit boundaries (new revision), note, or title */
+        /** Edit boundaries (new revision), note, title, or summary */
         patch: {
             parameters: {
                 query?: never;
@@ -3949,6 +3955,7 @@ export interface paths {
                         snap?: boolean;
                         note?: string | null;
                         title?: string;
+                        summary?: string | null;
                         /** @description The revision the edit was made against. Required when moving boundaries, so a replayed edit cannot create a second revision; 409 if the snip has moved on */
                         if_revision?: string;
                         /** @description With a boundary edit: write the title and summary again for the new span (true) or keep the current ones (false). Left out, they are written again only when the length changes by more than 10 s */
@@ -4002,6 +4009,7 @@ export interface paths {
                                 title: string | null;
                                 title_source: string | null;
                                 summary: string | null;
+                                summary_source: string | null;
                                 quote: string | null;
                                 summary_status: string;
                                 clip_url: string | null;
@@ -4106,6 +4114,7 @@ export interface paths {
                                 title: string | null;
                                 title_source: string | null;
                                 summary: string | null;
+                                summary_source: string | null;
                                 quote: string | null;
                                 summary_status: string;
                                 clip_url: string | null;
@@ -4198,6 +4207,7 @@ export interface paths {
                                 title: string | null;
                                 title_source: string | null;
                                 summary: string | null;
+                                summary_source: string | null;
                                 quote: string | null;
                                 summary_status: string;
                                 clip_url: string | null;
@@ -4347,6 +4357,7 @@ export interface paths {
                                 title: string | null;
                                 title_source: string | null;
                                 summary: string | null;
+                                summary_source: string | null;
                                 quote: string | null;
                                 summary_status: string;
                                 clip_url: string | null;

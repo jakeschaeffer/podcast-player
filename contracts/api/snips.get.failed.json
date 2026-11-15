@@ -1,30 +1,30 @@
 {
   "request": {
     "method": "GET",
-    "url": "/v1/snips/01M76JZTCBB9BDH579AW4896B3"
+    "url": "/v1/snips/01M7GD2K7DAB2FKC8H1CGTB7KH"
   },
   "status": 200,
   "body": {
-    "id": "01M76JZTCBB9BDH579AW4896B3",
-    "asset_id": "01M76JZSNE5MCWKHMT6YZPV3D0",
-    "episode_id": "01M76JZSNEPE9ZH4CD0YM7E9BC",
+    "id": "01M7GD2K7DAB2FKC8H1CGTB7KH",
+    "asset_id": "01M7GD2JKHYQETTSFQ091JCQ1F",
+    "episode_id": "01M7GD2JKH186ES3XTFRSKHQ0C",
     "episode_title": "Pricing",
     "show_title": "Fixture Show",
     "image_url": null,
     "media_kind": "audio",
     "anchor_ms": 110000,
     "heard_from_ms": 0,
-    "share_url": "http://pods.test/s/j6xfs76bd3sfktwbho4u",
+    "share_url": "http://pods.test/s/wujmdgunqkaboa7axfux",
     "share_state": "active",
     "note": null,
     "created_at": 1800000000000,
     "captured_at": 1800000000000,
     "revision": {
-      "id": "01M76JZTCB2HMA1J45KQYEP0QK",
+      "id": "01M7GD2K7DAPCFDSKPR9DBVXV4",
       "rev": 1,
       "method": "snap",
       "status": "failed",
-      "transcript_id": "01M76JZSSFE3312KR0Z2SAB1VH",
+      "transcript_id": "01M7GD2JPY0N7PVWC9Y4CKDFYD",
       "start_ms": 16200,
       "end_ms": 104890,
       "start_word": 34,
@@ -33,11 +33,12 @@
       "title": "A flat fee nobody upgraded from",
       "title_source": "model",
       "summary": "Nobody upgrades for three months.\nA flat fee feels simple and fair.",
+      "summary_source": "model",
       "quote": null,
       "summary_status": "ready",
       "clip_url": null,
       "clip_duration_ms": null,
-      "error": "render_clip failed: Command failed: ffmpeg -nostdin -hide_banner -loglevel error -y -ss 16.200 -i /nonexistent/recording.mp3 -t 88.690 -map_metadata -1 -map_chapters -1 -vn -af afade=t=in:st=0:d=0.03,afade=t=out:st=88.660:d=0.03 -c:a libmp3lame -b:a 128k -ar 44100 -f mp3 /var/folders/gr/960g1njd5d73x9gmfvbwn0t80000gn/T/pp-test-MWcYGe/media/clips/01M76JZTCB2HMA1J45KQYEP0QK.mp3.tmp-5601-1794443831777\n[in#0 @ 0xa19020000] Error opening input: No such file or directory\nError opening input file /nonexistent/recording.mp3.\nError opening input files: No such file or directory\n",
+      "error": "render_clip failed: Command failed: ffmpeg -nostdin -hide_banner -loglevel error -y -ss 16.200 -i /nonexistent/recording.mp3 -t 88.690 -map_metadata -1 -map_chapters -1 -vn -af afade=t=in:st=0:d=0.03,afade=t=out:st=88.660:d=0.03 -c:a libmp3lame -b:a 128k -ar 44100 -f mp3 /var/folders/gr/960g1njd5d73x9gmfvbwn0t80000gn/T/pp-test-4PP1MH/media/clips/01M7GD2K7DAPCFDSKPR9DBVXV4.mp3.tmp-88680-1794773175613\n[in#0 @ 0x94b018000] Error opening input: No such file or directory\nError opening input file /nonexistent/recording.mp3.\nError opening input files: No such file or directory\n",
       "selection": {
         "version": "select_v2",
         "window": {

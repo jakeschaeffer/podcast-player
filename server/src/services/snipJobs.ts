@@ -135,6 +135,10 @@ export function queueMissingVideoClips(ctx: AppContext): number {
   return rows.length;
 }
 
+/** The model wrote no bullets: the owner's stay, anything else goes. */
+const KEEP_OWNER_SUMMARY = `summary = CASE WHEN summary_source = 'owner' THEN summary ELSE NULL END,
+  summary_source = CASE WHEN summary_source = 'owner' THEN 'owner' ELSE NULL END, generated_summary = NULL`;
+
 /** Job body: title and summary for a revision's excerpt. Without a text model the excerpt publishes with a derived title. */
 export async function summarizeSnipJob(ctx: AppContext, job: Job<{ revision_id: string }>): Promise<void> {
   const rev = getRevisionRow(ctx, job.payload.revision_id);
@@ -175,16 +179,19 @@ export async function summarizeSnipJob(ctx: AppContext, job: Job<{ revision_id: 
     markReadyIfComplete(ctx, rev.id);
     throw new NonRetryable(message); // the job is failed and visible; the revision is settled already
   }
-  // An owner-written title always wins; the model's title is still kept in generated_title for title evals.
+  // An owner-written title or summary always wins, however late it came (these CASEs read the row as it is now, not
+  // as it was when the model was asked); the model's are still kept in generated_title and generated_summary.
   if (result.ok) {
     ctx.db.transaction(() => {
       ctx.db
         .prepare(
           `UPDATE snip_revision SET generated_title = ?, title = CASE WHEN title_source = 'owner' THEN title ELSE ? END,
              title_source = CASE WHEN title_source = 'owner' THEN 'owner' ELSE 'model' END,
-             summary = ?, quote = ?, summary_model = ?, summary_prompt_version = ?, summary_status = 'ready' WHERE id = ?`,
+             generated_summary = ?, summary = CASE WHEN summary_source = 'owner' THEN summary ELSE ? END,
+             summary_source = CASE WHEN summary_source = 'owner' THEN 'owner' ELSE 'model' END,
+             quote = ?, summary_model = ?, summary_prompt_version = ?, summary_status = 'ready' WHERE id = ?`,
         )
-        .run(result.title, result.title, result.summary, result.quote, result.model, result.prompt_version, rev.id);
+        .run(result.title, result.title, result.summary, result.summary, result.quote, result.model, result.prompt_version, rev.id);
       fillGeneratedTitle(ctx, rev.id, { title: result.title, model: result.model, prompt_version: result.prompt_version });
     })();
   } else {
@@ -192,7 +199,7 @@ export async function summarizeSnipJob(ctx: AppContext, job: Job<{ revision_id: 
       .prepare(
         `UPDATE snip_revision SET title = CASE WHEN title_source IN ('owner', 'map') THEN title ELSE ? END,
            title_source = CASE WHEN title_source IN ('owner', 'map') THEN title_source ELSE 'fallback' END,
-           summary = NULL, quote = NULL, summary_model = ?, summary_prompt_version = ?, summary_status = 'failed', error = ? WHERE id = ?`,
+           ${KEEP_OWNER_SUMMARY}, quote = NULL, summary_model = ?, summary_prompt_version = ?, summary_status = 'failed', error = ? WHERE id = ?`,
       )
       .run(result.fallback_title, result.model, result.prompt_version, `summary rejected: ${result.problems.join("; ")}`.slice(0, 1000), rev.id);
   }
@@ -218,7 +225,7 @@ function settleWithFallback(ctx: AppContext, rev: SnipRevisionRow, error: string
     .prepare(
       `UPDATE snip_revision SET title = CASE WHEN title_source IN ('owner', 'map') THEN title ELSE ? END,
          title_source = CASE WHEN title_source IN ('owner', 'map') THEN title_source ELSE 'fallback' END,
-         summary = NULL, summary_status = 'failed', error = ? WHERE id = ?`,
+         ${KEEP_OWNER_SUMMARY}, summary_status = 'failed', error = ? WHERE id = ?`,
     )
     .run(fallback, error.slice(0, 1000), rev.id);
 }

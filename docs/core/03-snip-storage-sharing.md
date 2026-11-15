@@ -86,7 +86,7 @@ In the app, the episode's snip list has "Share all", which opens the share sheet
 | `POST /v1/snips` | Create; idempotent on `client_request_id`; returns snip with share URL |
 | `GET /v1/snips?asset_id=&q=&after=` | Owner library; `q` searches title, summary, excerpt, and note through FTS5 |
 | `GET /v1/snips/{id}` | Snip with its current revision |
-| `PATCH /v1/snips/{id}` | Boundary edit (new revision), `note`, or `title` override. A boundary edit requires `if_revision` matching the current revision id (400 without it, 409 on a mismatch); word-index edits also send `transcript_id`. Title and note edits apply in place and may omit `if_revision` |
+| `PATCH /v1/snips/{id}` | Boundary edit (new revision), `note`, `title` or `summary` override. A boundary edit requires `if_revision` matching the current revision id (400 without it, 409 on a mismatch); word-index edits also send `transcript_id`. Title, note and summary edits apply in place at any step of the snip (waiting for a transcript included) and may omit `if_revision`. `summary` is the owner's bullets, one per line (≤ 2000 characters); the summary job writes the model's under it and never over it, a boundary edit carries it, and `null` clears it so the model's show again. `revision.summary_source` says who wrote the summary shown |
 | `POST /v1/snips/{id}/revoke`, `/restore` | Revocation is sticky: edits and retries never republish a revoked snip. Restore is a deliberate action |
 | `DELETE /v1/snips/{id}` | Soft delete; public URL becomes 410; clips are removed after 30 days |
 | `GET /v1/snips/{id}/clip` | Signed clip URL for in-app preview; preview never reports playback state |

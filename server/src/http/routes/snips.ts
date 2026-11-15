@@ -34,7 +34,7 @@ export function registerSnipsRoutes(instance: FastifyInstance, ctx: AppContext):
     if (request.headers["if-none-match"] === tag) return reply.code(304).send(null);
     return snip;
   });
-  app.patch("/v1/snips/:id", { schema: { tags: ["snips"], summary: "Edit boundaries (new revision), note, or title", params: Id, body: S.EditSnipBody, response: { 200: S.SnipSchema, 409: S.ErrorSchema } } }, async (request) => {
+  app.patch("/v1/snips/:id", { schema: { tags: ["snips"], summary: "Edit boundaries (new revision), note, title, or summary", params: Id, body: S.EditSnipBody, response: { 200: S.SnipSchema, 409: S.ErrorSchema } } }, async (request) => {
     return editSnip(ctx, request.params.id, request.body, request.device.id);
   });
   app.post("/v1/snips/:id/revoke", { schema: { tags: ["snips"], summary: "Withdraw the public link; sticky until restored", params: Id, response: { 200: S.SnipSchema } } }, async (request) => revokeSnip(ctx, request.params.id, request.device.id));

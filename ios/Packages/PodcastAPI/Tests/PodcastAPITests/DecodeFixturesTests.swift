@@ -162,6 +162,43 @@ struct DecodeFixturesTests {
     #expect(Set(titleOnly?.keys.map { $0 } ?? []) == ["title", "if_revision"])
   }
 
+  /// A note or summary edit sends the field, a clear sends JSON null, and a field left alone is not in the body at all:
+  /// the server tells "clear the owner's bullets" from "leave them" by that alone.
+  @Test func noteAndSummaryEditsSendSetClearOrNothing() throws {
+    func sent(_ body: EditSnip) throws -> [String: Any] {
+      try #require(try JSONSerialization.jsonObject(with: APIClient.encoder.encode(body)) as? [String: Any])
+    }
+    let set = try sent(EditSnip(note: .set("Check the churn numbers"), summary: .set("One\nTwo"), ifRevision: "R"))
+    #expect(set["note"] as? String == "Check the churn numbers")
+    #expect(set["summary"] as? String == "One\nTwo")
+    let cleared = try sent(EditSnip(note: .clear, summary: FieldEdit(nil), ifRevision: "R"))
+    #expect(cleared["note"] is NSNull)
+    #expect(cleared["summary"] is NSNull)
+    let titleOnly = try sent(EditSnip(title: "New", ifRevision: "R"))
+    #expect(Set(titleOnly.keys) == ["title", "if_revision"])
+    #expect(EditSnip(ifRevision: "R").isEmpty && !EditSnip(summary: .clear, ifRevision: "R").isEmpty)
+
+    // A body kept and read back (an outbox) keeps a clear as a clear.
+    let roundTrip = { (body: EditSnip) in try APIClient.decoder.decode(EditSnip.self, from: APIClient.encoder.encode(body)) }
+    let both = EditSnip(startMs: 1, endMs: 2, note: .clear, summary: .set("Mine"), ifRevision: "R", regenerateSummary: false)
+    #expect(try roundTrip(both) == both)
+    #expect(try roundTrip(EditSnip(ifRevision: "R")) == EditSnip(ifRevision: "R"))
+
+    // An offline tap's owner edit carries bullets too.
+    let owner = try #require(
+      try JSONSerialization.jsonObject(with: APIClient.encoder.encode(CreateSnip.Owner(summary: "Typed offline"))) as? [String: Any])
+    #expect(owner as NSDictionary == ["summary": "Typed offline"])
+    #expect(!CreateSnip.Owner(summary: "x").isEmpty)
+  }
+
+  /// Who wrote the summary comes through: the recorded ready snip's are the model's, a snip still selecting has none.
+  @Test func summarySourceDecodes() throws {
+    let ready = try Self.decode(Snip.self, try Self.body(of: "snips.get.ready"))
+    #expect(ready.revision?.summarySource == "model")
+    let selecting = try Self.decode(Snip.self, try Self.body(of: "snips.create.selecting"))
+    #expect(selecting.revision?.summarySource == nil)
+  }
+
   @Test func subscribeBodyMatchesTheRecording() throws {
     // Opening a show from search: unfollowed, manual, nothing backfilled. It must never start paid transcription.
     let sent = try JSONSerialization.jsonObject(
