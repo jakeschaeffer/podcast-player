@@ -238,32 +238,96 @@ struct AddShowView: View {
   }
 }
 
+/// One show found. The owner is looking for the one show, so a result is made big enough that about three fill the
+/// screen under the search field (the closed Duo, the inner screen held wide, a phone): large artwork, the title in
+/// large bold type that wraps rather than cutting off, the author and episode count below it. Following, or the
+/// spinner while the show opens, takes a line of its own under those, so nothing reflows the title.
 private struct ShowResultRow: View {
   let result: ShowSearch.Result
   let opening: Bool
+  @Environment(\.dynamicTypeSize) private var typeSize
+  @State private var width: CGFloat = 0
 
-  var body: some View {
-    HStack(spacing: 12) {
-      Artwork(url: result.artworkUrl, size: 52)
-      VStack(alignment: .leading, spacing: 3) {
-        Text(result.title).font(.body.weight(.medium)).lineLimit(2)
-        Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-      }
-      Spacer(minLength: 8)
-      if opening {
-        ProgressView()
-      } else if result.followed == true {
-        Text("Following").font(.caption.weight(.medium)).foregroundStyle(.secondary)
-      }
-    }
-    .contentShape(.rect)
+  /// At the accessibility text sizes the artwork goes above the text, which then has the whole row.
+  private var stacked: Bool { typeSize.isAccessibilitySize }
+
+  /// About a third of the row's width beside the text: 108 pt on the closed Duo or a phone, 130 on the inner screen
+  /// held wide (its list is 720 pt), where three rows then fit under the search field. Stacked, the text is so large
+  /// that the artwork stays modest, so a row still fits on the screen.
+  private var artSize: CGFloat {
+    guard width > 0 else { return 108 }
+    if stacked { return min(width, 120) }
+    return min(max(width * 0.34, 88), 130)
   }
 
-  private var detail: String {
-    [
-      result.author,
-      result.episodeCount.map { $0 == 1 ? "1 episode" : "\($0) episodes" },
-      result.genres.first,
-    ].compactMap { $0 }.joined(separator: " · ")
+  var body: some View {
+    Group {
+      if stacked {
+        VStack(alignment: .leading, spacing: 12) {
+          Artwork(url: result.artworkUrl, size: artSize)
+          text
+        }
+      } else {
+        HStack(alignment: .top, spacing: 16) {
+          Artwork(url: result.artworkUrl, size: artSize)
+          text
+        }
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.vertical, 10)
+    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+    .contentShape(.rect)
+    // The separator runs under the artwork too, the same on every row whatever its text holds.
+    .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+    .accessibilityElement(children: .combine)
+  }
+
+  private var text: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text(result.title)
+        .font(.title2.bold())
+        .lineLimit(3)
+        .fixedSize(horizontal: false, vertical: true)
+      detail
+        .font(.body)
+        .foregroundStyle(.secondary)
+      if opening {
+        HStack(spacing: 8) {
+          ProgressView()
+          Text("Opening…")
+        }
+        .font(.body.weight(.semibold))
+        .foregroundStyle(.secondary)
+      } else if result.followed == true {
+        HStack(spacing: 8) {
+          Image(systemName: "checkmark")
+          Text("Following")
+        }
+        .font(.body.weight(.semibold))
+          .foregroundStyle(.secondary)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  /// The author and the episode count, on one line where they fit and otherwise one line each (so the break never
+  /// falls inside either); the genre is left out to keep it to two readable lines.
+  @ViewBuilder private var detail: some View {
+    let episodes = result.episodeCount.map { $0 == 1 ? "1 episode" : "\($0) episodes" }
+    switch (result.author, episodes) {
+    case (let author?, let episodes?):
+      ViewThatFits(in: .horizontal) {
+        Text("\(author) · \(episodes)").lineLimit(1)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(author).lineLimit(1)
+          Text(episodes).lineLimit(1)
+        }
+      }
+    case (let one?, nil), (nil, let one?):
+      Text(one).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+    case (nil, nil):
+      EmptyView()
+    }
   }
 }
