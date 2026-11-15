@@ -37,6 +37,33 @@ final class AppModel {
   var renameRequest: ULID?
   /// A snip's page is showing its words sideways, full screen; the mini player hides meanwhile.
   var readingSideways = false
+  /// The snip page pushed in the player (from its snip bar, or the Live Activity's title). Kept here rather than in the
+  /// player's own state, which is made anew when the iPhone Duo is folded or opened (the player moves between a sheet
+  /// and a full-screen cover), so the page is still there after it.
+  var playerSnip: SnipRoute?
+  /// The state of the snip pages made recently, by snip: a page built again (the player rebuilt, the device turned)
+  /// takes its model back, with the field being typed in, its draft and the span being adjusted.
+  @ObservationIgnored private var snipPages: [(id: ULID, model: SnipPageModel)] = []
+
+  /// The model for a snip's page: the one a page of this snip had, else a new one.
+  func snipPage(_ id: ULID) -> SnipPageModel {
+    if let kept = snipPages.first(where: { $0.id == id })?.model { return kept }
+    let made = SnipPageModel(snipID: id, api: api)
+    // A few at most; one being typed in, or still on screen, is never dropped.
+    snipPages.append((id, made))
+    if snipPages.count > 6, let old = snipPages.firstIndex(where: { !$0.model.holdsWork && !$0.model.showing }) {
+      snipPages.remove(at: old)
+    }
+    return made
+  }
+
+  /// Opens a snip's page in the player afresh (renaming, say), rather than as it was left.
+  func openInPlayer(_ route: SnipRoute) {
+    if let kept = snipPages.firstIndex(where: { $0.id == route.id }), !snipPages[kept].model.holdsWork {
+      snipPages.remove(at: kept)
+    }
+    playerSnip = route
+  }
   /// Up next in the owner's order, without the one playing (`refreshQueue`): ones heard partway and not yet placed
   /// first, last listened first, then the ones placed or added.
   private(set) var queue: [Episode] = []
@@ -94,6 +121,8 @@ final class AppModel {
     parts.tokens.save(login.token)
     SharedSession.rememberServer(server)
     (serverURL, tokens, api, reporter, engine, snips, downloads) = (server, parts.tokens, parts.api, parts.reporter, parts.engine, parts.snips, parts.downloads)
+    snipPages = []
+    playerSnip = nil
     listenForDeliveredSnips()
     wireQueue()
     wireLiveActivity()

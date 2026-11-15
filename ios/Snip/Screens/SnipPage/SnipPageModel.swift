@@ -1,4 +1,5 @@
 import AVFoundation
+import Foundation
 import Observation
 import PlayerKit
 import PodcastAPI
@@ -41,6 +42,16 @@ final class SnipPageModel {
   /// fresh read of the snip, so a title or summary that arrives meanwhile can't replace what is being typed.
   private(set) var editingField: Field?
   var draft = ""
+  /// Where the cursor was in the draft (OwnerTextBox), so a box made again (the device turned, folded or opened)
+  /// carries on there; nil until the box first had the keyboard in this edit.
+  var draftSelection: NSRange?
+  /// Bumped to give the open field the keyboard again, after the page was laid out anew.
+  private(set) var focusRequest = 0
+  /// The page has run its first load and launch actions; a page built again on this model (AppModel.snipPage) doesn't
+  /// run them again.
+  var started = false
+  /// How many pages show this model: one goes as another comes when the player moves between a sheet and a cover.
+  private var pagesShowing = 0
   /// Why the field's last save failed; the field stays open with what was typed.
   private(set) var fieldError: String?
   /// Counts saves, so a read of the snip that left before one came back is dropped rather than shown over it.
@@ -69,6 +80,31 @@ final class SnipPageModel {
     text.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: "\n")
   }
   var ownSummary: Bool { revision?.summarySource == "owner" }
+  /// A generated summary is there, or still on its way, to go back to: the summary job wrote one (ready) or hasn't
+  /// run (pending). One that failed or was skipped leaves none, and nothing writes one later.
+  var generatedSummaryAvailable: Bool { ["ready", "pending"].contains(revision?.summaryStatus ?? "") }
+  /// The title shown is the episode map's passage title, standing in until the summary's own arrives: saved as it is,
+  /// it becomes the owner's and stays.
+  var titleIsStandIn: Bool { revision?.titleSource == "map" }
+  /// What the server takes in a note (EditSnipBody).
+  static let noteLimit = 4000
+
+  /// A page showing this model appeared or went. Playing and following stop only once none shows it.
+  func pageAppeared() { pagesShowing += 1 }
+  func pageDisappeared() {
+    pagesShowing = max(0, pagesShowing - 1)
+    guard pagesShowing == 0 else { return }
+    stopPreview()
+    stopFollowing()
+  }
+  var showing: Bool { pagesShowing > 0 }
+  /// Something the owner is in the middle of: a field open, or the span being adjusted.
+  var holdsWork: Bool { editingField != nil || adjusting }
+
+  /// Give the open field the keyboard again (the page's size changed under it).
+  func refocus() {
+    if editingField != nil { focusRequest += 1 }
+  }
 
   func load() async {
     do {
@@ -188,16 +224,22 @@ final class SnipPageModel {
     }
   }
 
-  /// Open a field for typing, with what the snip has in it now.
-  func beginEditing(_ field: Field) {
-    guard snip != nil, !saving else { return }
+  /// Open a field for typing, with what the snip has in it now. Another field open is saved first, so moving from one
+  /// to the next never throws away what was typed; if that save fails, it stays open with its error.
+  func beginEditing(_ field: Field) async {
+    guard snip != nil, !saving, editingField != field else { return }
+    if editingField != nil {
+      guard await saveField() else { return }
+    }
     editingField = field
     draft = current(field)
+    draftSelection = nil
     fieldError = nil
   }
 
   func cancelEditing() {
     editingField = nil
+    draftSelection = nil
     fieldError = nil
   }
 
@@ -210,7 +252,8 @@ final class SnipPageModel {
     var body = EditSnip()
     switch field {
     case .title:
-      if !typed.isEmpty, typed != current(.title) { body.title = String(typed.prefix(120)) }
+      // Saved unchanged over the stand-in title, it is still sent: the owner chose it, and it stays.
+      if !typed.isEmpty, typed != current(.title) || titleIsStandIn { body.title = String(typed.prefix(120)) }
     case .summary:
       if restoringGenerated {
         body.summary = .clear
@@ -220,7 +263,7 @@ final class SnipPageModel {
         if lines != summaryLines { body.summary = lines.isEmpty ? (ownSummary ? .clear : nil) : .set(String(lines.prefix(2000))) }
       }
     case .note:
-      if typed != current(.note) { body.note = typed.isEmpty ? .clear : .set(typed) }
+      if typed != current(.note) { body.note = typed.isEmpty ? .clear : .set(String(typed.prefix(Self.noteLimit))) }
     }
     guard !body.isEmpty else {
       cancelEditing()
@@ -232,6 +275,7 @@ final class SnipPageModel {
     do {
       let updated = try await api.editSnip(snipID, body)
       editingField = nil
+      draftSelection = nil
       fieldError = nil
       apply(updated)
       follow()

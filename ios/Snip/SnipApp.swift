@@ -96,6 +96,9 @@ struct RootView: View {
     .sheet(item: Binding(get: { showPlayer ? nil : model.editingWaiting }, set: { model.editingWaiting = $0 })) {
       WaitingSnipSheet(pending: $0)
     }
+    // The player closed (not just moved by a fold): the snip page pushed in it goes with it, as it did when the page
+    // lived in the player's own state.
+    .onChange(of: showPlayer) { _, shown in if !shown { model.playerSnip = nil } }
     // The Live Activity's title was tapped: the player takes it from there (PlayerView.openRename).
     .onChange(of: model.renameRequest, initial: true) { _, id in if id != nil { showPlayer = true } }
     #if DEBUG

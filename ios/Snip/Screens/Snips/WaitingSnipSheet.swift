@@ -24,11 +24,26 @@ struct WaitingSnipSheet: View {
   /// As far back as the snip may reach: the start of the recording, or ten minutes.
   private var mostMs: Int { min(pending.body.anchorMs, Self.longestMs) }
 
+  /// A text box that takes Return the same on the on-screen and a hardware keyboard: a new line in the note and the
+  /// summary, done in the title (OwnerTextBox).
+  private func box(_ prompt: String, text: Binding<String>, oneLine: Bool = false) -> some View {
+    OwnerTextBox(
+      text: text, selection: .constant(nil), face: .body, singleLine: oneLine, locked: false, takesFocus: false,
+      accessibilityLabel: prompt
+    )
+    .overlay(alignment: .topLeading) {
+      if text.wrappedValue.isEmpty {
+        Text(prompt).foregroundStyle(.tertiary).allowsHitTesting(false).accessibilityHidden(true)
+      }
+    }
+    .frame(minHeight: oneLine ? nil : 52, alignment: .topLeading)
+  }
+
   var body: some View {
     NavigationStack {
       Form {
         Section {
-          TextField("Title", text: $title, axis: .vertical).lineLimit(1...3)
+          box("Title", text: $title, oneLine: true)
         } footer: {
           Text("Left empty, the title is written when the snip is sent.")
         }
@@ -46,10 +61,10 @@ struct WaitingSnipSheet: View {
           Text(lengthSet ? "Your length is kept. The ends are fitted to whole words when the snip is sent." : "Unchanged, the start is chosen from the transcript when the snip is sent.")
         }
         Section("Note") {
-          TextField("Why you kept it", text: $note, axis: .vertical).lineLimit(2...6)
+          box("Why you kept it", text: $note)
         }
         Section {
-          TextField("One point a line", text: $summary, axis: .vertical).lineLimit(2...8)
+          box("One point a line", text: $summary)
         } header: {
           Text("Summary")
         } footer: {

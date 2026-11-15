@@ -125,6 +125,8 @@ struct SnipPill: View {
   /// The title being typed; nil when not renaming.
   @State private var draft: String?
   @State private var saving = false
+  /// A finger is on the bar: it doesn't close under it, and the wait starts again once the finger lifts.
+  @State private var touched = false
   @FocusState private var titleFocused: Bool
 
   var body: some View {
@@ -212,6 +214,9 @@ struct SnipPill: View {
     .frame(minHeight: 68)
     // A capsule at one line; a rounded box when the title being typed wraps.
     .background(Color(.systemGray5), in: .rect(cornerRadius: 34, style: .continuous))
+    .simultaneousGesture(
+      DragGesture(minimumDistance: 0).onChanged { _ in touched = true }.onEnded { _ in touched = false }
+    )
     // A tap on the Live Activity's title (AppModel.open) renames, as a tap on the bar's title would.
     .task(id: card.renameRequested) {
       guard card.renameRequested, let snip = card.snip, snip.revision?.title != nil else { return }
@@ -247,7 +252,7 @@ struct SnipPill: View {
     .accessibilityLabel("Open snip")
   }
 
-  private var closesAfterAWhile: Bool { card.snip?.revision?.status == .ready && draft == nil }
+  private var closesAfterAWhile: Bool { card.snip?.revision?.status == .ready && draft == nil && !touched }
 
   /// The title as a text box, at the size it is shown. Return or Done saves, and so does tapping away.
   private var titleField: some View {
