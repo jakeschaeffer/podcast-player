@@ -45,6 +45,7 @@ struct SnipsView: View {
           description: Text("Tap the scissors in the player to save a moment."))
       }
     }
+    .unfoldedReadableWidth()
     .navigationTitle("Snips")
     .task { if !loaded { await load(more: false) } }
     // A waiting tap was sent: it is a snip now, at the top of the list.

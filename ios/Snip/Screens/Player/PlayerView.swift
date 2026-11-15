@@ -12,14 +12,23 @@ import SwiftUI
 /// two columns like the web app's wide layout: the controls on the left with the artwork as large as the spare height
 /// allows, the transcript, chapters or Up next filling the right, and the snip bar docked at the foot of that reading
 /// column so the controls never move.
+///
+/// On the iPhone Duo open the player fills the display (`fullScreen`, with a close button) and, held wide, becomes two
+/// pages split at the fold (`spread`): the episode on the left, large, with its controls under it, and the reading on
+/// the right, the snip bar at its foot. Turned tall it keeps the upright layout, a step larger like the rest of the
+/// app there. The read-along and full-screen video stay for a phone (or the closed Duo) on its side.
 struct PlayerView: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerEngine.self) private var engine
+  @Environment(\.dismiss) private var dismiss
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @Environment(\.verticalSizeClass) private var verticalSizeClass
   @AppStorage("player.panel") private var panel = Panel.transcript
   @AppStorage(SidewaysPlayer.key) private var sidewaysMode = SidewaysPlayer.karaoke
   @State private var showingSnips = false
   @State private var openSnip: SnipRoute?
+  /// Presented over the whole display rather than as a sheet: no sheet to swipe away, so a button closes it.
+  var fullScreen = false
 
   enum Panel: String { case transcript, chapters, upNext }
 
@@ -27,6 +36,8 @@ struct PlayerView: View {
   private static let ink = Color(red: 0x0E / 255, green: 0x0F / 255, blue: 0x11 / 255)
 
   private var sideways: Bool { verticalSizeClass == .compact }
+  /// The iPhone Duo open: its inner display, held wide (`spread`) or turned tall.
+  private var roomy: Bool { UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
   /// A video playing through its picture fills the screen sideways, whatever the setting says.
   private var watchingSideways: Bool { sideways && engine.video }
   /// Reading along needs words: an audio episode without a transcript keeps the two-column player sideways.
@@ -54,6 +65,10 @@ struct PlayerView: View {
           EpisodeKaraoke(episode: ep) { pill }
         } else if sideways {
           wide(ep)
+        } else if UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) {
+          GeometryReader { geo in
+            if geo.size.width > geo.size.height { spread(ep) } else { upright(ep) }
+          }
         } else {
           upright(ep)
         }
@@ -80,6 +95,12 @@ struct PlayerView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+      }
+    }
+    // Full screen, the laid-out player has its close button in its top row; every other state gets one here.
+    .safeAreaInset(edge: .top, alignment: .leading, spacing: 0) {
+      if fullScreen && !(engine.status == .ready && engine.episode != nil) {
+        closeButton.padding(.horizontal, 20).padding(.top, 8)
       }
     }
     .animation(.snappy, value: model.snipCard == nil)
@@ -124,10 +145,14 @@ struct PlayerView: View {
 
   private func upright(_ ep: EpisodeDetail) -> some View {
     VStack(spacing: 20) {
+      if fullScreen {
+        HStack { closeButton; Spacer() }.padding(.bottom, -8)
+      }
       if engine.video {
         VideoSurface().frame(maxWidth: .infinity).padding(.top, 8)
       }
-      titles(ep, artSize: 72, font: .headline, lines: 3, hideArt: engine.video)
+      // The Duo's inner display turned tall has the room for a larger cover and title than a phone.
+      titles(ep, artSize: roomy ? 120 : 72, font: roomy ? .title3.weight(.bold) : .headline, lines: 3, hideArt: engine.video)
         .padding(.top, engine.video ? 0 : 16)
       Scrubber()
       TransportRow()
@@ -167,7 +192,66 @@ struct PlayerView: View {
     .padding(.top, 14)
   }
 
+  /// The iPhone Duo open and held wide, after the web app's wide layout: two pages, split at the fold so the hinge
+  /// falls between them. The left page is the episode, its cover as large as the page leaves room for, then the
+  /// titles, the seek bar and the controls; the right page is for reading, with the snip bar docked at its foot, so
+  /// the controls never move and the other thumb reaches the bar.
+  private func spread(_ ep: EpisodeDetail) -> some View {
+    HingeSplit {
+      VStack(alignment: .leading, spacing: 14) {
+        HStack(spacing: 4) {
+          if fullScreen { closeButton }
+          Spacer()
+          snipsButton(ep)
+          DownloadButton(episode: ep)
+        }
+        GeometryReader { geo in
+          Group {
+            if engine.video {
+              VideoSurface()
+            } else {
+              Artwork(url: model.artwork(episodeImage: ep.imageUrl, feedID: ep.feedId), size: min(geo.size.width, geo.size.height, 360))
+            }
+          }
+          .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .frame(minHeight: 72)
+        VStack(alignment: .leading, spacing: 4) {
+          Text(ep.title).font(.title2.weight(.bold)).lineLimit(3).fixedSize(horizontal: false, vertical: true)
+          Text(ep.showTitle ?? "").font(.headline).foregroundStyle(.secondary).lineLimit(1)
+          if ep.video.canRequest || ep.asset?.videoUrl != nil { videoActions(ep).padding(.top, 6) }
+        }
+        Scrubber()
+        TransportRow()
+        loadError
+      }
+      .padding(.leading, 24)
+      .padding(.top, 8)
+      .padding(.bottom, 12)
+    } trailing: {
+      VStack(spacing: 10) {
+        panelPicker(ep)
+        panelContent(ep)
+      }
+      .padding(.trailing, 24)
+      .padding(.top, 14)
+      .overlay(alignment: .bottom) { pill.padding(.trailing, 24).padding(.bottom, 8) }
+    }
+  }
+
   // MARK: Pieces
+
+  /// Closes the player when it fills the display (the iPhone Duo open), where there is no sheet to swipe down.
+  private var closeButton: some View {
+    Button { dismiss() } label: {
+      Image(systemName: "chevron.down")
+        .font(.title2.weight(.semibold))
+        .frame(width: 52, height: 52)
+        .background(Color(.secondarySystemFill), in: .circle)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("Close the player")
+  }
 
   /// The artwork, the episode and show titles, and the snips button: beside the titles upright, under them sideways,
   /// where the column is narrow and the title needs the width.

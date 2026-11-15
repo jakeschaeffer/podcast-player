@@ -54,6 +54,7 @@ struct DownloadsView: View {
         Text("\(Self.size(downloads.totalBytes)) on the phone. A finished episode's download goes a day later.")
       }
     }
+    .unfoldedReadableWidth()
     .navigationTitle("Downloads")
     .onChange(of: autoDownload) { _, _ in Task { await model.refreshQueue() } }
   }
