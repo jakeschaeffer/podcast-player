@@ -7,6 +7,8 @@ struct SnipRoute: Hashable, Identifiable {
   let id: ULID
   /// Open with the title being edited, as the Live Activity's title asks.
   var renaming = false
+  /// Open adjusting the clip's ends (Adjust pressed on the page beside the snips list).
+  var adjusting = false
 }
 
 /// One snip's own page, pushed from the player's snip bar and from the snip lists; swipe from the left edge to go
@@ -20,6 +22,8 @@ struct SnipPage: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(\.verticalSizeClass) private var verticalSizeClass
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  @Environment(\.besideList) private var besideList
+  @Environment(\.openAcrossPages) private var openAcrossPages
   @State private var model: SnipPageModel
   @State private var mode = Mode.reading
   @State private var confirmingDelete = false
@@ -30,8 +34,9 @@ struct SnipPage: View {
   /// The list that opened the page hears about each change to the snip, and about its deletion.
   let onChange: (Snip) -> Void
   let onDelete: () -> Void
-  /// Start with the title being edited.
+  /// Start with the title being edited, or the clip's ends.
   let renaming: Bool
+  let startAdjusting: Bool
 
   enum Mode { case reading, title, adjusting }
 
@@ -40,11 +45,12 @@ struct SnipPage: View {
   private static let ink = Color(red: 0x0E / 255, green: 0x0F / 255, blue: 0x11 / 255)
 
   init(
-    snipID: ULID, api: APIClient, renaming: Bool = false, onChange: @escaping (Snip) -> Void = { _ in },
-    onDelete: @escaping () -> Void = {}
+    snipID: ULID, api: APIClient, renaming: Bool = false, adjusting: Bool = false,
+    onChange: @escaping (Snip) -> Void = { _ in }, onDelete: @escaping () -> Void = {}
   ) {
     _model = State(initialValue: SnipPageModel(snipID: snipID, api: api))
     self.renaming = renaming
+    self.startAdjusting = adjusting
     self.onChange = onChange
     self.onDelete = onDelete
   }
@@ -54,14 +60,14 @@ struct SnipPage: View {
   var body: some View {
     Group {
       if let error = model.loadError, model.snip == nil {
-        ContentUnavailableView("Can't open this snip", systemImage: "exclamationmark.triangle", description: Text(error))
+        cantOpen(error)
       } else if model.snip == nil {
         ProgressView()
       } else if sideways {
         SnipSideways(words: model.spanWords, positionMs: model.previewMs, progress: progress) {
           model.togglePreview(pausing: engine)
         }
-      } else if UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) {
+      } else if !besideList, UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) {
         // The iPhone Duo open: held wide, two pages split at the fold; turned tall, the one column.
         GeometryReader { geo in
           if geo.size.width > geo.size.height {
@@ -78,7 +84,7 @@ struct SnipPage: View {
         reading
       }
     }
-    .navigationBarTitleDisplayMode(.inline)
+    .navigationBarTitleDisplayMode(besideList ? .large : .inline)
     .navigationBarBackButtonHidden(mode != .reading)
     .toolbar(sideways ? .hidden : .visible, for: .navigationBar, .tabBar)
     .persistentSystemOverlays(sideways ? .hidden : .automatic)
@@ -86,10 +92,12 @@ struct SnipPage: View {
     .task {
       await model.load()
       model.follow()
-      if renaming { beginTitle() }
+      if renaming { beginTitle() } else if startAdjusting { beginAdjusting() }
       #if DEBUG
-        // `-snipMode title|adjust|play` opens the page in that state, for scripted simulator checks.
-        switch UserDefaults.standard.string(forKey: "snipMode") {
+        // `-snipMode title|adjust|play` opens the page in that state, for scripted simulator checks: with `-openSnip`,
+        // only that snip's page (beside the list, the newest's page can come first).
+        let only = UserDefaults.standard.string(forKey: "openSnip")
+        switch only == nil || only == model.snipID ? UserDefaults.standard.string(forKey: "snipMode") : nil {
         case "title": beginTitle()
         case "adjust": beginAdjusting()
         case "play": model.togglePreview(pausing: engine)
@@ -126,6 +134,34 @@ struct SnipPage: View {
     } message: {
       Text("Its shared link stops working.")
     }
+  }
+
+  /// The snip couldn't be read (no connection, most often): Try again, large, and a quiet retry every few seconds, so
+  /// the page comes back by itself once the server answers.
+  private func cantOpen(_ error: String) -> some View {
+    ContentUnavailableView {
+      Label("Can't open this snip", systemImage: "exclamationmark.triangle").font(.title.weight(.bold))
+    } description: {
+      Text(error).font(.title3)
+    } actions: {
+      Button { Task { await retryLoad() } } label: {
+        Text("Try again").font(.title2.weight(.semibold)).padding(.horizontal, 28).frame(minHeight: 60)
+      }
+      .buttonStyle(.borderedProminent)
+      .buttonBorderShape(.capsule)
+      .foregroundStyle(Self.ink)
+    }
+    .task(id: error) {
+      while !Task.isCancelled, model.snip == nil {
+        try? await Task.sleep(for: .seconds(5))
+        if !Task.isCancelled { await retryLoad() }
+      }
+    }
+  }
+
+  private func retryLoad() async {
+    await model.load()
+    if model.snip != nil { model.follow() }
   }
 
   @ToolbarContentBuilder private var toolbar: some ToolbarContent {
@@ -309,15 +345,11 @@ struct SnipPage: View {
     .padding(.horizontal, 24)
     .padding(.top, 14)
     .padding(.bottom, 6)
-    // Solid behind the buttons, with a short fade above them so the words scroll away underneath.
+    // Solid behind the buttons with a clear edge above them: the words end there rather than fading half drawn.
     .background {
-      VStack(spacing: 0) {
-        LinearGradient(colors: [Color(.systemBackground).opacity(0), Color(.systemBackground)], startPoint: .top, endPoint: .bottom)
-          .frame(height: 36)
-        Color(.systemBackground)
-      }
-      .padding(.top, -36)
-      .ignoresSafeArea()
+      Color(.systemBackground)
+        .overlay(alignment: .top) { Divider() }
+        .ignoresSafeArea()
     }
   }
 
@@ -486,12 +518,15 @@ struct SnipPage: View {
 
   private func beginTitle() {
     guard model.revision != nil, mode == .reading else { return }
+    // Beside the snips list the page is narrow: the title is edited across both pages instead.
+    if besideList, let openAcrossPages { return openAcrossPages(SnipRoute(id: model.snipID, renaming: true)) }
     model.editing = true
     mode = .title
   }
 
   private func beginAdjusting() {
     model.stopPreview()
+    if besideList, let openAcrossPages { return openAcrossPages(SnipRoute(id: model.snipID, adjusting: true)) }
     model.editing = true
     mode = .adjusting
   }
