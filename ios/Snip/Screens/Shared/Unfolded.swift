@@ -129,3 +129,9 @@ enum Fold {
       .first { vertical ? $0.height > $0.width : $0.width > $0.height }
   }
 }
+
+extension EnvironmentValues {
+  /// The page is the right page beside a list (the iPhone Duo open and held wide), not one pushed on its own: the
+  /// navigation bar's title is the list's, so the page leaves the bar's title alone.
+  @Entry var besideList = false
+}

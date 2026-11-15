@@ -9,6 +9,7 @@ import SwiftUI
 struct FeedEpisodesView: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerEngine.self) private var engine
+  @Environment(\.besideList) private var besideList
   @State private var feed: Feed
   @Binding var showPlayer: Bool
   @State private var episodes: [Episode] = []
@@ -70,8 +71,8 @@ struct FeedEpisodesView: View {
     }
     .listSectionSpacing(24)
     .unfoldedReadableWidth()
-    .navigationTitle(feed.title ?? "Untitled show")
-    .navigationBarTitleDisplayMode(.inline)
+    // Beside the shows, the bar's title stays the Library's: the show's own title heads the page.
+    .modifier(PageTitle(title: besideList ? nil : feed.title ?? "Untitled show"))
     .task {
       guard !loaded else { return }
       if fetching {
@@ -137,7 +138,7 @@ struct FeedEpisodesView: View {
       HStack(spacing: 12) {
         Artwork(url: feed.imageUrl, size: 64)
         VStack(alignment: .leading, spacing: 3) {
-          Text(feed.title ?? "Untitled show").font(.headline).lineLimit(2)
+          Text(feed.title ?? "Untitled show").font(.headline).lineLimit(2).fixedSize(horizontal: false, vertical: true)
           if let author = feed.author {
             Text(author).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
           }
@@ -230,6 +231,19 @@ struct FeedEpisodesView: View {
       error = nil
     } catch {
       self.error = error.localizedDescription
+    }
+  }
+}
+
+/// A pushed page's small title in the navigation bar; none for a page beside a list, which keeps the list's.
+private struct PageTitle: ViewModifier {
+  let title: String?
+
+  func body(content: Content) -> some View {
+    if let title {
+      content.navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+    } else {
+      content
     }
   }
 }

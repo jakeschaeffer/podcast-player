@@ -20,6 +20,7 @@ struct SnipPage: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(\.verticalSizeClass) private var verticalSizeClass
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  @Environment(\.besideList) private var besideList
   @State private var model: SnipPageModel
   @State private var mode = Mode.reading
   @State private var confirmingDelete = false
@@ -78,8 +79,9 @@ struct SnipPage: View {
         reading
       }
     }
-    .navigationBarTitleDisplayMode(.inline)
+    .navigationBarTitleDisplayMode(besideList ? .large : .inline)
     .navigationBarBackButtonHidden(mode != .reading)
+    .preference(key: SnipEditingKey.self, value: mode != .reading)
     .toolbar(sideways ? .hidden : .visible, for: .navigationBar, .tabBar)
     .persistentSystemOverlays(sideways ? .hidden : .automatic)
     .toolbar { toolbar }
