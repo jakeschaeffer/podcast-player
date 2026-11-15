@@ -412,7 +412,7 @@ struct MiniPlayer: View {
     .padding(.horizontal)
     .contentShape(.rect)
     .onTapGesture { showPlayer = true }
-    // The mini player is always there while signed in, so it puts the cover on the lock screen.
+    // The mini player is there whenever an episode is loaded, so it puts the cover on the lock screen.
     .task(id: engine.episode.map { model.artwork(episodeImage: $0.imageUrl, feedID: $0.feedId) ?? "" }) {
       guard let ep = engine.episode, let url = ArtworkCache.secure(model.artwork(episodeImage: ep.imageUrl, feedID: ep.feedId)),
         let image = await ArtworkCache.shared.image(url, pixels: 1024), engine.episode?.id == ep.id
