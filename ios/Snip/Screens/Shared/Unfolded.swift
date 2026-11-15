@@ -122,6 +122,15 @@ enum Fold {
     return (geo.size.height + insets.top + insets.bottom) / 2 - insets.top
   }
 
+  /// Half open with the fold across: the Duo standing like a small laptop, its top half upright and its bottom half
+  /// flat on the table. iOS 27.1 marks the division region active only while the hinge is partly folded.
+  static func isStanding(in geo: GeometryProxy) -> Bool {
+    if #available(iOS 27.1, *) {
+      return geo.reservedRegions(kind: .division).contains { $0.isActive && $0.frame.width > $0.frame.height }
+    }
+    return false
+  }
+
   @available(iOS 27.1, *)
   private static func division(in geo: GeometryProxy, vertical: Bool) -> CGRect? {
     geo.reservedRegions(kind: .division, options: .includeInactive)
