@@ -95,6 +95,16 @@ struct SnipsView: View {
   }
 
   private var list: some View {
+    ScrollViewReader { proxy in
+      rows
+        // The chosen snip is in view: one chosen at launch, or the next after a delete, may be further down.
+        .onChange(of: chosen) { _, id in
+          if let id, spread { withAnimation { proxy.scrollTo(id) } }
+        }
+    }
+  }
+
+  private var rows: some View {
     List {
       if let error { Text(error).foregroundStyle(.secondary) }
       // Taps made with no connection, until they are sent; a tap opens one to name it or change its length.
