@@ -20,6 +20,8 @@ struct PlayerView: View {
   @AppStorage(SidewaysPlayer.key) private var sidewaysMode = SidewaysPlayer.karaoke
   @State private var showingSnips = false
   @State private var openSnip: SnipRoute?
+  /// The show whose name was tapped: its page is pushed over the player, which keeps playing.
+  @State private var openShow: Feed?
 
   enum Panel: String { case transcript, chapters, upNext }
 
@@ -39,6 +41,10 @@ struct PlayerView: View {
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(item: $openSnip) { route in
           SnipPage(snipID: route.id, api: model.api, renaming: route.renaming, onDelete: { Task { await engine.refreshEpisode() } })
+        }
+        .navigationDestination(item: $openShow) { feed in
+          // An episode picked there opens in this player, so "show the player" means come back to it.
+          FeedEpisodesView(feed: feed, showPlayer: Binding(get: { true }, set: { if $0 { openShow = nil } }))
         }
     }
     .task(id: model.renameRequest) { openRename() }
@@ -182,7 +188,7 @@ struct PlayerView: View {
       }
       VStack(alignment: .leading, spacing: 3) {
         Text(ep.title).font(font).lineLimit(lines).fixedSize(horizontal: false, vertical: true)
-        Text(ep.showTitle ?? "").font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+        showLink(ep)
         if ep.video.canRequest || ep.asset?.videoUrl != nil { videoActions(ep).padding(.top, 4) }
         if snipsBelow { HStack(spacing: 4) { snipsButton(ep); DownloadButton(episode: ep) }.padding(.leading, -10) }
       }
@@ -194,6 +200,22 @@ struct PlayerView: View {
         }
       }
     }
+  }
+
+  /// The show's name: a tap opens the show's page, to look through its other episodes while this one plays.
+  private func showLink(_ ep: EpisodeDetail) -> some View {
+    Button {
+      Task { if let feed = try? await model.api.feed(ep.feedId) { openShow = feed } }
+    } label: {
+      HStack(spacing: 2) {
+        Text(ep.showTitle ?? "").lineLimit(1)
+        Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
+      }
+      .font(.subheadline).foregroundStyle(.secondary)
+    }
+    .buttonStyle(.plain)
+    .disabled(ep.showTitle == nil)
+    .accessibilityHint("Opens the show")
   }
 
   private func snipsButton(_ ep: EpisodeDetail) -> some View {

@@ -172,7 +172,7 @@ export function Player({ episodeId }: { episodeId: string }) {
         </button>
         <div className="player__top-mid">
           <small>Now playing</small>
-          <strong>{episode?.show_title ?? ""}</strong>
+          <strong>{episode ? <ShowLink feedId={episode.feed_id} title={episode.show_title} /> : ""}</strong>
         </div>
         <button ref={menuButton} className="icon-btn" onClick={() => setMenu(true)} aria-label="More options" aria-haspopup="dialog">
           <Icon name="more" size={25} />
@@ -191,7 +191,7 @@ export function Player({ episodeId }: { episodeId: string }) {
           <div style={{ minWidth: 0 }}>
             <h1>{title}</h1>
             <div className="player__show" style={{ fontSize: 15 }}>
-              {episode?.show_title}
+              {episode && <ShowLink feedId={episode.feed_id} title={episode.show_title} />}
               {episode?.published_at ? ` · ${relativeDay(episode.published_at)}` : ""}
             </div>
           </div>
@@ -212,7 +212,7 @@ export function Player({ episodeId }: { episodeId: string }) {
           <div className="player__titles">
             <h1>{title}</h1>
             <div className="player__show">
-              {episode?.show_title}
+              {episode && <ShowLink feedId={episode.feed_id} title={episode.show_title} />}
               {episode?.published_at ? ` · ${relativeDay(episode.published_at)}` : ""}
             </div>
           </div>
@@ -342,5 +342,15 @@ export function Player({ episodeId }: { episodeId: string }) {
         </Sheet>
       )}
     </div>
+  );
+}
+
+/** The show's name, which opens the show's page; the episode keeps playing in the mini player. */
+function ShowLink({ feedId, title }: { feedId: string; title: string | null }) {
+  if (!title) return null;
+  return (
+    <button type="button" className="show-link" onClick={() => navigate(`/library/${feedId}`)}>
+      {title}
+    </button>
   );
 }
