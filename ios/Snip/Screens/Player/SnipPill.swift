@@ -278,10 +278,12 @@ struct SnipPill: View {
     if await card.rename(String(title.prefix(120)), api: model.api) { draft = nil }
   }
 
+  /// The title and the step it is at. Each wraps to a second line rather than cut off: on the iPhone Duo's reading
+  /// page, a step larger, "Snipped at 31:48" no longer fit one line, and the time is the point of it.
   private func lines(_ title: String, _ subtitle: String) -> some View {
     VStack(alignment: .leading, spacing: 2) {
-      Text(title).font(.title3.weight(.semibold)).lineLimit(1)
-      Text(subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(1)
+      Text(title).font(.title3.weight(.semibold)).lineLimit(2)
+      Text(subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(2)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
   }
