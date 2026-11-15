@@ -56,6 +56,13 @@ bundle id are in ../CLAUDE.local.md and the gitignored `Config/Local.xcconfig` a
   island|island2|compact|paused|paused2` (DEBUG) draws every state at real size with the activity's own views. The compact island shows
   for real once the app is in the background (`xcrun simctl launch <udid> com.apple.Preferences`); `-openEpisode <id>
   -seekTo <ms> -autoSnipAfter <s> -renameAfter <s>` plays into an ad break, snips, and opens the rename link.
+- **The iPhone Duo** (device type "iPhone Duo", iOS 27.1 and later; Xcode 27.2 has a runtime of its own for it) is a
+  book-style foldable: closed, the app is on the outer display (`LCD`, 466 × 678 pt, the status bar and camera in a
+  column down the trailing edge); open, on the inner one (`LCD-1`, 951 × 669 pt held wide with the fold down the
+  middle, 669 × 951 turned tall). DeviceHub draws it and owns the hinge: `ios/scripts/duo.sh pose closed|half|open`,
+  `turn portrait|landscape` and `shot <file>` press its buttons and screenshot whichever display is active
+  (`xcrun simctl io <udid> screenshot --display=LCD-1` by hand). `-openTab library|snips` and `-openWaitingSnip 1`
+  (DEBUG) reach the pages no other launch argument opens, so every page can be captured in every state.
 - **Share sheet** is a third target, `SnipShare/` (bundle `$(ORG_IDENTIFIER).Snip.Share`, a share extension embedded
   in the app). It runs in its own process with none of the app's state and no DEBUG dev-auth, so it reads the server
   and the device token from the Keychain through the app's access group (`Config/*.entitlements` name
