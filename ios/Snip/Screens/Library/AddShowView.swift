@@ -35,7 +35,66 @@ struct AddShowView: View {
   private var feedURL: String? { youtube == nil && mediaURL == nil ? FeedAddress.parse(query) : nil }
   private var searchable: Bool { youtube == nil && mediaURL == nil && feedURL == nil && trimmed.count >= 2 }
 
+  @Environment(\.horizontalSizeClass) private var horizontal
+  @Environment(\.verticalSizeClass) private var vertical
+  @State private var size = CGSize.zero
+
+  /// The iPhone Duo open and held wide: the search field and the results on the left page, the guide on the right,
+  /// so no title runs across the fold.
+  private var spread: Bool { UnfoldedDisplay.isSpread(horizontal: horizontal, vertical: vertical, size: size) }
+  private static let prompt = "Search shows, or paste a feed, YouTube or video link"
+  private static let guide =
+    "Find a show by name, or paste the address of its RSS feed, a YouTube channel or video, or a video file."
+
   var body: some View {
+    Group {
+      if spread {
+        HingeSplit {
+          VStack(spacing: 0) {
+            SearchField(text: $query, focused: $focused, prompt: Self.prompt)
+              .padding(.horizontal, 20)
+              .padding(.top, 4)
+              .padding(.bottom, 8)
+            // The page's own background shows through, so an empty list is not a white block.
+            list.scrollContentBackground(.hidden)
+          }
+        } trailing: {
+          Text(Self.guide)
+            .font(.title3)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.top, 16)
+            .padding(.horizontal, 20)
+        }
+        .background(Color(.systemGroupedBackground))
+      } else {
+        list
+          .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Self.prompt)
+          .searchFocused($focused)
+          .unfoldedReadableWidth()
+          .textInputAutocapitalization(.never)
+          .autocorrectionDisabled()
+      }
+    }
+    .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
+    .navigationTitle("Find a show")
+    .navigationBarTitleDisplayMode(.inline)
+    // A pushed page of its own: the floating tab bar (the Duo opened tall, a phone) would sit over a result.
+    .toolbar(.hidden, for: .tabBar)
+    .navigationDestination(item: $opened) { feed in
+      FeedEpisodesView(feed: feed, showPlayer: $showPlayer)
+    }
+    .onAppear { if query.isEmpty { focused = true } }
+    // Debounced: each keystroke cancels the previous wait.
+    .task(id: query) {
+      try? await Task.sleep(for: .milliseconds(400))
+      guard !Task.isCancelled else { return }
+      await search()
+    }
+    // Back from a show: its Follow state may have changed.
+    .onChange(of: opened) { _, now in if now == nil { Task { await search() } } }
+  }
+
+  private var list: some View {
     List {
       if let error {
         Text(error).foregroundStyle(.secondary)
@@ -44,7 +103,7 @@ struct AddShowView: View {
         Section("YouTube video") {
           Text(url).font(.callout)
           Text("The video becomes an episode of its channel's show and is fetched at home; it opens in the player while that happens. The channel is not followed unless you follow it.")
-            .font(.caption).foregroundStyle(.secondary)
+            .foregroundStyle(.secondary)
           Button {
             openVideo(url)
           } label: {
@@ -59,7 +118,7 @@ struct AddShowView: View {
         Section("YouTube channel") {
           Text(url).font(.callout)
           Text("The channel's latest videos become episodes. Follow it from its page to keep up with new ones.")
-            .font(.caption).foregroundStyle(.secondary)
+            .foregroundStyle(.secondary)
           Button {
             open(feedURL: url, feedID: nil)
           } label: {
@@ -74,7 +133,7 @@ struct AddShowView: View {
         Section("Video link") {
           Text(mediaURL).font(.callout)
           Text("The file becomes a one-off episode of Pasted links: the server downloads it and transcribes it, and it opens in the player meanwhile. A link to a web page (an X post, say) won't do; paste the video file's own address.")
-            .font(.caption).foregroundStyle(.secondary)
+            .foregroundStyle(.secondary)
           Button {
             addLink(mediaURL)
           } label: {
@@ -89,7 +148,7 @@ struct AddShowView: View {
         Section("Feed address") {
           Text(feedURL).font(.callout)
           Text("Private feeds carry their access key in the address. It is stored encrypted and never shown again.")
-            .font(.caption).foregroundStyle(.secondary)
+            .foregroundStyle(.secondary)
           Button {
             open(feedURL: feedURL, feedID: nil)
           } label: {
@@ -104,14 +163,15 @@ struct AddShowView: View {
             addLink(feedURL)
           } label: {
             HStack {
-              Text("Not a feed? Add it as a one-off video").foregroundStyle(Color.secondary)
+              Text("Not a feed? Add it as a one-off video")
               if opening == "link:\(feedURL)" { Spacer(); ProgressView() }
             }
           }
           .disabled(opening != nil)
         }
       } else if !searchable {
-        Text("Find a show by name, or paste the address of its RSS feed, a YouTube channel or video, or a video file.").foregroundStyle(.secondary)
+        // Held wide, the right-hand page says this.
+        if !spread { Text(Self.guide).foregroundStyle(.secondary) }
       } else if let results {
         if results.results.isEmpty {
           Text("No shows match “\(trimmed)”.").foregroundStyle(.secondary)
@@ -135,27 +195,6 @@ struct AddShowView: View {
         Text("Searching…").foregroundStyle(.secondary)
       }
     }
-    .searchable(
-      text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search shows, or paste a feed, YouTube or video link"
-    )
-    .searchFocused($focused)
-    .unfoldedReadableWidth()
-    .textInputAutocapitalization(.never)
-    .autocorrectionDisabled()
-    .navigationTitle("Find a show")
-    .navigationBarTitleDisplayMode(.inline)
-    .navigationDestination(item: $opened) { feed in
-      FeedEpisodesView(feed: feed, showPlayer: $showPlayer)
-    }
-    .onAppear { if query.isEmpty { focused = true } }
-    // Debounced: each keystroke cancels the previous wait.
-    .task(id: query) {
-      try? await Task.sleep(for: .milliseconds(400))
-      guard !Task.isCancelled else { return }
-      await search()
-    }
-    // Back from a show: its Follow state may have changed.
-    .onChange(of: opened) { _, now in if now == nil { Task { await search() } } }
   }
 
   private func search() async {
@@ -238,32 +277,149 @@ struct AddShowView: View {
   }
 }
 
+/// The search field held wide, where the navigation bar's own field would run across the fold: on the left page, in
+/// larger type.
+private struct SearchField: View {
+  @Binding var text: String
+  var focused: FocusState<Bool>.Binding
+  let prompt: String
+
+  var body: some View {
+    HStack(spacing: 10) {
+      Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+      TextField(prompt, text: $text)
+        .focused(focused)
+        .submitLabel(.search)
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
+      if !text.isEmpty {
+        Button {
+          text = ""
+        } label: {
+          Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Clear")
+      }
+    }
+    .font(.title3)
+    .padding(.horizontal, 16)
+    .frame(minHeight: 52)
+    .background(.fill.tertiary, in: .capsule)
+    // The page's first frame is laid out before it knows it is held wide, so the navigation bar's field took the focus
+    // and went; the state still says focused, so it is cleared and set again for this field once it is on screen.
+    .task {
+      guard text.isEmpty else { return }
+      focused.wrappedValue = false
+      try? await Task.sleep(for: .milliseconds(150))
+      focused.wrappedValue = true
+    }
+  }
+}
+
+/// One show found. The owner is looking for the one show, so a result is made big enough that about three fill the
+/// screen under the search field (the closed Duo, either page of the inner screen held wide, a phone): large artwork,
+/// the title in large bold type that wraps rather than cutting off, the author and episode count below it. Following
+/// takes a line of its own under those; while the show opens, a spinner covers the artwork, so the row never changes
+/// height.
 private struct ShowResultRow: View {
   let result: ShowSearch.Result
   let opening: Bool
+  @Environment(\.dynamicTypeSize) private var typeSize
+  @Environment(\.verticalSizeClass) private var vertical
+  @State private var width: CGFloat = 0
 
-  var body: some View {
-    HStack(spacing: 12) {
-      Artwork(url: result.artworkUrl, size: 52)
-      VStack(alignment: .leading, spacing: 3) {
-        Text(result.title).font(.body.weight(.medium)).lineLimit(2)
-        Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-      }
-      Spacer(minLength: 8)
-      if opening {
-        ProgressView()
-      } else if result.followed == true {
-        Text("Following").font(.caption.weight(.medium)).foregroundStyle(.secondary)
-      }
-    }
-    .contentShape(.rect)
+  /// At the accessibility text sizes the artwork goes above the text, which then has the whole row.
+  private var stacked: Bool { typeSize.isAccessibilitySize }
+
+  /// About a third of the row's width beside the text: 108 pt on the closed Duo or a phone, 130 on a page of the inner
+  /// screen held wide. Short screens (the outer screen or a phone on its side, 466 pt or less tall) keep it to 84 pt,
+  /// where the text beside it is a line or two: the artwork would otherwise set the row's height and only one row and a
+  /// half would fit. Stacked, the text is so large that the artwork stays modest, so a row still fits on the screen.
+  private var artSize: CGFloat {
+    guard width > 0 else { return 108 }
+    if stacked { return min(width, 120) }
+    if vertical == .compact { return 84 }
+    return min(max(width * 0.34, 84), 130)
   }
 
-  private var detail: String {
-    [
-      result.author,
-      result.episodeCount.map { $0 == 1 ? "1 episode" : "\($0) episodes" },
-      result.genres.first,
-    ].compactMap { $0 }.joined(separator: " · ")
+  var body: some View {
+    Group {
+      if stacked {
+        VStack(alignment: .leading, spacing: 12) {
+          artwork
+          text
+        }
+      } else {
+        HStack(alignment: .top, spacing: 16) {
+          artwork
+          text
+        }
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.vertical, 10)
+    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+    .contentShape(.rect)
+    // The separator runs under the artwork too, the same on every row whatever its text holds.
+    .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+    .accessibilityElement(children: .combine)
+    .accessibilityValue(opening ? "Opening" : "")
+  }
+
+  /// The artwork, darkened under a large white spinner on a dark disc while the show opens.
+  private var artwork: some View {
+    Artwork(url: result.artworkUrl, size: artSize)
+      .overlay {
+        if opening {
+          ZStack {
+            RoundedRectangle(cornerRadius: artSize / 8).fill(.black.opacity(0.6))
+            Circle().fill(.black.opacity(0.85)).frame(width: 60, height: 60)
+            ProgressView().controlSize(.large).tint(.white)
+          }
+        }
+      }
+      .accessibilityHidden(true)
+  }
+
+  private var text: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text(result.title)
+        .font(.title2.bold())
+        .lineLimit(3)
+        .fixedSize(horizontal: false, vertical: true)
+      detail
+        .font(.body)
+        .foregroundStyle(.secondary)
+      if result.followed == true {
+        HStack(spacing: 8) {
+          Image(systemName: "checkmark").foregroundStyle(.tint).accessibilityHidden(true)
+          Text("Following")
+        }
+        .font(.body.weight(.semibold))
+        .foregroundStyle(.primary)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  /// The author and the episode count, on one line where they fit; otherwise the author wraps (up to three lines,
+  /// never cut short at the first) and the count has a line of its own. The genre is left out.
+  @ViewBuilder private var detail: some View {
+    let episodes = result.episodeCount.map { $0 == 1 ? "1 episode" : "\($0) episodes" }
+    switch (result.author, episodes) {
+    case (let author?, let episodes?):
+      ViewThatFits(in: .horizontal) {
+        Text("\(author) · \(episodes)").lineLimit(1)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(author).lineLimit(3).fixedSize(horizontal: false, vertical: true)
+          Text(episodes).lineLimit(1)
+        }
+      }
+    case (let one?, nil), (nil, let one?):
+      Text(one).lineLimit(3).fixedSize(horizontal: false, vertical: true)
+    case (nil, nil):
+      EmptyView()
+    }
   }
 }
