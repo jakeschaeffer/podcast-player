@@ -2,9 +2,11 @@ import PodcastAPI
 import SwiftUI
 
 /// Every snip, newest first, paged with the server's cursor. Tap one to open its page; swipe to delete. On the iPhone
-/// Duo open and held wide, the list is the left page and the chosen snip's page the right, one each side of the fold:
-/// a tap chooses a snip instead of pushing it, the newest is chosen until another is, and Open (or a second tap on the
-/// chosen row) pushes it across both pages.
+/// Duo open and held wide, the list is the left page and the chosen snip the right, one each side of the fold: a tap
+/// chooses a snip instead of pushing it, and the newest is chosen until another is. The right page is for reading:
+/// starting to edit there (a tap on the title, Adjust), a second tap on the chosen row or Open pushes the snip across
+/// both pages, its title and words each on a page of their own, where there is room to type. Folding or turning the
+/// Duo away from wide pushes the snip that was chosen, so it stays on screen.
 struct SnipsView: View {
   @Environment(AppModel.self) private var model
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -18,9 +20,10 @@ struct SnipsView: View {
   @State private var opened: SnipRoute?
   /// The snip on the right page when the list and a snip share the screen; nil chooses the newest.
   @State private var chosen: ULID?
+  /// A snip chosen by something other than a tap on its row (a launch link, a delete): the list scrolls to it once it
+  /// is loaded, loading further pages to find it.
+  @State private var revealing: ULID?
   @State private var size = CGSize.zero
-  /// The snip beside the list is being edited: the list waits, so a tap on another snip can't drop the edit.
-  @State private var editingBeside = false
 
   /// The iPhone Duo open and held wide: the list beside the chosen snip.
   private var spread: Bool {
@@ -30,23 +33,20 @@ struct SnipsView: View {
   private var shown: ULID? { chosen ?? snips.first?.id }
 
   var body: some View {
-    Group {
-      if spread {
-        HingeSplit {
-          // The grouped list's own margin stops at the safe area, and here its edge is the gap at the fold.
-          list.contentMargins(.trailing, 20, for: .scrollContent)
-            .disabled(editingBeside)
-        } trailing: {
-          detail.onPreferenceChange(SnipEditingKey.self) { editingBeside = $0 }
-        }
-      } else {
-        list.unfoldedReadableWidth()
-      }
+    // One list in either layout, so folding or turning keeps its scroll position.
+    HingeSplit(split: spread, gapFill: Color(.systemGroupedBackground)) {
+      // The grouped list's own margin stops at the safe area, and beside the snip its edge is the gap at the fold.
+      list.contentMargins(.trailing, spread ? 20 : 0, for: .scrollContent)
+    } trailing: {
+      detail
     }
-    .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
+    // Measured without the keyboard, which a pushed page's title can raise: it must not turn the list into a spread.
+    .background {
+      Color.clear.ignoresSafeArea(.keyboard).onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
+    }
     .navigationTitle("Snips")
     .toolbar {
-      if spread, !editingBeside, let id = shown {
+      if spread, let id = shown {
         ToolbarItem(placement: .topBarTrailing) {
           Button { opened = SnipRoute(id: id) } label: {
             Image(systemName: "arrow.up.left.and.arrow.down.right")
@@ -60,8 +60,13 @@ struct SnipsView: View {
     .onChange(of: model.waitingSnips.count) { old, new in
       if new < old { Task { await load(more: false) } }
     }
+    // Folded or turned away from wide with a snip chosen: it is pushed, so it stays on screen as it did before.
+    .onChange(of: spread) { was, now in
+      if was, !now, opened == nil, let id = chosen { opened = SnipRoute(id: id) }
+      if now { revealing = shown }
+    }
     .navigationDestination(item: $opened) { route in
-      SnipPage(snipID: route.id, api: model.api, onChange: replace) {
+      SnipPage(snipID: route.id, api: model.api, renaming: route.renaming, adjusting: route.adjusting, onChange: replace) {
         removed(route.id)
       }
     }
@@ -69,20 +74,22 @@ struct SnipsView: View {
       // `-openSnip <id>` opens that snip's page at launch (chooses it, beside the list), for scripted simulator checks.
       .task {
         if let id = UserDefaults.standard.string(forKey: "openSnip") {
-          // The first layout, which says whether the list and the snip share the screen, can come after this.
-          for _ in 0..<20 where !spread { try? await Task.sleep(for: .milliseconds(50)) }
-          if spread { chosen = id } else { opened = SnipRoute(id: id) }
+          // The first layout says whether the list and the snip share the screen.
+          while size == .zero { try? await Task.sleep(for: .milliseconds(20)) }
+          if spread { choose(id) } else { opened = SnipRoute(id: id) }
         }
       }
     #endif
   }
 
-  /// The chosen snip's own page, beside the list. A new page for each snip, so nothing of the last one carries over.
+  /// The chosen snip's own page, beside the list, for reading. A new page for each snip, so nothing of the last one
+  /// carries over. Editing it pushes it across both pages.
   @ViewBuilder private var detail: some View {
     if let id = shown {
       SnipPage(snipID: id, api: model.api, onChange: replace) { removed(id) }
         .id(id)
         .environment(\.besideList, true)
+        .environment(\.openAcrossPages) { opened = $0 }
     }
   }
 
@@ -94,13 +101,31 @@ struct SnipsView: View {
     }
   }
 
+  /// Chooses a snip from elsewhere than its row, and brings its row into view.
+  private func choose(_ id: ULID) {
+    chosen = id
+    revealing = id
+  }
+
   private var list: some View {
     ScrollViewReader { proxy in
       rows
-        // The chosen snip is in view: one chosen at launch, or the next after a delete, may be further down.
-        .onChange(of: chosen) { _, id in
-          if let id, spread { withAnimation { proxy.scrollTo(id) } }
-        }
+        .onChange(of: revealing) { reveal(proxy) }
+        .onChange(of: snips) { reveal(proxy) }
+    }
+  }
+
+  /// Scrolls the snip being revealed to the middle of the list, loading more pages (a few at most) while it isn't
+  /// among those loaded.
+  private func reveal(_ proxy: ScrollViewProxy) {
+    guard let id = revealing, spread, loaded else { return }
+    if snips.contains(where: { $0.id == id }) {
+      revealing = nil
+      Task { withAnimation { proxy.scrollTo(id, anchor: .center) } }
+    } else if next != nil, !loading, snips.count < 300 {
+      Task { await load(more: true) }
+    } else if !loading {
+      revealing = nil
     }
   }
 
@@ -121,9 +146,10 @@ struct SnipsView: View {
       }
       ForEach(snips) { snip in
         let marked = spread && snip.id == shown
-        Button { tapped(snip) } label: { SnipRow(snip: snip) }
+        // Beside the snip, the row is its title and one line: the right page has the episode and the show.
+        Button { tapped(snip) } label: { SnipRow(snip: snip, compact: spread, marked: marked) }
           .buttonStyle(.plain)
-          .listRowBackground(marked ? Color.accentColor.opacity(0.3) : nil)
+          .listRowBackground(marked ? ChosenRowBackground() : nil)
           .accessibilityAddTraits(marked ? .isSelected : [])
           .swipeActions {
             Button("Delete", systemImage: "trash", role: .destructive) { Task { await delete(snip) } }
@@ -144,12 +170,16 @@ struct SnipsView: View {
   }
 
   /// A snip is gone from the list. If it was the one beside the list, the next one down takes its place (the one
-  /// above, if it was the last).
+  /// above, if it was the last). Elsewhere nothing is chosen, so the newest stays the default when the Duo next opens.
   private func removed(_ id: ULID) {
     guard let i = snips.firstIndex(where: { $0.id == id }) else { return }
-    if shown == id {
+    if chosen == id || (spread && shown == id) {
       let rest = snips.indices.filter { $0 != i }
-      chosen = (rest.first { $0 > i } ?? rest.last).map { snips[$0].id }
+      if let next = (rest.first { $0 > i } ?? rest.last).map({ snips[$0].id }) {
+        choose(next)
+      } else {
+        chosen = nil
+      }
     }
     snips.remove(at: i)
   }
@@ -168,7 +198,6 @@ struct SnipsView: View {
   private func replace(_ snip: Snip) {
     if let i = snips.firstIndex(where: { $0.id == snip.id }) { snips[i] = snip }
   }
-
 
   private func load(more: Bool) async {
     guard !loading else { return }
@@ -190,16 +219,49 @@ struct SnipsView: View {
   }
 }
 
-/// A snip's page is editing (its title, its words, the clip's ends) rather than being read.
-struct SnipEditingKey: PreferenceKey {
-  static let defaultValue = false
-  static func reduce(value: inout Bool, nextValue: () -> Bool) { value = value || nextValue() }
+extension EnvironmentValues {
+  /// Beside the list, the page asks for this to edit: the snip is pushed across both pages, in the mode asked for.
+  @Entry var openAcrossPages: ((SnipRoute) -> Void)? = nil
+}
+
+/// The chosen row beside the snip: a deeper tint with a thick accent bar at its leading edge, plain at arm's length.
+struct ChosenRowBackground: View {
+  var body: some View {
+    Color.accentColor.opacity(0.22)
+      .overlay(alignment: .leading) { Color.accentColor.frame(width: 8) }
+  }
 }
 
 struct SnipRow: View {
   let snip: Snip
+  /// Beside the chosen snip: the title larger, then one line of where, how long and when.
+  var compact = false
+  /// The snip on the right page.
+  var marked = false
 
   var body: some View {
+    if compact {
+      VStack(alignment: .leading, spacing: 6) {
+        Text(title).font(.title2.weight(marked ? .bold : .semibold)).lineLimit(3)
+        HStack(spacing: 0) {
+          if let rev = snip.revision {
+            Text("\(Format.clock(rev.startMs)) · \(Format.duration(rev.endMs - rev.startMs)) · ").monospacedDigit()
+          }
+          if let status = statusLabel { Text("\(status) · ") }
+          Text(Date(timeIntervalSince1970: Double(snip.capturedAt ?? snip.createdAt) / 1000), format: .relative(presentation: .named))
+        }
+        .font(.body).foregroundStyle(.secondary).lineLimit(1)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.vertical, 12)
+      .padding(.leading, 6)
+      .contentShape(.rect)
+    } else {
+      full
+    }
+  }
+
+  private var full: some View {
     HStack(alignment: .top, spacing: 12) {
       Artwork(url: snip.imageUrl, size: 44).padding(.top, 2)
       VStack(alignment: .leading, spacing: 3) {
