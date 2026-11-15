@@ -90,11 +90,22 @@ struct RootView: View {
       // queue button (`-editUpNext 1` in edit mode). After `-openEpisode`, `-seekTo <ms>` starts there (say, in an ad break), and
       // `-autoSnipAfter <s>` snips that many seconds later, as a tap on Snip would, to follow a snip on the Live Activity;
       // `-renameAfter <s>` then opens its rename link, as a tap on the activity's title does. `-openURL <link>` opens a
-      // link at launch.
+      // link at launch. `-openTab library|snips` starts on that tab, and `-openWaitingSnip 1` opens the newest tap
+      // waiting on the phone (WaitingSnipSheet), for screenshots of every page (ios/scripts/duo.sh on the iPhone Duo).
       .task {
         let defaults = UserDefaults.standard
+        switch defaults.string(forKey: "openTab") {
+        case "library": tab = 1
+        case "snips": tab = 2
+        default: break
+        }
         if defaults.string(forKey: "searchShows") != nil || defaults.string(forKey: "openFeed") != nil { tab = 1 }
         if defaults.string(forKey: "openSnip") != nil { tab = 2 }
+        if defaults.bool(forKey: "openWaitingSnip") {
+          // The outbox is read in the background at launch (AppModel.init).
+          for _ in 0..<50 where model.waitingSnips.isEmpty { try? await Task.sleep(for: .milliseconds(100)) }
+          model.editingWaiting = model.waitingSnips.last
+        }
         if defaults.bool(forKey: "openUpNext") { todayPath.append(UpNextRoute()) }
         if let id = defaults.string(forKey: "openEpisode") {
           model.engine.open(id, autoplay: true)
