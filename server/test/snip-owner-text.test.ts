@@ -244,6 +244,37 @@ describe("the device's edit from offline, and an edit made since", () => {
     expect(revision(id)).toMatchObject({ rev: 2, method: "manual", start_ms: 20_000, end_ms: 60_000, title: "Offline title", title_source: "owner", status: "ready" });
     expect(ctx.db.prepare("SELECT owner_edit FROM snip WHERE id = ?").pluck().get(id)).toBeNull();
   });
+
+  it("keeps the device's span, title and note when an online boundary edit is refused, or its title is only spaces", async () => {
+    const { ctx, snipAt, revision, note } = setup();
+    const id = snipAt({ title: "Offline title", start_ms: 10_000, end_ms: 50_000, note: "kept" });
+    const pending = () => JSON.parse(ctx.db.prepare("SELECT owner_edit FROM snip WHERE id = ?").pluck().get(id) as string) as OwnerEdit;
+    expect(() => editSnip(ctx, id, { start_ms: 60_000, end_ms: 20_000, if_revision: revision(id).id, snap: false, note: "lost?" }, null)).toThrow(/range must satisfy/);
+    expect(() => editSnip(ctx, id, { start_word: 3, if_revision: revision(id).id }, null)).toThrow(/together/);
+    editSnip(ctx, id, { title: "   " }, null);
+    expect(pending()).toEqual({ start_ms: 10_000, end_ms: 50_000, title: "Offline title" });
+    expect(note(id)).toBe("kept");
+    await drain(ctx, { kinds: PIPELINE });
+    expect(revision(id)).toMatchObject({ rev: 2, start_ms: 10_000, end_ms: 50_000, title: "Offline title", title_source: "owner" });
+  });
+});
+
+describe("the episode map's passage title, saved unchanged", () => {
+  it("becomes the owner's, so the summary's title does not replace it, and is not logged as a rewrite", async () => {
+    const { ctx, assetId, snipAt, revision } = setup({ maps: true });
+    const transcriptId = ctx.db.prepare("SELECT transcript_id FROM audio_asset WHERE id = ?").pluck().get(assetId) as string;
+    queueEpisodeMap(ctx, transcriptId);
+    await drain(ctx, { kinds: ["map_episode"] });
+    const id = snipAt();
+    await drain(ctx, { kinds: ["select_snip"] });
+    const standIn = revision(id);
+    expect(standIn.title_source).toBe("map");
+    editSnip(ctx, id, { title: ` ${standIn.title!} ` }, null);
+    expect(revision(id)).toMatchObject({ title: standIn.title, title_source: "owner" });
+    await drain(ctx, { kinds: ["render_clip", "summarize_snip"] });
+    expect(revision(id)).toMatchObject({ status: "ready", title: standIn.title, title_source: "owner", generated_title: MODEL_TITLE });
+    expect(ctx.db.prepare("SELECT COUNT(*) FROM title_edit WHERE snip_id = ?").pluck().get(id)).toBe(0);
+  });
 });
 
 describe("PATCH /v1/snips/{id} with a summary", () => {

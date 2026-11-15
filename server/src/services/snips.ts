@@ -207,15 +207,30 @@ export function editSnip(ctx: AppContext, id: string, patch: EditSnipInput, devi
   // second revision. Title and note edits apply in place, so replaying them is harmless and they may omit it.
   if (wantsBoundary && patch.if_revision === undefined) throw badRequest("if_revision is required when moving boundaries");
   if (patch.if_revision !== undefined && patch.if_revision !== snip.current_revision_id) throw conflict("snip was edited elsewhere; reload and retry");
-  if (snip.owner_edit) patch = supersedeDeviceEdit(ctx, snip, patch, wantsBoundary);
-  const note = ownerNote(patch.note);
-  if (note !== undefined) ctx.db.prepare("UPDATE snip SET note = ? WHERE id = ?").run(note, id);
   const before = snip.current_revision_id ? getRevisionRow(ctx, snip.current_revision_id) : null;
-  const ownerTitle = patch.title !== undefined ? patch.title.trim().slice(0, 120) : undefined;
-  const titleChanged = ownerTitle !== undefined && ownerTitle !== "" && ownerTitle !== (before?.title ?? null);
   // undefined: not part of this edit; null: clear the owner's bullets; a string: the owner's bullets.
   const ownerSummary = patch.summary !== undefined ? ownerSummaryText(patch.summary) : undefined;
+  /** The title this edit sets: whether it is new, and whether it keeps the episode map's stand-in as the owner's own. */
+  const titleOf = (edit: EditSnipInput) => {
+    const ownerTitle = edit.title !== undefined ? edit.title.trim().slice(0, 120) : undefined;
+    const given = ownerTitle !== undefined && ownerTitle !== "";
+    return {
+      ownerTitle,
+      titleChanged: given && ownerTitle !== (before?.title ?? null),
+      // Saved unchanged over the passage title shown until the summary's arrives: the owner chose it, so the summary
+      // job must not replace it. Nothing is logged as a title edit, since the words did not change.
+      keepsStandIn: given && ownerTitle === before?.title && before?.title_source === "map",
+    };
+  };
   if (!wantsBoundary) {
+    if (snip.owner_edit) {
+      const superseded = supersedeDeviceEdit(snip, patch, false);
+      patch = superseded.patch;
+      ctx.db.prepare("UPDATE snip SET owner_edit = ? WHERE id = ?").run(superseded.ownerEdit, id);
+    }
+    const { ownerTitle, titleChanged, keepsStandIn } = titleOf(patch);
+    const note = ownerNote(patch.note);
+    if (note !== undefined) ctx.db.prepare("UPDATE snip SET note = ? WHERE id = ?").run(note, id);
     let summaryChanged = false;
     if (before && ownerSummary !== undefined) {
       if (ownerSummary !== null && (ownerSummary !== before.summary || before.summary_source !== "owner")) {
@@ -231,8 +246,10 @@ export function editSnip(ctx: AppContext, id: string, patch: EditSnipInput, devi
     if (titleChanged && before) {
       ctx.db.transaction(() => {
         ctx.db.prepare("UPDATE snip_revision SET title = ?, title_source = 'owner' WHERE id = ?").run(ownerTitle, before.id);
-        recordTitleEdit(ctx, before, { title: before.title, source: before.title_source }, ownerTitle);
+        recordTitleEdit(ctx, before, { title: before.title, source: before.title_source }, ownerTitle!);
       })();
+    } else if (keepsStandIn && before) {
+      ctx.db.prepare("UPDATE snip_revision SET title_source = 'owner' WHERE id = ?").run(before.id);
     }
     if (titleChanged || summaryChanged || note !== undefined) queueReadwiseSync(ctx, id);
     return getSnip(ctx, id, deviceId);
@@ -277,6 +294,12 @@ export function editSnip(ctx: AppContext, id: string, patch: EditSnipInput, devi
   end_ms = Math.round(end_ms);
   if (!(start_ms >= 0 && end_ms <= asset.duration_ms && start_ms < end_ms)) throw badRequest("range must satisfy 0 <= start < end <= duration");
 
+  // Only now, with the edit known to apply: the device's waiting edit gives way to this one, and the note is written.
+  const superseded = snip.owner_edit ? supersedeDeviceEdit(snip, patch, true) : null;
+  if (superseded) patch = superseded.patch;
+  const { ownerTitle, titleChanged, keepsStandIn } = titleOf(patch);
+  const note = ownerNote(patch.note);
+
   const excerpt = transcript && start_word !== null && end_word !== null ? sliceWords(transcript, start_word, end_word).map((w) => w[2]).join(" ") : null;
   const revisionId = newId();
   const now = ctx.now();
@@ -287,8 +310,9 @@ export function editSnip(ctx: AppContext, id: string, patch: EditSnipInput, devi
   // Regenerating, the new revision takes the owner's title from this edit or keeps one the owner wrote earlier, and
   // the summary job writes the rest. Keeping, it carries everything the previous revision had.
   const kept = !regenerate && current ? current : null;
-  const carried = titleChanged ? ownerTitle : current?.title_source === "owner" ? current.title : (kept?.title ?? null);
-  const carriedSource = titleChanged ? "owner" : carried === null ? null : (current?.title_source ?? null);
+  const ownsTitle = titleChanged || keepsStandIn;
+  const carried = ownsTitle ? ownerTitle! : current?.title_source === "owner" ? current.title : (kept?.title ?? null);
+  const carriedSource = ownsTitle ? "owner" : carried === null ? null : (current?.title_source ?? null);
   const keptQuote = kept?.quote && excerpt && quoteKey(excerpt).includes(quoteKey(kept.quote)) ? kept.quote : null;
   // The owner's bullets (from this edit, or written earlier) go with the snip to its new span, as the owner's title does;
   // the model's go only when the summary is kept, and otherwise the summary job writes them again under the owner's.
@@ -297,6 +321,8 @@ export function editSnip(ctx: AppContext, id: string, patch: EditSnipInput, devi
   const summary = ownBullets ?? generatedSummary;
   const summarySource = ownBullets !== null ? "owner" : generatedSummary !== null ? "model" : null;
   ctx.db.transaction(() => {
+    if (superseded) ctx.db.prepare("UPDATE snip SET owner_edit = ? WHERE id = ?").run(superseded.ownerEdit, id);
+    if (note !== undefined) ctx.db.prepare("UPDATE snip SET note = ? WHERE id = ?").run(note, id);
     ctx.db
       .prepare(
         `INSERT INTO snip_revision (id, snip_id, rev, method, transcript_id, start_ms, end_ms, start_word, end_word, excerpt, title, title_source,
@@ -316,7 +342,7 @@ export function editSnip(ctx: AppContext, id: string, patch: EditSnipInput, devi
         ctx,
         { id: revisionId, snip_id: id, start_ms, end_ms, excerpt, generated_title: kept?.generated_title ?? null, summary_model: kept?.summary_model ?? null, summary_prompt_version: kept?.summary_prompt_version ?? null },
         { title: current?.title ?? null, source: current?.title_source ?? null },
-        ownerTitle,
+        ownerTitle!,
       );
     }
   })();
@@ -328,22 +354,22 @@ export function editSnip(ctx: AppContext, id: string, patch: EditSnipInput, devi
 
 /**
  * An edit made online while the device's offline edit still waits for the selector (snip.owner_edit): what this edit
- * sets replaces what the device's said, so the older edit cannot land over the newer one later. A span moved now
+ * sets replaces what the device's said, so the older edit cannot land over the newer one later. Returns the edit to
+ * apply and what stays of the device's (null: nothing); the caller writes it once the edit is known to apply. A span moved now
  * makes a revision the selector will never touch, so the device's title, if this edit does not set one, goes with it.
  */
-function supersedeDeviceEdit(ctx: AppContext, snip: SnipRow, patch: EditSnipInput, wantsBoundary: boolean): EditSnipInput {
+function supersedeDeviceEdit(snip: SnipRow, patch: EditSnipInput, wantsBoundary: boolean): { patch: EditSnipInput; ownerEdit: string | null } {
   const pending = JSON.parse(snip.owner_edit!) as OwnerEdit;
   let next = patch;
-  if (patch.title !== undefined) delete pending.title;
+  // A title of only spaces sets nothing, so the device's waiting title stays.
+  if (patch.title?.trim()) delete pending.title;
   if (wantsBoundary) {
     delete pending.start_ms;
     delete pending.end_ms;
     if (pending.title !== undefined) next = { ...patch, title: pending.title };
     delete pending.title;
   }
-  const rest = Object.keys(pending).length > 0 ? JSON.stringify(pending) : null;
-  ctx.db.prepare("UPDATE snip SET owner_edit = ? WHERE id = ?").run(rest, snip.id);
-  return next;
+  return { patch: next, ownerEdit: Object.keys(pending).length > 0 ? JSON.stringify(pending) : null };
 }
 
 /**
