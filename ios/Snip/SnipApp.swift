@@ -66,6 +66,8 @@ struct RootView: View {
   /// The iPhone Duo open: a sheet there is a floating card with the screen showing round it, so the player takes the
   /// whole display instead (and is closed with its own button). Folding it moves the player to a sheet and back.
   private var unfolded: Bool { UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
+  /// An episode is in the player, or on its way into it.
+  private var hasEpisode: Bool { model.engine.episode != nil || model.engine.status == .loading }
 
   var body: some View {
     TabView(selection: $tab) {
@@ -79,7 +81,9 @@ struct RootView: View {
         NavigationStack { SnipsView() }
       }
     }
-    .modifier(MiniPlayerAccessory(showPlayer: $showPlayer, enabled: !model.readingSideways))
+    // Only with something to show: an empty "Nothing playing" bar was one more layer over every list, and a tap on it
+    // opened an empty player.
+    .modifier(MiniPlayerAccessory(showPlayer: $showPlayer, enabled: !model.readingSideways && hasEpisode))
     // Each presentation is shown only on its own kind of display; one dismissed because the device was folded or
     // opened leaves `showPlayer` alone, so the other takes over.
     .sheet(isPresented: Binding(get: { showPlayer && !unfolded }, set: { if !$0, !unfolded { showPlayer = false } })) {
@@ -150,7 +154,8 @@ struct RootView: View {
   }
 }
 
-/// The mini player under the tabs. It steps aside while a snip is read sideways (iOS 26.1 can turn the accessory off).
+/// The mini player under the tabs, while an episode is loaded. It steps aside while a snip is read sideways (iOS 26.1
+/// can turn the accessory off; 26.0 always shows it).
 private struct MiniPlayerAccessory: ViewModifier {
   @Binding var showPlayer: Bool
   let enabled: Bool
