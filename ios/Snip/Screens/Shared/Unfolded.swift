@@ -74,15 +74,58 @@ struct HingeSplit<Leading: View, Trailing: View>: View {
 
   var body: some View {
     GeometryReader { geo in
-      let insets = geo.safeAreaInsets
-      let screen = geo.size.width + insets.leading + insets.trailing
-      // The fold, in this view's coordinates, which begin at the leading inset.
-      let fold = screen / 2 - insets.leading
+      let fold = Fold.x(in: geo)
       HStack(spacing: 0) {
         leading.frame(width: max(0, fold - gap / 2))
         Color.clear.frame(width: gap).accessibilityHidden(true)
         trailing.frame(width: max(0, geo.size.width - fold - gap / 2))
       }
     }
+  }
+}
+
+/// The same split for the fold running across the screen: the iPhone Duo's inner display turned tall (669 × 951), where
+/// the top half stands up and the bottom half lies flat when it is half open.
+struct HingeStack<Top: View, Bottom: View>: View {
+  var gap: CGFloat = 40
+  @ViewBuilder var top: Top
+  @ViewBuilder var bottom: Bottom
+
+  var body: some View {
+    GeometryReader { geo in
+      let fold = Fold.y(in: geo)
+      VStack(spacing: 0) {
+        top.frame(width: geo.size.width, height: max(0, fold - gap / 2))
+        Color.clear.frame(height: gap).accessibilityHidden(true)
+        bottom.frame(width: geo.size.width, height: max(0, geo.size.height - fold - gap / 2))
+      }
+    }
+  }
+}
+
+/// Where the fold runs, in a GeometryReader's own coordinates. iOS 27.1 reports it as a "division" reserved region (a
+/// band about 40 pt across, there whether the hinge is flat or half folded); before that, and on a display without
+/// one, it is taken to be the middle of the screen rather than of the safe area, since the insets at the two edges
+/// differ (the Duo's status bar and camera keep to one side).
+enum Fold {
+  /// A fold down the middle (the inner display held wide): its x.
+  static func x(in geo: GeometryProxy) -> CGFloat {
+    if #available(iOS 27.1, *), let band = division(in: geo, vertical: true) { return band.midX }
+    let insets = geo.safeAreaInsets
+    return (geo.size.width + insets.leading + insets.trailing) / 2 - insets.leading
+  }
+
+  /// A fold across (the inner display turned tall): its y.
+  static func y(in geo: GeometryProxy) -> CGFloat {
+    if #available(iOS 27.1, *), let band = division(in: geo, vertical: false) { return band.midY }
+    let insets = geo.safeAreaInsets
+    return (geo.size.height + insets.top + insets.bottom) / 2 - insets.top
+  }
+
+  @available(iOS 27.1, *)
+  private static func division(in geo: GeometryProxy, vertical: Bool) -> CGRect? {
+    geo.reservedRegions(kind: .division, options: .includeInactive)
+      .map(\.frame)
+      .first { vertical ? $0.height > $0.width : $0.width > $0.height }
   }
 }
