@@ -34,6 +34,52 @@ struct Artwork: View {
   }
 }
 
+/// The whole artwork, uncropped, as large as fits in a `width` × `height` box at its own shape: square for most
+/// shows, 16:9 for Latent Space's. For the iPhone Duo's player, which has the room to show the cover as published
+/// instead of a square cut from its middle. Until the image arrives it holds a square of the box's smaller side.
+struct FittedArtwork: View {
+  let url: String?
+  let width: CGFloat
+  let height: CGFloat
+  @Environment(\.displayScale) private var scale
+  @State private var loaded: (key: String, image: UIImage)?
+
+  private var source: URL? { ArtworkCache.secure(url) }
+  private var pixels: Int { ArtworkCache.bucket(max(width, height) * scale) }
+  private var key: String { "\(source?.absoluteString ?? "")@\(pixels)" }
+
+  var body: some View {
+    let image = loaded?.key == key ? loaded?.image : source.flatMap { ArtworkCache.shared.cached($0, pixels: pixels) }
+    let size = Self.fitted(image?.size, in: CGSize(width: width, height: height))
+    Group {
+      if let image {
+        Image(uiImage: image).resizable()
+      } else {
+        Rectangle().fill(.quaternary).overlay(Image(systemName: "waveform").font(.largeTitle).foregroundStyle(.secondary))
+      }
+    }
+    .frame(width: size.width, height: size.height)
+    .clipShape(.rect(cornerRadius: min(size.width, size.height) / 10))
+    .frame(width: max(0, width), height: max(0, height))
+    .accessibilityHidden(true)
+    .task(id: key) {
+      guard let source, let image = await ArtworkCache.shared.image(source, pixels: pixels) else { return }
+      loaded = (key, image)
+    }
+  }
+
+  /// The largest size of the image's shape that fits the box; a square of the box's smaller side before it loads.
+  static func fitted(_ image: CGSize?, in box: CGSize) -> CGSize {
+    let box = CGSize(width: max(0, box.width), height: max(0, box.height))
+    guard let image, image.width > 0, image.height > 0 else {
+      let side = min(box.width, box.height)
+      return CGSize(width: side, height: side)
+    }
+    let scale = min(box.width / image.width, box.height / image.height)
+    return CGSize(width: (image.width * scale).rounded(.down), height: (image.height * scale).rounded(.down))
+  }
+}
+
 /// Artwork fetched over https (iOS refuses plain http, and some feeds still list their cover that way; Cortex's
 /// does), scaled down to the size it is drawn at, and kept: in memory as decoded images, on disk as the original
 /// bytes. A list of shows with 3000 px covers (Lex Fridman's is 2 MB) then neither waits for nor holds every

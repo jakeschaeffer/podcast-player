@@ -15,8 +15,9 @@ import SwiftUI
 ///
 /// On the iPhone Duo open the player fills the display (`fullScreen`, with a close button) and, held wide, becomes two
 /// pages split at the fold (`spread`): the episode on the left, large, with its controls under it, and the reading on
-/// the right, the snip bar at its foot. Turned tall it keeps the upright layout, a step larger like the rest of the
-/// app there. The read-along and full-screen video stay for a phone (or the closed Duo) on its side.
+/// the right, the snip bar at its foot. Turned tall it splits at the fold the other way (`tall`): the whole cover and
+/// the titles above, the controls and the reading below. Open, the cover is shown whole at its own shape
+/// (FittedArtwork), never a square cut from a wide one. The read-along and full-screen video stay for a phone (or the closed Duo) on its side.
 struct PlayerView: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerEngine.self) private var engine
@@ -36,8 +37,6 @@ struct PlayerView: View {
   private static let ink = Color(red: 0x0E / 255, green: 0x0F / 255, blue: 0x11 / 255)
 
   private var sideways: Bool { verticalSizeClass == .compact }
-  /// The iPhone Duo open: its inner display, held wide (`spread`) or turned tall.
-  private var roomy: Bool { UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
   /// A video playing through its picture fills the screen sideways, whatever the setting says.
   private var watchingSideways: Bool { sideways && engine.video }
   /// Reading along needs words: an audio episode without a transcript keeps the two-column player sideways.
@@ -67,7 +66,7 @@ struct PlayerView: View {
           wide(ep)
         } else if UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) {
           GeometryReader { geo in
-            if geo.size.width > geo.size.height { spread(ep) } else { upright(ep) }
+            if geo.size.width > geo.size.height { spread(ep) } else { tall(ep) }
           }
         } else {
           upright(ep)
@@ -151,8 +150,7 @@ struct PlayerView: View {
       if engine.video {
         VideoSurface().frame(maxWidth: .infinity).padding(.top, 8)
       }
-      // The Duo's inner display turned tall has the room for a larger cover and title than a phone.
-      titles(ep, artSize: roomy ? 120 : 72, font: roomy ? .title3.weight(.bold) : .headline, lines: 3, hideArt: engine.video)
+      titles(ep, artSize: 72, font: .headline, lines: 3, hideArt: engine.video)
         .padding(.top, engine.video ? 0 : 16)
       Scrubber()
       TransportRow()
@@ -164,6 +162,50 @@ struct PlayerView: View {
     // Every row is held to the sheet's width, so a long title wraps instead of widening the player.
     .frame(maxWidth: .infinity)
     .overlay(alignment: .bottom) { pill.padding(.horizontal, 16).padding(.bottom, 8) }
+  }
+
+  /// The iPhone Duo open and turned tall (669 × 951), split at the fold running across it: above, the cover whole and
+  /// as large as the half allows, square or wide, with the titles under it; below, the seek bar, the controls and the
+  /// reading. The close button and the snips and download buttons stand in columns either side of the cover.
+  private func tall(_ ep: EpisodeDetail) -> some View {
+    HingeStack {
+      VStack(spacing: 14) {
+        HStack(alignment: .top, spacing: 12) {
+          VStack { closeButton; Spacer(minLength: 0) }.frame(width: 52)
+          GeometryReader { geo in
+            Group {
+              if engine.video {
+                VideoSurface()
+              } else {
+                FittedArtwork(url: model.artwork(episodeImage: ep.imageUrl, feedID: ep.feedId), width: geo.size.width, height: geo.size.height)
+              }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+          }
+          .frame(minHeight: 96)
+          VStack(spacing: 4) { snipsButton(ep); DownloadButton(episode: ep); Spacer(minLength: 0) }.frame(width: 52)
+        }
+        VStack(spacing: 4) {
+          Text(ep.title).font(.title2.weight(.bold)).lineLimit(3).multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+          Text(ep.showTitle ?? "").font(.headline).foregroundStyle(.secondary).lineLimit(1)
+          if ep.video.canRequest || ep.asset?.videoUrl != nil { videoActions(ep).padding(.top, 6) }
+        }
+        .frame(maxWidth: .infinity)
+      }
+      .padding(.horizontal, 16)
+      .padding(.top, 8)
+    } bottom: {
+      VStack(spacing: 16) {
+        Scrubber()
+        TransportRow()
+        loadError
+        panelPicker(ep)
+        panelContent(ep)
+      }
+      .padding(.horizontal, 16)
+      .overlay(alignment: .bottom) { pill.padding(.bottom, 8) }
+    }
   }
 
   /// Sideways, after the web app's wide layout: two equal columns, controls and reading.
@@ -210,7 +252,7 @@ struct PlayerView: View {
             if engine.video {
               VideoSurface()
             } else {
-              Artwork(url: model.artwork(episodeImage: ep.imageUrl, feedID: ep.feedId), size: min(geo.size.width, geo.size.height, 360))
+              FittedArtwork(url: model.artwork(episodeImage: ep.imageUrl, feedID: ep.feedId), width: geo.size.width, height: min(geo.size.height, 400))
             }
           }
           .frame(width: geo.size.width, height: geo.size.height)
