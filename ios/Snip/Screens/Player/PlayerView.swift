@@ -18,7 +18,8 @@ import SwiftUI
 /// the right, the snip bar at its foot. Turned tall it splits at the fold the other way (`tall`): the whole cover and
 /// the titles above, the controls and the reading below; standing half open that way, like a small laptop
 /// (`standing`), the upright half is the cover and titles alone and the flat half all controls, or all snip. Open, the cover is shown whole at its own shape
-/// (FittedArtwork), never a square cut from a wide one. The read-along and full-screen video stay for a phone (or the closed Duo) on its side.
+/// (FittedArtwork), never a square cut from a wide one. Wherever the system draws its vertical bar (the Duo closed, and
+/// open held wide) the controls are items in that bar, Snip at its foot (BarControls), and the page keeps the rest. The read-along and full-screen video stay for a phone (or the closed Duo) on its side.
 struct PlayerView: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerEngine.self) private var engine
@@ -29,6 +30,8 @@ struct PlayerView: View {
   @AppStorage(SidewaysPlayer.key) private var sidewaysMode = SidewaysPlayer.karaoke
   @State private var showingSnips = false
   @State private var openSnip: SnipRoute?
+  /// The system draws its vertical bar here (the iPhone Duo closed, or open and held wide): the controls go in it.
+  @State private var verticalBar = false
   /// Presented over the whole display rather than as a sheet: no sheet to swipe away, so a button closes it.
   var fullScreen = false
 
@@ -43,11 +46,15 @@ struct PlayerView: View {
   /// Reading along needs words: an audio episode without a transcript keeps the two-column player sideways.
   private var readingAlong: Bool { sideways && !engine.video && sidewaysMode == .karaoke && engine.episode?.transcriptId != nil }
   private var fullScreenSideways: Bool { readingAlong || watchingSideways }
+  /// The controls live in the system's vertical bar (BarControls) instead of a row on the page.
+  private var controlsInBar: Bool { verticalBar && engine.status == .ready && engine.episode != nil && !fullScreenSideways }
 
   var body: some View {
     NavigationStack {
       content
         .toolbar(.hidden, for: .navigationBar)
+        .modifier(BarControls(enabled: controlsInBar))
+        .background(VerticalBar(present: $verticalBar))
         .navigationDestination(item: $openSnip) { route in
           SnipPage(snipID: route.id, api: model.api, renaming: route.renaming, onDelete: { Task { await engine.refreshEpisode() } })
         }
@@ -160,7 +167,7 @@ struct PlayerView: View {
       titles(ep, artSize: 72, font: .headline, lines: 3, hideArt: engine.video)
         .padding(.top, engine.video ? 0 : 16)
       Scrubber()
-      TransportRow()
+      if !controlsInBar { TransportRow() }
       loadError
       panelPicker(ep)
       panelContent(ep)
@@ -211,7 +218,7 @@ struct PlayerView: View {
         panelContent(ep)
       }
       .padding(.horizontal, 16)
-      .overlay(alignment: .bottom) { pill.padding(.bottom, 8) }
+      .overlay(alignment: .bottom) { pill.padding(.horizontal, 16).padding(.bottom, 8) }
     }
   }
 
@@ -275,7 +282,7 @@ struct PlayerView: View {
         }
         .frame(minHeight: 56)
         Scrubber()
-        TransportRow()
+        if !controlsInBar { TransportRow() }
         loadError
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -320,7 +327,7 @@ struct PlayerView: View {
           if ep.video.canRequest || ep.asset?.videoUrl != nil { videoActions(ep).padding(.top, 6) }
         }
         Scrubber()
-        TransportRow()
+        if !controlsInBar { TransportRow() }
         loadError
       }
       .padding(.leading, 24)
