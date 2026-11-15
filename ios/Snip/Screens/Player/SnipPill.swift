@@ -89,11 +89,12 @@ final class SnipCardModel {
   func stop() { polling?.cancel() }
 
   /// A new title for the snip, typed in the pill. A title-only PATCH: the server edits the revision in place (no new
-  /// clip) and keeps it as the owner's title, even over a summary still being written. Returns false when it failed.
+  /// clip) and keeps it as the owner's title, even over a summary still being written. It names no revision, so a step
+  /// the server took meanwhile can't refuse it. Returns false when it failed.
   func rename(_ title: String, api: APIClient) async -> Bool {
-    guard let snip, let rev = snip.revision else { return false }
+    guard let snip else { return false }
     do {
-      phase = .snip(try await api.editSnip(snip.id, EditSnip(title: title, ifRevision: rev.id)))
+      phase = .snip(try await api.editSnip(snip.id, EditSnip(title: title)))
       renameError = nil
       return true
     } catch let e as APIError where e.status == 409 {
@@ -107,7 +108,9 @@ final class SnipCardModel {
 
 /// What the player shows after a snip tap: one slim bar above the controls, never a card over the transcript.
 /// While the moment is being chosen it says so and offers Cancel; once the snip exists it shows its title, a tap on
-/// the title renames it in place (as on the snip's page), and the round arrow opens the snip's page. A finished
+/// the title renames it in place (as on the snip's page). The round arrow opens the snip's page at every step the
+/// server has the snip, choosing the moment included, so the owner can write a title, a summary or a note there before
+/// the generated ones arrive. A finished
 /// snip's bar goes away by itself after a while, but not while it is being renamed; the snip stays in the lists.
 struct SnipPill: View {
   @Environment(AppModel.self) private var model
@@ -154,7 +157,9 @@ struct SnipPill: View {
         }
       } else if card.cancellable {
         HStack(spacing: 14) {
-          ProgressView().controlSize(.regular)
+          // The round arrow takes the spinner's room once there is a page to open; the line below still says it is
+          // choosing the moment.
+          if card.snip == nil { ProgressView().controlSize(.regular) }
           lines("Snipped at \(Format.clock(anchorMs))", "Choosing the moment…")
           Button("Cancel", action: onCancel)
             .font(.body.weight(.semibold))
@@ -162,6 +167,7 @@ struct SnipPill: View {
             .buttonBorderShape(.capsule)
             .controlSize(.large)
             .accessibilityLabel("Cancel snip")
+          if let snip = card.snip { openButton(snip) }
         }
       } else if card.snip?.revision?.status == .failed {
         HStack(spacing: 14) {
@@ -195,14 +201,7 @@ struct SnipPill: View {
             .buttonStyle(.plain)
             .disabled(snip.revision?.title == nil)
             .accessibilityHint("Renames the snip")
-            Button { onOpen(snip.id) } label: {
-              Image(systemName: "chevron.forward")
-                .font(.body.weight(.bold))
-                .frame(width: 48, height: 48)
-                .background(Color(.systemGray4), in: .circle)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open snip")
+            openButton(snip)
           }
         }
       }
@@ -219,11 +218,33 @@ struct SnipPill: View {
       card.renameRequested = false
       begin(snip)
     }
+    #if DEBUG
+      // `-openSnipFromBarAfter <s>`: press the round arrow that many seconds after the server has the snip, whatever
+      // step it is at, for scripted checks of writing on a snip still being made.
+      .task(id: card.snip?.id) {
+        let after = UserDefaults.standard.double(forKey: "openSnipFromBarAfter")
+        guard after > 0, let id = card.snip?.id else { return }
+        try? await Task.sleep(for: .seconds(after))
+        if !Task.isCancelled { onOpen(id) }
+      }
+    #endif
     .task(id: closesAfterAWhile) {
       guard closesAfterAWhile else { return }
       try? await Task.sleep(for: Self.readyFor)
       if !Task.isCancelled { onClose() }
     }
+  }
+
+  /// The round arrow to the snip's page.
+  private func openButton(_ snip: Snip) -> some View {
+    Button { onOpen(snip.id) } label: {
+      Image(systemName: "chevron.forward")
+        .font(.body.weight(.bold))
+        .frame(width: 48, height: 48)
+        .background(Color(.systemGray4), in: .circle)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("Open snip")
   }
 
   private var closesAfterAWhile: Bool { card.snip?.revision?.status == .ready && draft == nil }

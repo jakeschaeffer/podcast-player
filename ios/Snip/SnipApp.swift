@@ -109,6 +109,10 @@ struct RootView: View {
       // `-renameAfter <s>` then opens its rename link, as a tap on the activity's title does. `-openURL <link>` opens a
       // link at launch. `-openTab library|snips` starts on that tab, and `-openWaitingSnip 1` opens the newest tap
       // waiting on the phone (WaitingSnipSheet), for screenshots of every page (ios/scripts/duo.sh on the iPhone Duo).
+      // On a snip's page (SnipPage.debugLaunch): `-snipMode adjust` opens the editor, `-editSnipField title|summary|note`
+      // opens that field for typing (several, comma-separated, in turn), `-typeText <text>` fills it (`\n` for a new line,
+      // `|` between fields) and `-saveFieldAfter <s>` presses its Save. `-openSnipFromBarAfter <s>` presses the snip bar's
+      // round arrow that long after the server has the tap (SnipPill), to write on a snip that is still being made.
       .task {
         let defaults = UserDefaults.standard
         switch defaults.string(forKey: "openTab") {

@@ -177,12 +177,16 @@ struct DecodeFixturesTests {
     let titleOnly = try sent(EditSnip(title: "New", ifRevision: "R"))
     #expect(Set(titleOnly.keys) == ["title", "if_revision"])
     #expect(EditSnip(ifRevision: "R").isEmpty && !EditSnip(summary: .clear, ifRevision: "R").isEmpty)
+    // Text alone may go without a revision (the snip's page sends it so, while the server is still at work on it).
+    let unpinned = try sent(EditSnip(title: "Mine", note: .set("Why")))
+    #expect(Set(unpinned.keys) == ["title", "note"])
 
     // A body kept and read back (an outbox) keeps a clear as a clear.
     let roundTrip = { (body: EditSnip) in try APIClient.decoder.decode(EditSnip.self, from: APIClient.encoder.encode(body)) }
     let both = EditSnip(startMs: 1, endMs: 2, note: .clear, summary: .set("Mine"), ifRevision: "R", regenerateSummary: false)
     #expect(try roundTrip(both) == both)
     #expect(try roundTrip(EditSnip(ifRevision: "R")) == EditSnip(ifRevision: "R"))
+    #expect(try roundTrip(EditSnip(summary: .clear)) == EditSnip(summary: .clear))
 
     // An offline tap's owner edit carries bullets too.
     let owner = try #require(

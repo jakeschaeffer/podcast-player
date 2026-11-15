@@ -3,8 +3,8 @@ import PodcastAPI
 import SwiftUI
 import SyncKit
 
-/// A snip tap that is still on the phone (no connection when it was made): its title, its note and how far back it
-/// reaches can be set now. They travel with the tap; the server still fits the ends to whole sentences when it gets
+/// A snip tap that is still on the phone (no connection when it was made): its title, its note, its summary's points
+/// and how far back it reaches can be set now. They travel with the tap; the server still fits the ends to whole sentences when it gets
 /// it, and keeps what was typed here over anything it would have written.
 struct WaitingSnipSheet: View {
   @Environment(AppModel.self) private var model
@@ -13,6 +13,7 @@ struct WaitingSnipSheet: View {
 
   @State private var title = ""
   @State private var note = ""
+  @State private var summary = ""
   @State private var lengthMs = 0
   /// The length was changed here or before: only then does the tap carry a span of the owner's.
   @State private var lengthSet = false
@@ -48,6 +49,13 @@ struct WaitingSnipSheet: View {
           TextField("Why you kept it", text: $note, axis: .vertical).lineLimit(2...6)
         }
         Section {
+          TextField("One point a line", text: $summary, axis: .vertical).lineLimit(2...8)
+        } header: {
+          Text("Summary")
+        } footer: {
+          Text("Left empty, the summary is written when the snip is sent. Yours is kept instead of it.")
+        }
+        Section {
           Button("Delete snip", role: .destructive) {
             Task {
               await model.deleteWaiting(pending.id)
@@ -74,6 +82,7 @@ struct WaitingSnipSheet: View {
       .onAppear {
         title = pending.body.owner?.title ?? ""
         note = pending.body.owner?.note ?? ""
+        summary = pending.body.owner?.summary ?? ""
         lengthMs = pending.endMs - pending.startMs
         lengthSet = pending.body.owner?.startMs != nil
       }
@@ -83,9 +92,11 @@ struct WaitingSnipSheet: View {
   private var edit: CreateSnip.Owner {
     let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
     let note = note.trimmingCharacters(in: .whitespacesAndNewlines)
+    let summary = SnipPageModel.lines(summary)
     return CreateSnip.Owner(
       startMs: lengthSet ? pending.body.anchorMs - lengthMs : nil, endMs: lengthSet ? pending.body.anchorMs : nil,
-      title: title.isEmpty ? nil : String(title.prefix(120)), note: note.isEmpty ? nil : note)
+      title: title.isEmpty ? nil : String(title.prefix(120)), note: note.isEmpty ? nil : note,
+      summary: summary.isEmpty ? nil : String(summary.prefix(2000)))
   }
 }
 

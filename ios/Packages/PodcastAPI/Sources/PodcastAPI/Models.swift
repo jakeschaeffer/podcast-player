@@ -629,8 +629,10 @@ public enum FieldEdit<Value: Codable & Sendable & Hashable>: Codable, Sendable, 
 }
 
 /// `PATCH /v1/snips/{id}`. Boundaries are sent only when they changed, so a title-only save stays on the same
-/// revision; `ifRevision` is always sent, so a replayed edit is refused (409) rather than duplicated. Title, note and
-/// summary apply in place at any step of the snip, waiting for a transcript included.
+/// revision; with them `ifRevision` is required, so a replayed edit is refused (409) rather than duplicated. Title, note
+/// and summary apply in place at any step of the snip, waiting for a transcript included, so replaying one is harmless
+/// and an edit of those alone may leave `ifRevision` out (nil): the step after it, which may move the snip to a new
+/// revision, then can't turn it away.
 public struct EditSnip: Codable, Sendable, Hashable {
   public var startMs: Int?
   public var endMs: Int?
@@ -640,14 +642,14 @@ public struct EditSnip: Codable, Sendable, Hashable {
   /// The owner's own bullets, one per line (at most 2000 characters): `.set`, or `.clear` to show the model's again;
   /// nil leaves the summary as it is.
   public var summary: FieldEdit<String>?
-  public var ifRevision: ULID
+  public var ifRevision: ULID?
   /// With new In/Out points: write the title and summary again (true) or keep them (false). Left out, the server
   /// writes them again only when the length changes by more than 10 s. The owner's own title and bullets stay either way.
   public var regenerateSummary: Bool?
 
   public init(
     startMs: Int? = nil, endMs: Int? = nil, title: String? = nil, note: FieldEdit<String>? = nil, summary: FieldEdit<String>? = nil,
-    ifRevision: ULID, regenerateSummary: Bool? = nil
+    ifRevision: ULID? = nil, regenerateSummary: Bool? = nil
   ) {
     self.startMs = startMs
     self.endMs = endMs
@@ -671,7 +673,7 @@ public struct EditSnip: Codable, Sendable, Hashable {
     title = try c.decodeIfPresent(String.self, forKey: .title)
     note = c.contains(.note) ? try c.decode(FieldEdit<String>.self, forKey: .note) : nil
     summary = c.contains(.summary) ? try c.decode(FieldEdit<String>.self, forKey: .summary) : nil
-    ifRevision = try c.decode(ULID.self, forKey: .ifRevision)
+    ifRevision = try c.decodeIfPresent(ULID.self, forKey: .ifRevision)
     regenerateSummary = try c.decodeIfPresent(Bool.self, forKey: .regenerateSummary)
   }
 }
