@@ -112,6 +112,24 @@ own access group, which both targets' entitlements name (`Config/Snip.entitlemen
 the app writes it at launch and on sign-in. Nothing in the developer portal is needed for that group; `testflight.sh`
 mints the extension's App Store profile like the Live Activity's.
 
+## The iPhone Duo
+
+A book-style foldable (`ios/CLAUDE.md` says how to fold it in the simulator). Closed, the outer display is a small
+phone and the app is the phone app. Open, the inner display is regular in both size classes (`UnfoldedDisplay`), and
+the app reads larger there rather than fitting more in: every text style is one Dynamic Type step up from the
+reader's own setting (`unfoldedTypeScale`), lists keep to a readable 720 pt column when it is held wide (as the web
+app's wide layout does), and the player fills the display instead of floating as a card, closed with its chevron.
+Held wide, the player, a snip's page and the snip editor become two pages split at the fold (`HingeSplit`, after the
+web app's `.player__side` / `.player__main`), the gap centred on the screen so the hinge never runs through text:
+
+- **Player**: the episode on the left page (the cover as large as the page leaves, the title, the seek bar, the
+  controls), the transcript, chapters or Up Next on the right, the snip bar docked at its foot.
+- **Snip page**: the title, summary and actions on the left, the clip's words on the right.
+- **Snip editor**: the times, how to move the ends, and Play on the left, the words to tap on the right.
+
+Turned tall, each keeps its upright layout, one step larger. A phone on its side and the closed Duo on its side keep
+the read-along and the two-column sideways player.
+
 ## Design notes
 
 A design pass on 2026-11-01 reviewed every screen in light, dark and sideways. Conventions it settled: orange marks the

@@ -42,20 +42,30 @@ struct SnipApp: App {
     }
   }
 
-  @ViewBuilder private var app: some View {
-    if model.signedIn {
-      RootView()
-    } else {
-      LoginView()
+  private var app: some View {
+    Group {
+      if model.signedIn {
+        RootView()
+      } else {
+        LoginView()
+      }
     }
+    // Outside RootView, so the sheets it presents read larger on the open iPhone Duo too.
+    .unfoldedTypeScale()
   }
 }
 
 struct RootView: View {
   @Environment(AppModel.self) private var model
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  @Environment(\.verticalSizeClass) private var verticalSizeClass
   @State private var showPlayer = false
   @State private var tab = 0
   @State private var todayPath = NavigationPath()
+
+  /// The iPhone Duo open: a sheet there is a floating card with the screen showing round it, so the player takes the
+  /// whole display instead (and is closed with its own button). Folding it moves the player to a sheet and back.
+  private var unfolded: Bool { UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
 
   var body: some View {
     TabView(selection: $tab) {
@@ -70,10 +80,13 @@ struct RootView: View {
       }
     }
     .modifier(MiniPlayerAccessory(showPlayer: $showPlayer, enabled: !model.readingSideways))
-    .sheet(isPresented: $showPlayer) {
-      PlayerView()
-        // A waiting snip opened from the snip bar; over the player, which is itself a sheet.
-        .sheet(item: Bindable(model).editingWaiting) { WaitingSnipSheet(pending: $0).environment(model) }
+    // Each presentation is shown only on its own kind of display; one dismissed because the device was folded or
+    // opened leaves `showPlayer` alone, so the other takes over.
+    .sheet(isPresented: Binding(get: { showPlayer && !unfolded }, set: { if !$0, !unfolded { showPlayer = false } })) {
+      player(fullScreen: false)
+    }
+    .fullScreenCover(isPresented: Binding(get: { showPlayer && unfolded }, set: { if !$0, unfolded { showPlayer = false } })) {
+      player(fullScreen: true).unfoldedTypeScale()
     }
     // The same, opened from the Snips tab with the player down.
     .sheet(item: Binding(get: { showPlayer ? nil : model.editingWaiting }, set: { model.editingWaiting = $0 })) {
@@ -128,6 +141,12 @@ struct RootView: View {
         if let link = defaults.string(forKey: "openURL").flatMap(URL.init(string:)) { model.open(link) }
       }
     #endif
+  }
+
+  private func player(fullScreen: Bool) -> some View {
+    PlayerView(fullScreen: fullScreen)
+      // A waiting snip opened from the snip bar; over the player, which is itself presented.
+      .sheet(item: Bindable(model).editingWaiting) { WaitingSnipSheet(pending: $0).environment(model) }
   }
 }
 

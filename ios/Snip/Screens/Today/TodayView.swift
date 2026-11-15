@@ -59,6 +59,7 @@ struct TodayView: View {
       }
     }
     .overlay { if !loaded && error == nil { ProgressView() } }
+    .unfoldedReadableWidth()
     .navigationTitle("Today")
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {

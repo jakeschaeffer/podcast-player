@@ -69,6 +69,7 @@ struct FeedEpisodesView: View {
       }
     }
     .listSectionSpacing(24)
+    .unfoldedReadableWidth()
     .navigationTitle(feed.title ?? "Untitled show")
     .navigationBarTitleDisplayMode(.inline)
     .task {

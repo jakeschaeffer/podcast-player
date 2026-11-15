@@ -20,6 +20,7 @@ struct UpNextView: View {
       engine.open(episode.id, autoplay: playing)
       showPlayer = true
     }
+    .unfoldedReadableWidth()
     .navigationTitle("Up Next")
     .toolbar { EditButton() }
     .environment(\.editMode, $editMode)

@@ -34,6 +34,7 @@ struct LoginView: View {
           .disabled(busy || password.isEmpty || URL(string: server)?.host() == nil)
         }
       }
+      .unfoldedReadableWidth()
       .navigationTitle("Snip")
       .onAppear { if server.isEmpty, let suggested = model.suggestedServer { server = suggested } }
     }

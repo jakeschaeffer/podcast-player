@@ -54,6 +54,7 @@ struct LibraryView: View {
       }
     }
     .overlay { if !loaded && error == nil { ProgressView() } }
+    .unfoldedReadableWidth()
     .navigationTitle("Library")
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {

@@ -19,6 +19,7 @@ struct SnipPage: View {
   @Environment(PlayerEngine.self) private var engine
   @Environment(\.dismiss) private var dismiss
   @Environment(\.verticalSizeClass) private var verticalSizeClass
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @State private var model: SnipPageModel
   @State private var mode = Mode.reading
   @State private var confirmingDelete = false
@@ -59,6 +60,17 @@ struct SnipPage: View {
       } else if sideways {
         SnipSideways(words: model.spanWords, positionMs: model.previewMs, progress: progress) {
           model.togglePreview(pausing: engine)
+        }
+      } else if UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) {
+        // The iPhone Duo open: held wide, two pages split at the fold; turned tall, the one column.
+        GeometryReader { geo in
+          if geo.size.width > geo.size.height {
+            if mode == .adjusting { adjustingSpread } else { readingSpread }
+          } else if mode == .adjusting {
+            adjusting
+          } else {
+            reading
+          }
         }
       } else if mode == .adjusting {
         adjusting
@@ -146,39 +158,9 @@ struct SnipPage: View {
   private var reading: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 18) {
-        VStack(alignment: .leading, spacing: 2) {
-          if let show = model.snip?.showTitle { Text(show).lineLimit(2) }
-          Text(at).monospacedDigit()
-        }
-        .font(.body.weight(.medium))
-        .foregroundStyle(.secondary)
-        titleView
-        if model.previewing, model.previewHasVideo, let player = model.preview {
-          PlayerLayerView(player: player)
-            .aspectRatio(16 / 9, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .transition(.opacity)
-        }
-        if let status {
-          Label(status.text, systemImage: status.icon).font(.title3).foregroundStyle(status.failed ? .red : .secondary)
-        }
-        if model.revision?.status == .ready {
-          if let quote = model.revision?.quote {
-            Text("“\(quote)”").font(.system(.title2, design: .serif, weight: .semibold)).padding(.vertical, 4)
-          }
-          if let summary = model.revision?.summary { SummaryText(summary: summary) }
-        }
-        if model.revision?.status != .selecting {
-          if let turns = model.turns {
-            TurnsText(turns: turns)
-          } else if let excerpt = model.revision?.excerpt {
-            Text("“\(excerpt)”").font(.title2).foregroundStyle(.secondary)
-          }
-        }
-        if let episode = model.snip?.episodeTitle {
-          Text("From “\(episode)”").font(.body).foregroundStyle(.secondary)
-        }
-        if let error = model.saveError { Text(error).font(.body).foregroundStyle(.red) }
+        about
+        clipWords
+        from
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.horizontal, 24)
@@ -189,6 +171,81 @@ struct SnipPage: View {
     .safeAreaInset(edge: .bottom) {
       if mode == .reading { actions }
     }
+  }
+
+  /// The iPhone Duo open and held wide: what the snip is on the left page, with its actions at the foot, and the
+  /// clip's own words on the right, so neither runs across the fold.
+  private var readingSpread: some View {
+    HingeSplit {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 18) {
+          about
+          from
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 24)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
+      }
+      .scrollDismissesKeyboard(.never)
+      .safeAreaInset(edge: .bottom) {
+        if mode == .reading { actions.padding(.trailing, -24) }
+      }
+    } trailing: {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 18) {
+          clipWords
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.trailing, 24)
+        .padding(.top, 8)
+        .padding(.bottom, 32)
+      }
+    }
+  }
+
+  /// The show and where the clip sits, the title, the playing video, the status, the quote and the summary.
+  @ViewBuilder private var about: some View {
+    VStack(alignment: .leading, spacing: 2) {
+      if let show = model.snip?.showTitle { Text(show).lineLimit(2) }
+      Text(at).monospacedDigit()
+    }
+    .font(.body.weight(.medium))
+    .foregroundStyle(.secondary)
+    titleView
+    if model.previewing, model.previewHasVideo, let player = model.preview {
+      PlayerLayerView(player: player)
+        .aspectRatio(16 / 9, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .transition(.opacity)
+    }
+    if let status {
+      Label(status.text, systemImage: status.icon).font(.title3).foregroundStyle(status.failed ? .red : .secondary)
+    }
+    if model.revision?.status == .ready {
+      if let quote = model.revision?.quote {
+        Text("“\(quote)”").font(.system(.title2, design: .serif, weight: .semibold)).padding(.vertical, 4)
+      }
+      if let summary = model.revision?.summary { SummaryText(summary: summary) }
+    }
+  }
+
+  /// The clip's words, by speaker, once the moment is chosen.
+  @ViewBuilder private var clipWords: some View {
+    if model.revision?.status != .selecting {
+      if let turns = model.turns {
+        TurnsText(turns: turns)
+      } else if let excerpt = model.revision?.excerpt {
+        Text("“\(excerpt)”").font(.title2).foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  @ViewBuilder private var from: some View {
+    if let episode = model.snip?.episodeTitle {
+      Text("From “\(episode)”").font(.body).foregroundStyle(.secondary)
+    }
+    if let error = model.saveError { Text(error).font(.body).foregroundStyle(.red) }
   }
 
   @ViewBuilder private var titleView: some View {
@@ -291,80 +348,117 @@ struct SnipPage: View {
 
   private var adjusting: some View {
     VStack(alignment: .leading, spacing: 0) {
-      VStack(alignment: .leading, spacing: 4) {
-        Text("\(Format.clock(model.span.startMs)) – \(Format.clock(model.span.endMs))")
-          .font(.system(.title, design: .rounded, weight: .bold))
-          .monospacedDigit()
-        Text(lengthLine).font(.body).foregroundStyle(.secondary)
-      }
-      .padding(.horizontal, 24)
-      .padding(.bottom, 12)
-      ScrollViewReader { proxy in
-        ScrollView {
-          LazyVStack(alignment: .leading, spacing: 22) {
-            if model.moreEarlier {
-              Button("Show earlier") { model.showEarlier() }.font(.body.weight(.semibold)).frame(maxWidth: .infinity)
-            }
-            let ends = spanEnds
-            ForEach(model.segmentsInWindow, id: \.w0) { segment in
-              FlowLayout(spacing: 7, lineSpacing: 4) {
-                ForEach(Array(segment.words.enumerated()), id: \.offset) { i, word in
-                  if segment.w0 + i == ends?.first { SpanHandle(atTop: true) }
-                  Text(word.text)
-                    .font(.system(size: wordSize, weight: .semibold, design: .rounded))
-                    .foregroundStyle(model.inSpan(word) ? Color.primary : Color(.tertiaryLabel))
-                    // The tint overlaps across the gap each side, so the clip's words read as one band; opaque, so
-                    // the overlaps don't show.
-                    .background {
-                      if model.inSpan(word) {
-                        Color(.systemBackground).overlay(Color.accentColor.opacity(0.28)).padding(.horizontal, -4).padding(.vertical, -2.5)
-                      }
-                    }
-                    .contentShape(.rect)
-                    .onTapGesture { model.tap(word) }
-                    // Press and hold to say which end, when the nearer one isn't it.
-                    .contextMenu {
-                      Button("Start here", systemImage: "arrow.right.to.line") { model.set(.in, at: word) }
-                      Button("End here", systemImage: "arrow.left.to.line") { model.set(.out, at: word) }
-                    }
-                  if segment.w0 + i == ends?.last { SpanHandle(atTop: false) }
-                }
-              }
-              .id(segment.w0)
-            }
-            if model.moreLater {
-              Button("Show later") { model.showLater() }.font(.body.weight(.semibold)).frame(maxWidth: .infinity)
-            }
-          }
-          .padding(.horizontal, 24)
-          .padding(.vertical, 16)
-        }
-        .onAppear {
-          // Open with the clip's first paragraph just below the top, so its start shows with a little context above.
-          let segments = model.segmentsInWindow
-          if let first = segments.firstIndex(where: { $0.e >= model.span.startMs }) {
-            proxy.scrollTo(segments[first].w0, anchor: UnitPoint(x: 0, y: 0.12))
-          }
-        }
-      }
+      adjustRange
+        .padding(.horizontal, 24)
+        .padding(.bottom, 12)
+      adjustWords
     }
     .safeAreaInset(edge: .bottom) {
-      VStack(spacing: 14) {
-        if let error = model.saveError { Text(error).font(.body).foregroundStyle(.red) }
-        Button { model.togglePreview(pausing: engine) } label: {
-          Label(model.previewing ? "Stop" : "Play this clip", systemImage: model.previewing ? "stop.fill" : "play.fill")
-            .font(.title3.weight(.semibold))
-            .padding(.horizontal, 24)
-            .frame(minHeight: 52)
-            .background(Color.accentColor.opacity(0.28), in: .capsule)
-        }
-        .buttonStyle(.plain)
+      adjustPlay
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 24)
+        .padding(.top, 14)
+        .padding(.bottom, 6)
+        .background(Color(.systemBackground).ignoresSafeArea())
+    }
+  }
+
+  /// The iPhone Duo open and held wide: the clip's times, how to move its ends and Play on the left page, the words to
+  /// tap on the right, so the words never run across the fold.
+  private var adjustingSpread: some View {
+    HingeSplit {
+      VStack(alignment: .leading, spacing: 16) {
+        adjustRange
+        Text("Tap a word to move the nearer end. Press and hold a word to choose which end.")
+          .font(.body)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+        Spacer(minLength: 0)
+        adjustPlay
       }
-      .frame(maxWidth: .infinity)
-      .padding(.horizontal, 24)
-      .padding(.top, 14)
-      .padding(.bottom, 6)
-      .background(Color(.systemBackground).ignoresSafeArea())
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.leading, 24)
+      .padding(.top, 8)
+      .padding(.bottom, 12)
+    } trailing: {
+      adjustWords.padding(.leading, -24)
+    }
+  }
+
+  /// The clip's start and end, and its length (and what it was, once changed).
+  private var adjustRange: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text("\(Format.clock(model.span.startMs)) – \(Format.clock(model.span.endMs))")
+        .font(.system(.title, design: .rounded, weight: .bold))
+        .monospacedDigit()
+      Text(lengthLine).font(.body).foregroundStyle(.secondary)
+    }
+  }
+
+  /// The save error, if any, and Play this clip.
+  private var adjustPlay: some View {
+    VStack(spacing: 14) {
+      if let error = model.saveError { Text(error).font(.body).foregroundStyle(.red) }
+      Button { model.togglePreview(pausing: engine) } label: {
+        Label(model.previewing ? "Stop" : "Play this clip", systemImage: model.previewing ? "stop.fill" : "play.fill")
+          .font(.title3.weight(.semibold))
+          .padding(.horizontal, 24)
+          .frame(minHeight: 52)
+          .background(Color.accentColor.opacity(0.28), in: .capsule)
+      }
+      .buttonStyle(.plain)
+    }
+  }
+
+  /// The words around the clip, the clip's own tinted, for moving its ends.
+  private var adjustWords: some View {
+    ScrollViewReader { proxy in
+      ScrollView {
+        LazyVStack(alignment: .leading, spacing: 22) {
+          if model.moreEarlier {
+            Button("Show earlier") { model.showEarlier() }.font(.body.weight(.semibold)).frame(maxWidth: .infinity)
+          }
+          let ends = spanEnds
+          ForEach(model.segmentsInWindow, id: \.w0) { segment in
+            FlowLayout(spacing: 7, lineSpacing: 4) {
+              ForEach(Array(segment.words.enumerated()), id: \.offset) { i, word in
+                if segment.w0 + i == ends?.first { SpanHandle(atTop: true) }
+                Text(word.text)
+                  .font(.system(size: wordSize, weight: .semibold, design: .rounded))
+                  .foregroundStyle(model.inSpan(word) ? Color.primary : Color(.tertiaryLabel))
+                  // The tint overlaps across the gap each side, so the clip's words read as one band; opaque, so
+                  // the overlaps don't show.
+                  .background {
+                    if model.inSpan(word) {
+                      Color(.systemBackground).overlay(Color.accentColor.opacity(0.28)).padding(.horizontal, -4).padding(.vertical, -2.5)
+                    }
+                  }
+                  .contentShape(.rect)
+                  .onTapGesture { model.tap(word) }
+                  // Press and hold to say which end, when the nearer one isn't it.
+                  .contextMenu {
+                    Button("Start here", systemImage: "arrow.right.to.line") { model.set(.in, at: word) }
+                    Button("End here", systemImage: "arrow.left.to.line") { model.set(.out, at: word) }
+                  }
+                if segment.w0 + i == ends?.last { SpanHandle(atTop: false) }
+              }
+            }
+            .id(segment.w0)
+          }
+          if model.moreLater {
+            Button("Show later") { model.showLater() }.font(.body.weight(.semibold)).frame(maxWidth: .infinity)
+          }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+      }
+      .onAppear {
+        // Open with the clip's first paragraph just below the top, so its start shows with a little context above.
+        let segments = model.segmentsInWindow
+        if let first = segments.firstIndex(where: { $0.e >= model.span.startMs }) {
+          proxy.scrollTo(segments[first].w0, anchor: UnitPoint(x: 0, y: 0.12))
+        }
+      }
     }
   }
 

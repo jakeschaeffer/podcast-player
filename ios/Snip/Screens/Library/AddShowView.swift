@@ -139,6 +139,7 @@ struct AddShowView: View {
       text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search shows, or paste a feed, YouTube or video link"
     )
     .searchFocused($focused)
+    .unfoldedReadableWidth()
     .textInputAutocapitalization(.never)
     .autocorrectionDisabled()
     .navigationTitle("Find a show")
