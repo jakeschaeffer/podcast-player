@@ -8,6 +8,8 @@ struct Scrubber: View {
   var onInteraction: () -> Void = {}
   /// Laid over a video: the times in white with a shadow, so they read on a bright frame.
   var onVideo = false
+  /// The times in large type (the iPhone Duo standing half open, where the controls fill a half of the screen).
+  var large = false
   @State private var scrubbing: Double?
 
   var body: some View {
@@ -28,7 +30,7 @@ struct Scrubber: View {
         Spacer()
         Text("-" + Format.clock(engine.durationMs - Int(shown)))
       }
-      .font(.caption.monospacedDigit())
+      .font((large ? Font.title3.weight(.semibold) : .caption).monospacedDigit())
       .foregroundStyle(onVideo ? AnyShapeStyle(.white.opacity(0.9)) : AnyShapeStyle(.secondary))
       .shadow(color: .black.opacity(onVideo ? 0.7 : 0), radius: 3)
     }
@@ -45,6 +47,8 @@ struct TransportRow: View {
   var onInteraction: () -> Void = {}
   /// Laid over a video: a shadow under the buttons, so they read on a bright frame.
   var onVideo = false
+  /// Every control half as large again (the iPhone Duo standing half open, where the row has a half of the screen).
+  var large = false
 
   /// The app icon's dark, for marks on the accent colour.
   static let ink = Color(red: 0x0E / 255, green: 0x0F / 255, blue: 0x11 / 255)
@@ -58,8 +62,8 @@ struct TransportRow: View {
         adSlot
         Button { press { engine.cycleSpeed() } } label: {
           Text(engine.speed.formatted(.number.precision(.fractionLength(0...2))) + "×")
-            .font(.callout.weight(.semibold).monospacedDigit())
-            .frame(minWidth: 44, minHeight: 44)
+            .font((large ? Font.title2.weight(.bold) : .callout.weight(.semibold)).monospacedDigit())
+            .frame(minWidth: large ? 64 : 44, minHeight: large ? 64 : 44)
         }
         .opacity(offer == nil ? 1 : 0)
         .allowsHitTesting(offer == nil)
@@ -71,17 +75,17 @@ struct TransportRow: View {
       }
       .animation(.easeInOut(duration: 0.25), value: offer)
       Spacer(minLength: 0)
-      Button { press { engine.skip(by: -15_000) } } label: { Image(systemName: "gobackward.15").font(.title2) }
+      Button { press { engine.skip(by: -15_000) } } label: { Image(systemName: "gobackward.15").font(large ? .system(size: 40) : .title2).frame(minWidth: large ? 64 : nil, minHeight: large ? 64 : nil) }
       Spacer(minLength: 0)
       Button { press { engine.toggle() } } label: {
-        Image(systemName: engine.playing ? "pause.circle.fill" : "play.circle.fill").font(.system(size: 64))
+        Image(systemName: engine.playing ? "pause.circle.fill" : "play.circle.fill").font(.system(size: large ? 100 : 64))
           .overlay {
             // Waiting for audio: say so instead of showing a pause button over silence.
             if engine.playing && engine.buffering { ProgressView().controlSize(.large).tint(.white) }
           }
       }
       Spacer(minLength: 0)
-      Button { press { engine.skip(by: 30_000) } } label: { Image(systemName: "goforward.30").font(.title2) }
+      Button { press { engine.skip(by: 30_000) } } label: { Image(systemName: "goforward.30").font(large ? .system(size: 40) : .title2).frame(minWidth: large ? 64 : nil, minHeight: large ? 64 : nil) }
       Spacer(minLength: 0)
       // The same slot at this end, with Snip at its edge: with the ends equal, the spacers put play in the middle.
       ZStack(alignment: .trailing) {
@@ -90,9 +94,9 @@ struct TransportRow: View {
           press { Task { await model.snip() } }
         } label: {
           Image(systemName: "scissors")
-            .font(.title3.weight(.semibold))
+            .font((large ? Font.title : .title3).weight(.semibold))
             .foregroundStyle(Self.ink)
-            .frame(width: 48, height: 48)
+            .frame(width: large ? 80 : 48, height: large ? 80 : 48)
             .background(Color.accentColor, in: .circle)
         }
         .accessibilityLabel("Snip")
