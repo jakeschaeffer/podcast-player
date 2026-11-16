@@ -69,6 +69,10 @@ struct RootView: View {
   /// The iPhone Duo open: a sheet there is a floating card with the screen showing round it, so the player takes the
   /// whole display instead (and is closed with its own button). Folding it moves the player to a sheet and back.
   private var unfolded: Bool { UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
+  /// The player takes the whole display: open, and on its side, where the read-along and a video fill the screen
+  /// edge to edge rather than sit in a sheet's card with its border showing. Turning or folding hands it between the
+  /// sheet and the cover.
+  private var coversScreen: Bool { unfolded || verticalSizeClass == .compact }
   /// An episode is in the player, or on its way into it.
   private var hasEpisode: Bool { model.engine.episode != nil || model.engine.status == .loading }
 
@@ -107,10 +111,10 @@ struct RootView: View {
     .modifier(MiniPlayerAccessory(showPlayer: $showPlayer, enabled: !model.readingSideways && hasEpisode))
     // Each presentation is shown only on its own kind of display; one dismissed because the device was folded or
     // opened leaves `showPlayer` alone, so the other takes over.
-    .sheet(isPresented: Binding(get: { showPlayer && !unfolded }, set: { if !$0, !unfolded { ended() } })) {
+    .sheet(isPresented: Binding(get: { showPlayer && !coversScreen }, set: { if !$0, !coversScreen { ended() } })) {
       player(fullScreen: false)
     }
-    .fullScreenCover(isPresented: Binding(get: { showPlayer && unfolded }, set: { if !$0, unfolded { ended() } })) {
+    .fullScreenCover(isPresented: Binding(get: { showPlayer && coversScreen }, set: { if !$0, coversScreen { ended() } })) {
       player(fullScreen: true).unfoldedTypeScale()
     }
     // The same, opened from the Snips tab with the player down.
@@ -120,7 +124,7 @@ struct RootView: View {
     // The player closed (not just moved by a fold): the snip page pushed in it goes with it, as it did when the page
     // lived in the player's own state.
     .onChange(of: showPlayer) { _, shown in if !shown, !reopening { model.playerSnip = nil } }
-    .onChange(of: unfolded) { foldedAt = .now }
+    .onChange(of: coversScreen) { foldedAt = .now }
     // The Live Activity's title was tapped: the player takes it from there (PlayerView.openRename).
     .onChange(of: model.renameRequest, initial: true) { _, id in if id != nil { showPlayer = true } }
     #if DEBUG
