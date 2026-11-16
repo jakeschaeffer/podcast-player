@@ -64,7 +64,7 @@ struct EpisodeSnipsView: View {
         }
       }
       .navigationDestination(item: $opened) { route in
-        SnipPage(snipID: route.id, api: model.api, onChange: replace) {
+        SnipPage(model: model.snipPage(route.id), onChange: replace) {
           snips?.removeAll { $0.id == route.id }
         }
       }

@@ -520,9 +520,14 @@ public struct SnipRevision: Codable, Sendable, Identifiable, Hashable {
   public let endWord: Int?
   public let excerpt: String?
   public let title: String?
+  /// Who wrote the title: "model", "fallback", "owner", or "map" (the episode map's passage title, a stand-in until the
+  /// summary's arrives).
   public let titleSource: String?
   /// Since snip-summary v3, bullets, one per line; earlier summaries are prose.
   public let summary: String?
+  /// Who wrote the summary: "model", or "owner" (the owner's own bullets, which the summary job never replaces and a
+  /// boundary edit carries); nil while there is none, and from a server older than the field.
+  public let summarySource: String?
   /// A line copied word for word from the excerpt, chosen by the summary; nil when there is none.
   public let quote: String?
   public let summaryStatus: String
@@ -567,19 +572,21 @@ public struct CreateSnip: Codable, Sendable, Hashable {
   /// What the owner changed while the tap waited on the phone; nil when nothing.
   public var owner: Owner?
 
-  /// A title, a note and a span set before the server had the tap. The server still chooses its own span first, then
-  /// puts these over it, so nothing typed offline is lost to what it chose. The span is both ends or neither.
+  /// A title, a note, bullets and a span set before the server had the tap. The server still chooses its own span
+  /// first, then puts these over it, so nothing typed offline is lost to what it chose. The span is both ends or neither.
   public struct Owner: Codable, Sendable, Hashable {
     public var startMs: Int?
     public var endMs: Int?
     public var title: String?
     public var note: String?
+    /// The owner's own summary, one bullet a line; kept as the owner's, never replaced by the model's.
+    public var summary: String?
 
-    public init(startMs: Int? = nil, endMs: Int? = nil, title: String? = nil, note: String? = nil) {
-      (self.startMs, self.endMs, self.title, self.note) = (startMs, endMs, title, note)
+    public init(startMs: Int? = nil, endMs: Int? = nil, title: String? = nil, note: String? = nil, summary: String? = nil) {
+      (self.startMs, self.endMs, self.title, self.note, self.summary) = (startMs, endMs, title, note, summary)
     }
 
-    public var isEmpty: Bool { startMs == nil && endMs == nil && title == nil && note == nil }
+    public var isEmpty: Bool { startMs == nil && endMs == nil && title == nil && note == nil && summary == nil }
   }
 
   public init(clientRequestId: String, assetId: ULID, anchorMs: Int, heardFromMs: Int, capturedAt: Int) {
@@ -591,23 +598,83 @@ public struct CreateSnip: Codable, Sendable, Hashable {
   }
 }
 
+/// A field an edit sets or clears. An edit's field of this type that is nil is left out of the body (no change);
+/// `.clear` is sent as JSON null.
+public enum FieldEdit<Value: Codable & Sendable & Hashable>: Codable, Sendable, Hashable {
+  case set(Value)
+  case clear
+
+  /// `.set` for a value, `.clear` for nil.
+  public init(_ value: Value?) {
+    self = value.map { .set($0) } ?? .clear
+  }
+
+  public var value: Value? {
+    if case .set(let v) = self { return v }
+    return nil
+  }
+
+  public init(from decoder: Decoder) throws {
+    let c = try decoder.singleValueContainer()
+    self = c.decodeNil() ? .clear : .set(try c.decode(Value.self))
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var c = encoder.singleValueContainer()
+    switch self {
+    case .set(let v): try c.encode(v)
+    case .clear: try c.encodeNil()
+    }
+  }
+}
+
 /// `PATCH /v1/snips/{id}`. Boundaries are sent only when they changed, so a title-only save stays on the same
-/// revision; `ifRevision` is always sent, so a replayed edit is refused (409) rather than duplicated.
+/// revision; with them `ifRevision` is required, so a replayed edit is refused (409) rather than duplicated. Title, note
+/// and summary apply in place at any step of the snip, waiting for a transcript included, so replaying one is harmless
+/// and an edit of those alone may leave `ifRevision` out (nil): the step after it, which may move the snip to a new
+/// revision, then can't turn it away.
 public struct EditSnip: Codable, Sendable, Hashable {
   public var startMs: Int?
   public var endMs: Int?
   public var title: String?
-  public var ifRevision: ULID
+  /// The note: `.set` (trimmed by the server; an empty one clears it) or `.clear`; nil leaves it.
+  public var note: FieldEdit<String>?
+  /// The owner's own bullets, one per line (at most 2000 characters): `.set`, or `.clear` to show the model's again;
+  /// nil leaves the summary as it is.
+  public var summary: FieldEdit<String>?
+  public var ifRevision: ULID?
   /// With new In/Out points: write the title and summary again (true) or keep them (false). Left out, the server
-  /// writes them again only when the length changes by more than 10 s.
+  /// writes them again only when the length changes by more than 10 s. The owner's own title and bullets stay either way.
   public var regenerateSummary: Bool?
 
-  public init(startMs: Int? = nil, endMs: Int? = nil, title: String? = nil, ifRevision: ULID, regenerateSummary: Bool? = nil) {
+  public init(
+    startMs: Int? = nil, endMs: Int? = nil, title: String? = nil, note: FieldEdit<String>? = nil, summary: FieldEdit<String>? = nil,
+    ifRevision: ULID? = nil, regenerateSummary: Bool? = nil
+  ) {
     self.startMs = startMs
     self.endMs = endMs
     self.title = title
+    self.note = note
+    self.summary = summary
     self.ifRevision = ifRevision
     self.regenerateSummary = regenerateSummary
+  }
+
+  /// Whether the edit changes anything at all.
+  public var isEmpty: Bool { startMs == nil && endMs == nil && title == nil && note == nil && summary == nil }
+
+  private enum CodingKeys: String, CodingKey { case startMs, endMs, title, note, summary, ifRevision, regenerateSummary }
+
+  // Decoded by hand so a JSON null comes back as `.clear`, not as "left out" (what decodeIfPresent would make of it).
+  public init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    startMs = try c.decodeIfPresent(Int.self, forKey: .startMs)
+    endMs = try c.decodeIfPresent(Int.self, forKey: .endMs)
+    title = try c.decodeIfPresent(String.self, forKey: .title)
+    note = c.contains(.note) ? try c.decode(FieldEdit<String>.self, forKey: .note) : nil
+    summary = c.contains(.summary) ? try c.decode(FieldEdit<String>.self, forKey: .summary) : nil
+    ifRevision = try c.decodeIfPresent(ULID.self, forKey: .ifRevision)
+    regenerateSummary = try c.decodeIfPresent(Bool.self, forKey: .regenerateSummary)
   }
 }
 

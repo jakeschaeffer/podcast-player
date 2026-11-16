@@ -15984,7 +15984,7 @@
                     "type": "integer"
                   },
                   "owner": {
-                    "description": "What the owner changed on the device while the tap waited to be sent (offline). The selector still chooses its span first; a span here (both ends) then replaces it as a manual revision, and a title here is kept as the owner's",
+                    "description": "What the owner changed on the device while the tap waited to be sent (offline). The selector still chooses its span first; a span here (both ends) then replaces it as a manual revision, and a title or summary here is kept as the owner's",
                     "type": "object",
                     "properties": {
                       "start_ms": {
@@ -16003,6 +16003,11 @@
                       },
                       "note": {
                         "maxLength": 4000,
+                        "type": "string"
+                      },
+                      "summary": {
+                        "maxLength": 2000,
+                        "description": "The owner's own bullets, one per line",
                         "type": "string"
                       }
                     }
@@ -16148,6 +16153,7 @@
                             "title",
                             "title_source",
                             "summary",
+                            "summary_source",
                             "quote",
                             "summary_status",
                             "clip_url",
@@ -16248,6 +16254,17 @@
                               "anyOf": [
                                 {
                                   "description": "Since snip-summary v3, bullets, one per line; earlier summaries are prose",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "summary_source": {
+                              "anyOf": [
+                                {
+                                  "description": "Who wrote the summary: model, or owner (the owner's own bullets, which the summary job never replaces and a boundary edit carries); null while there is none",
                                   "type": "string"
                                 },
                                 {
@@ -16531,6 +16548,7 @@
                             "title",
                             "title_source",
                             "summary",
+                            "summary_source",
                             "quote",
                             "summary_status",
                             "clip_url",
@@ -16631,6 +16649,17 @@
                               "anyOf": [
                                 {
                                   "description": "Since snip-summary v3, bullets, one per line; earlier summaries are prose",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "summary_source": {
+                              "anyOf": [
+                                {
+                                  "description": "Who wrote the summary: model, or owner (the owner's own bullets, which the summary job never replaces and a boundary edit carries); null while there is none",
                                   "type": "string"
                                 },
                                 {
@@ -16982,6 +17011,7 @@
                                   "title",
                                   "title_source",
                                   "summary",
+                                  "summary_source",
                                   "quote",
                                   "summary_status",
                                   "clip_url",
@@ -17082,6 +17112,17 @@
                                     "anyOf": [
                                       {
                                         "description": "Since snip-summary v3, bullets, one per line; earlier summaries are prose",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "summary_source": {
+                                    "anyOf": [
+                                      {
+                                        "description": "Who wrote the summary: model, or owner (the owner's own bullets, which the summary job never replaces and a boundary edit carries); null while there is none",
                                         "type": "string"
                                       },
                                       {
@@ -17398,6 +17439,7 @@
                             "title",
                             "title_source",
                             "summary",
+                            "summary_source",
                             "quote",
                             "summary_status",
                             "clip_url",
@@ -17498,6 +17540,17 @@
                               "anyOf": [
                                 {
                                   "description": "Since snip-summary v3, bullets, one per line; earlier summaries are prose",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "summary_source": {
+                              "anyOf": [
+                                {
+                                  "description": "Who wrote the summary: model, or owner (the owner's own bullets, which the summary job never replaces and a boundary edit carries); null while there is none",
                                   "type": "string"
                                 },
                                 {
@@ -17652,7 +17705,7 @@
         }
       },
       "patch": {
-        "summary": "Edit boundaries (new revision), note, or title",
+        "summary": "Edit boundaries (new revision), note, title, or summary",
         "tags": [
           "snips"
         ],
@@ -17695,6 +17748,7 @@
                     "anyOf": [
                       {
                         "maxLength": 4000,
+                        "description": "Trimmed; empty or null clears it",
                         "type": "string"
                       },
                       {
@@ -17706,6 +17760,18 @@
                     "minLength": 1,
                     "maxLength": 120,
                     "type": "string"
+                  },
+                  "summary": {
+                    "anyOf": [
+                      {
+                        "maxLength": 2000,
+                        "description": "The owner's own bullets, one per line (a typed \"- \" or \"• \" is dropped). Applied in place at any step of the snip; the summary job never replaces it, and a boundary edit carries it to the new revision. Null, or only blank lines, clears it and the model's bullets show again",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "if_revision": {
                     "minLength": 26,
@@ -17868,6 +17934,7 @@
                             "title",
                             "title_source",
                             "summary",
+                            "summary_source",
                             "quote",
                             "summary_status",
                             "clip_url",
@@ -17968,6 +18035,17 @@
                               "anyOf": [
                                 {
                                   "description": "Since snip-summary v3, bullets, one per line; earlier summaries are prose",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "summary_source": {
+                              "anyOf": [
+                                {
+                                  "description": "Who wrote the summary: model, or owner (the owner's own bullets, which the summary job never replaces and a boundary edit carries); null while there is none",
                                   "type": "string"
                                 },
                                 {
@@ -18326,6 +18404,7 @@
                             "title",
                             "title_source",
                             "summary",
+                            "summary_source",
                             "quote",
                             "summary_status",
                             "clip_url",
@@ -18426,6 +18505,17 @@
                               "anyOf": [
                                 {
                                   "description": "Since snip-summary v3, bullets, one per line; earlier summaries are prose",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "summary_source": {
+                              "anyOf": [
+                                {
+                                  "description": "Who wrote the summary: model, or owner (the owner's own bullets, which the summary job never replaces and a boundary edit carries); null while there is none",
                                   "type": "string"
                                 },
                                 {
@@ -18729,6 +18819,7 @@
                             "title",
                             "title_source",
                             "summary",
+                            "summary_source",
                             "quote",
                             "summary_status",
                             "clip_url",
@@ -18829,6 +18920,17 @@
                               "anyOf": [
                                 {
                                   "description": "Since snip-summary v3, bullets, one per line; earlier summaries are prose",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "summary_source": {
+                              "anyOf": [
+                                {
+                                  "description": "Who wrote the summary: model, or owner (the owner's own bullets, which the summary job never replaces and a boundary edit carries); null while there is none",
                                   "type": "string"
                                 },
                                 {
@@ -19288,6 +19390,7 @@
                               "title",
                               "title_source",
                               "summary",
+                              "summary_source",
                               "quote",
                               "summary_status",
                               "clip_url",
@@ -19388,6 +19491,17 @@
                                 "anyOf": [
                                   {
                                     "description": "Since snip-summary v3, bullets, one per line; earlier summaries are prose",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "summary_source": {
+                                "anyOf": [
+                                  {
+                                    "description": "Who wrote the summary: model, or owner (the owner's own bullets, which the summary job never replaces and a boundary edit carries); null while there is none",
                                     "type": "string"
                                   },
                                   {

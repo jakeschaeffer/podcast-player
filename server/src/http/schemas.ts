@@ -116,6 +116,7 @@ export const RevisionSchema = Type.Object({
   transcript_id: Nullable(Type.String({ description: "The transcript start_word and end_word index into" })),
   start_ms: Ms, end_ms: Ms, start_word: Nullable(Type.Integer()), end_word: Nullable(Type.Integer()),
   excerpt: Nullable(Type.String()), title: Nullable(Type.String()), title_source: Nullable(Type.String({ description: "Who wrote the title: model, fallback, owner, or map (the passage title from the episode map, shown until the summary is written)" })), summary: Nullable(Type.String({ description: "Since snip-summary v3, bullets, one per line; earlier summaries are prose" })),
+  summary_source: Nullable(Type.String({ description: "Who wrote the summary: model, or owner (the owner's own bullets, which the summary job never replaces and a boundary edit carries); null while there is none" })),
   quote: Nullable(Type.String({ description: "A line copied word for word from the excerpt, chosen by the summary; null when there is none" })), summary_status: Type.String(),
   clip_url: Nullable(Type.String()), clip_duration_ms: Nullable(Type.Integer()), error: Nullable(Type.String()), selection: Type.Unknown(), created_at: Type.Integer(),
 });
@@ -160,13 +161,15 @@ export const CreateSnipBody = Type.Object({
   owner: Type.Optional(Type.Object({
     start_ms: Type.Optional(Ms), end_ms: Type.Optional(Ms),
     title: Type.Optional(Type.String({ maxLength: 120 })), note: Type.Optional(Type.String({ maxLength: 4000 })),
-  }, { description: "What the owner changed on the device while the tap waited to be sent (offline). The selector still chooses its span first; a span here (both ends) then replaces it as a manual revision, and a title here is kept as the owner's" })),
+    summary: Type.Optional(Type.String({ maxLength: 2000, description: "The owner's own bullets, one per line" })),
+  }, { description: "What the owner changed on the device while the tap waited to be sent (offline). The selector still chooses its span first; a span here (both ends) then replaces it as a manual revision, and a title or summary here is kept as the owner's" })),
 });
 export const EditSnipBody = Type.Partial(Type.Object({
   start_ms: Ms, end_ms: Ms, start_word: Type.Integer({ minimum: 0 }), end_word: Type.Integer({ minimum: 1 }),
   transcript_id: Type.String({ minLength: 26, maxLength: 26, description: "Required with start_word/end_word: the transcript the indices refer to. 409 if it is no longer current" }),
   snap: Type.Boolean({ description: "Snap millisecond edits to word boundaries (default true)" }),
-  note: Nullable(Type.String({ maxLength: 4000 })), title: Type.String({ minLength: 1, maxLength: 120 }),
+  note: Nullable(Type.String({ maxLength: 4000, description: "Trimmed; empty or null clears it" })), title: Type.String({ minLength: 1, maxLength: 120 }),
+  summary: Nullable(Type.String({ maxLength: 2000, description: "The owner's own bullets, one per line (a typed \"- \" or \"• \" is dropped). Applied in place at any step of the snip; the summary job never replaces it, and a boundary edit carries it to the new revision. Null, or only blank lines, clears it and the model's bullets show again" })),
   if_revision: Type.String({ minLength: 26, maxLength: 26, description: "The revision the edit was made against. Required when moving boundaries, so a replayed edit cannot create a second revision; 409 if the snip has moved on" }),
   regenerate_summary: Type.Boolean({ description: "With a boundary edit: write the title and summary again for the new span (true) or keep the current ones (false). Left out, they are written again only when the length changes by more than 10 s" }),
 }));

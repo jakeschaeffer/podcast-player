@@ -1,12 +1,14 @@
 import AVFoundation
+import Foundation
 import Observation
 import PlayerKit
 import PodcastAPI
 
-/// State for one snip's page: the snip, its words, playing its span, renaming it, and moving its In and Out points,
-/// following web/src/screens/SnipEditor.tsx. A boundary change is a new revision on the server (PATCH with
-/// if_revision) that is prepared again, so the page re-reads the snip until it is ready; a title-only change keeps
-/// the revision.
+/// State for one snip's page: the snip, its words, playing its span, the owner's own title, bullets and note, and
+/// moving its In and Out points, following web/src/screens/SnipEditor.tsx. A boundary change is a new revision on the
+/// server (PATCH with if_revision) that is prepared again, so the page re-reads the snip until it is ready. The title,
+/// summary and note are each saved on their own, in place, at any step (no if_revision: the server's later steps never
+/// write over what the owner typed), so the owner can write them before the generated ones arrive.
 @MainActor @Observable
 final class SnipPageModel {
   /// How much transcript is shown around the snip when adjusting starts, and how much "Show earlier/later" adds.
@@ -27,10 +29,33 @@ final class SnipPageModel {
   private(set) var previewMs: Int?
 
   var span = SpanPoints.Span(startMs: 0, endMs: 0)
-  var title = ""
-  /// While the title or the span is being edited, a fresh read of the snip doesn't overwrite them.
-  var editing = false
+  /// While the span is being adjusted, a fresh read of the snip doesn't move it.
+  var adjusting = false
   private(set) var window = (from: 0, to: 0)
+
+  /// The owner's three texts, each edited and saved on its own.
+  enum Field: String, CaseIterable, Identifiable {
+    case title, summary, note
+    var id: Self { self }
+  }
+  /// The field being typed in, and what it holds. Taken from the snip when the edit starts and never written by a
+  /// fresh read of the snip, so a title or summary that arrives meanwhile can't replace what is being typed.
+  private(set) var editingField: Field?
+  var draft = ""
+  /// Where the cursor was in the draft (OwnerTextBox), so a box made again (the device turned, folded or opened)
+  /// carries on there; nil until the box first had the keyboard in this edit.
+  var draftSelection: NSRange?
+  /// Bumped to give the open field the keyboard again, after the page was laid out anew.
+  private(set) var focusRequest = 0
+  /// The page has run its first load and launch actions; a page built again on this model (AppModel.snipPage) doesn't
+  /// run them again.
+  var started = false
+  /// How many pages show this model: one goes as another comes when the player moves between a sheet and a cover.
+  private var pagesShowing = 0
+  /// Why the field's last save failed; the field stays open with what was typed.
+  private(set) var fieldError: String?
+  /// Counts saves, so a read of the snip that left before one came back is dropped rather than shown over it.
+  private var writes = 0
 
   private let api: APIClient
   /// The span's own player; the page shows its picture when the recording is a video.
@@ -49,9 +74,36 @@ final class SnipPageModel {
   /// Boundaries move only on a finished revision whose words are loaded, as on the web.
   var boundariesEditable: Bool { revision?.status == .ready && transcript != nil }
   var boundariesChanged: Bool { span.startMs != revision?.startMs || span.endMs != revision?.endMs }
-  var titleChanged: Bool {
-    let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
-    return !t.isEmpty && t != (revision?.title ?? "")
+  /// The summary as the owner sees it in the editor: one point a line, without the dots.
+  var summaryLines: String { Self.lines(revision?.summary ?? "") }
+  static func lines(_ text: String) -> String {
+    text.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: "\n")
+  }
+  var ownSummary: Bool { revision?.summarySource == "owner" }
+  /// A generated summary is there, or still on its way, to go back to: the summary job wrote one (ready) or hasn't
+  /// run (pending). One that failed or was skipped leaves none, and nothing writes one later.
+  var generatedSummaryAvailable: Bool { ["ready", "pending"].contains(revision?.summaryStatus ?? "") }
+  /// The title shown is the episode map's passage title, standing in until the summary's own arrives: saved as it is,
+  /// it becomes the owner's and stays.
+  var titleIsStandIn: Bool { revision?.titleSource == "map" }
+  /// What the server takes in a note (EditSnipBody).
+  static let noteLimit = 4000
+
+  /// A page showing this model appeared or went. Playing and following stop only once none shows it.
+  func pageAppeared() { pagesShowing += 1 }
+  func pageDisappeared() {
+    pagesShowing = max(0, pagesShowing - 1)
+    guard pagesShowing == 0 else { return }
+    stopPreview()
+    stopFollowing()
+  }
+  var showing: Bool { pagesShowing > 0 }
+  /// Something the owner is in the middle of: a field open, or the span being adjusted.
+  var holdsWork: Bool { editingField != nil || adjusting }
+
+  /// Give the open field the keyboard again (the page's size changed under it).
+  func refocus() {
+    if editingField != nil { focusRequest += 1 }
   }
 
   func load() async {
@@ -68,9 +120,8 @@ final class SnipPageModel {
 
   private func apply(_ snip: Snip) {
     self.snip = snip
-    guard !editing, let rev = snip.revision else { return }
+    guard !adjusting, let rev = snip.revision else { return }
     span = .init(startMs: rev.startMs, endMs: rev.endMs)
-    title = rev.title ?? ""
     window = (max(0, rev.startMs - Self.openMarginMs), rev.endMs + Self.openMarginMs)
   }
 
@@ -88,7 +139,10 @@ final class SnipPageModel {
       while !Task.isCancelled {
         guard let self, self.snip?.isPending ?? false else { return }
         try? await Task.sleep(for: .seconds(2))
+        let writes = self.writes
         guard !Task.isCancelled, let fresh = try? await self.api.snip(self.snipID) else { continue }
+        // A save came back while this read was out: it is older than what the page shows.
+        guard writes == self.writes, !self.saving else { continue }
         self.apply(fresh)
         try? await self.loadTranscript()
       }
@@ -153,10 +207,87 @@ final class SnipPageModel {
     stopPreview()
   }
 
-  /// Put the span and title back as the snip has them.
+  /// Put the span back as the snip has it.
   func revert() {
-    editing = false
+    adjusting = false
     if let snip { apply(snip) }
+  }
+
+  // MARK: The owner's texts
+
+  /// What the snip has in a field now, as it is typed.
+  func current(_ field: Field) -> String {
+    switch field {
+    case .title: revision?.title ?? ""
+    case .summary: summaryLines
+    case .note: snip?.note ?? ""
+    }
+  }
+
+  /// Open a field for typing, with what the snip has in it now. Another field open is saved first, so moving from one
+  /// to the next never throws away what was typed; if that save fails, it stays open with its error.
+  func beginEditing(_ field: Field) async {
+    guard snip != nil, !saving, editingField != field else { return }
+    if editingField != nil {
+      guard await saveField() else { return }
+    }
+    editingField = field
+    draft = current(field)
+    draftSelection = nil
+    fieldError = nil
+  }
+
+  func cancelEditing() {
+    editingField = nil
+    draftSelection = nil
+    fieldError = nil
+  }
+
+  /// Saves the field being typed in, on its own and in place. An unchanged field (or an emptied title, which the
+  /// server would ignore) just closes; an emptied note clears it and emptied bullets give back the generated ones.
+  /// Returns false when the save failed: the field stays open with the text and `fieldError` says why.
+  @discardableResult func saveField(restoringGenerated: Bool = false) async -> Bool {
+    guard let field = editingField, !saving else { return false }
+    let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+    var body = EditSnip()
+    switch field {
+    case .title:
+      // Saved unchanged over the stand-in title, it is still sent: the owner chose it, and it stays.
+      if !typed.isEmpty, typed != current(.title) || titleIsStandIn { body.title = String(typed.prefix(120)) }
+    case .summary:
+      if restoringGenerated {
+        body.summary = .clear
+      } else {
+        // The same points are left alone; others are the owner's, and emptied gives back the generated ones.
+        let lines = Self.lines(typed)
+        if lines != summaryLines { body.summary = lines.isEmpty ? (ownSummary ? .clear : nil) : .set(String(lines.prefix(2000))) }
+      }
+    case .note:
+      if typed != current(.note) { body.note = typed.isEmpty ? .clear : .set(String(typed.prefix(Self.noteLimit))) }
+    }
+    guard !body.isEmpty else {
+      cancelEditing()
+      return true
+    }
+    saving = true
+    writes += 1
+    defer { saving = false }
+    do {
+      let updated = try await api.editSnip(snipID, body)
+      editingField = nil
+      draftSelection = nil
+      fieldError = nil
+      apply(updated)
+      follow()
+      return true
+    } catch let e as APIError where e.status == 409 {
+      fieldError = "This snip changed elsewhere. Copy what you typed, go back and open it again."
+    } catch let e as APIError where e.status == 404 {
+      fieldError = "This snip was deleted."
+    } catch {
+      fieldError = "Not saved: \(error.localizedDescription)"
+    }
+    return false
   }
 
   // MARK: Playing the span
@@ -215,26 +346,22 @@ final class SnipPageModel {
     boundariesChanged && abs(lengthChangeMs) > Self.resummarizeOverMs && revision?.summaryStatus == "ready"
   }
 
-  /// Saves a new title and/or span; `regenerate` says whether new In/Out points get a new summary. Returns false when
-  /// the save failed (saveError says why).
+  /// Saves new In/Out points; `regenerate` says whether they get a new summary. Returns false when the save failed
+  /// (saveError says why).
   func save(regenerate: Bool = false) async -> Bool {
     guard let rev = revision else { return false }
-    let body = EditSnip(
-      startMs: boundariesChanged ? span.startMs : nil,
-      endMs: boundariesChanged ? span.endMs : nil,
-      title: titleChanged ? title.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
-      ifRevision: rev.id,
-      regenerateSummary: boundariesChanged ? regenerate : nil)
-    guard body.startMs != nil || body.title != nil else {
+    guard boundariesChanged else {
       revert()
       return true
     }
+    let body = EditSnip(startMs: span.startMs, endMs: span.endMs, ifRevision: rev.id, regenerateSummary: regenerate)
     saving = true
+    writes += 1
     defer { saving = false }
     stopPreview()
     do {
       let updated = try await api.editSnip(snipID, body)
-      editing = false
+      adjusting = false
       apply(updated)
       saveError = nil
       follow()

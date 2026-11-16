@@ -1,36 +1,36 @@
 {
   "request": {
     "method": "PATCH",
-    "url": "/v1/snips/01M76JZSVXTG22PMYY673VNHGF",
+    "url": "/v1/snips/01M7GD2JRY8JKNAQ9Q07XY394C",
     "body": {
       "start_ms": 40000,
       "end_ms": 90000,
-      "if_revision": "01M76JZSVXY7BXS1C6KSA3AP5Y",
+      "if_revision": "01M7GD2JRYJCSNEFDQW71GPMSZ",
       "title": "Flat fees left money on the table"
     }
   },
   "status": 200,
   "body": {
-    "id": "01M76JZSVXTG22PMYY673VNHGF",
-    "asset_id": "01M76JZSNE5MCWKHMT6YZPV3D0",
-    "episode_id": "01M76JZSNEPE9ZH4CD0YM7E9BC",
+    "id": "01M7GD2JRY8JKNAQ9Q07XY394C",
+    "asset_id": "01M7GD2JKHYQETTSFQ091JCQ1F",
+    "episode_id": "01M7GD2JKH186ES3XTFRSKHQ0C",
     "episode_title": "Pricing",
     "show_title": "Fixture Show",
     "image_url": null,
     "media_kind": "audio",
     "anchor_ms": 100000,
     "heard_from_ms": 0,
-    "share_url": "http://pods.test/s/zfd63gnginplkw3orj26",
+    "share_url": "http://pods.test/s/gtexexfwpazoptgeqx4s",
     "share_state": "active",
     "note": null,
     "created_at": 1800000000000,
     "captured_at": 1799999999500,
     "revision": {
-      "id": "01M76JZT58JBMWWR6R3G8KZKE2",
+      "id": "01M7GD2K1MT6CJ9RABTBEEMPYB",
       "rev": 2,
       "method": "manual",
       "status": "preparing",
-      "transcript_id": "01M76JZSSFE3312KR0Z2SAB1VH",
+      "transcript_id": "01M7GD2JPY0N7PVWC9Y4CKDFYD",
       "start_ms": 40000,
       "end_ms": 90000,
       "start_word": 84,
@@ -39,13 +39,14 @@
       "title": "Flat fees left money on the table",
       "title_source": "owner",
       "summary": null,
+      "summary_source": null,
       "quote": null,
       "summary_status": "pending",
       "clip_url": null,
       "clip_duration_ms": null,
       "error": null,
       "selection": {
-        "edited_from": "01M76JZSVXY7BXS1C6KSA3AP5Y",
+        "edited_from": "01M7GD2JRYJCSNEFDQW71GPMSZ",
         "snap": true
       },
       "created_at": 1800000000000

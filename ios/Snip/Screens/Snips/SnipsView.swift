@@ -66,7 +66,7 @@ struct SnipsView: View {
       if now { revealing = shown }
     }
     .navigationDestination(item: $opened) { route in
-      SnipPage(snipID: route.id, api: model.api, renaming: route.renaming, adjusting: route.adjusting, onChange: replace) {
+      SnipPage(model: model.snipPage(route.id), renaming: route.renaming, adjusting: route.adjusting, onChange: replace) {
         removed(route.id)
       }
     }
@@ -86,7 +86,7 @@ struct SnipsView: View {
   /// carries over. Editing it pushes it across both pages.
   @ViewBuilder private var detail: some View {
     if let id = shown {
-      SnipPage(snipID: id, api: model.api, onChange: replace) { removed(id) }
+      SnipPage(model: model.snipPage(id), onChange: replace) { removed(id) }
         .id(id)
         .environment(\.besideList, true)
         .environment(\.openAcrossPages) { opened = $0 }

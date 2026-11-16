@@ -12,24 +12,28 @@ struct SnipRoute: Hashable, Identifiable {
 }
 
 /// One snip's own page, pushed from the player's snip bar and from the snip lists; swipe from the left edge to go
-/// back. It is laid out for reading at arm's length: the title large, the summary, then the clip's own words, and one
-/// row of actions at the bottom (Adjust, Play, Share). Tap the title to rename the snip where it stands. Adjust edits
-/// the clip on its words: the words around it dim, a tap moves the nearer end, and press and hold chooses which. Turned sideways, the page becomes
-/// the clip's words alone, as large as they fit, lighting up as it plays (SnipSideways).
+/// back. It is laid out for reading at arm's length: the title large, the summary, the owner's note, then the clip's
+/// own words, and one row of actions at the bottom (Adjust, Play, Share). The title, the summary's points and the note
+/// are each the owner's to write: a tap opens one where it stands, Save (or Return, for the title) keeps it, Cancel
+/// puts it back, and a tap on another saves it and opens that one. They can be written at any step, before the
+/// generated title and summary arrive, and what was typed is kept over them. The page's state is the app's
+/// (AppModel.snipPage), so turning, folding or opening the device, which can build the page again, keeps the field
+/// open with its draft and the keyboard. Adjust edits the clip on its words: the words around it dim, a tap moves the nearer end, and press
+/// and hold chooses which. Turned sideways, the page becomes the clip's words alone, as large as they fit, lighting up
+/// as it plays (SnipSideways).
 struct SnipPage: View {
   @Environment(AppModel.self) private var app
   @Environment(PlayerEngine.self) private var engine
   @Environment(\.dismiss) private var dismiss
   @Environment(\.verticalSizeClass) private var verticalSizeClass
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  @Environment(\.scenePhase) private var scenePhase
   @Environment(\.besideList) private var besideList
   @Environment(\.openAcrossPages) private var openAcrossPages
   @State private var model: SnipPageModel
-  @State private var mode = Mode.reading
   @State private var confirmingDelete = false
   /// Save was pressed on new In/Out points that change the length by more than 10 s: ask about the summary.
   @State private var askingToRewrite = false
-  @FocusState private var titleFocused: Bool
   @ScaledMetric(relativeTo: .title) private var wordSize: CGFloat = 26
   /// The list that opened the page hears about each change to the snip, and about its deletion.
   let onChange: (Snip) -> Void
@@ -38,24 +42,33 @@ struct SnipPage: View {
   let renaming: Bool
   let startAdjusting: Bool
 
-  enum Mode { case reading, title, adjusting }
+  enum Mode { case reading, adjusting }
+  typealias Field = SnipPageModel.Field
 
   private static let titleFont = Font.system(.largeTitle, design: .rounded, weight: .bold)
+  /// The title in the editor, where the words to tap need the room.
+  private static let compactTitleFont = Font.system(.title, design: .rounded, weight: .bold)
   /// The app icon's dark, for marks on the accent colour.
   private static let ink = Color(red: 0x0E / 255, green: 0x0F / 255, blue: 0x11 / 255)
 
+  /// `model` comes from AppModel.snipPage, which hands a page built again the state its last one left.
   init(
-    snipID: ULID, api: APIClient, renaming: Bool = false, adjusting: Bool = false,
+    model: SnipPageModel, renaming: Bool = false, adjusting: Bool = false,
     onChange: @escaping (Snip) -> Void = { _ in }, onDelete: @escaping () -> Void = {}
   ) {
-    _model = State(initialValue: SnipPageModel(snipID: snipID, api: api))
+    _model = State(initialValue: model)
     self.renaming = renaming
     self.startAdjusting = adjusting
     self.onChange = onChange
     self.onDelete = onDelete
   }
 
-  private var sideways: Bool { verticalSizeClass == .compact && mode == .reading && !model.spanWords.isEmpty }
+  private var sideways: Bool {
+    verticalSizeClass == .compact && mode == .reading && model.editingField == nil && !model.spanWords.isEmpty
+  }
+  private var typing: Bool { model.editingField != nil }
+  /// Reading, or adjusting the span: the model's, so it outlasts the page.
+  private var mode: Mode { model.adjusting ? .adjusting : .reading }
 
   var body: some View {
     Group {
@@ -70,7 +83,10 @@ struct SnipPage: View {
       } else if !besideList, UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) {
         // The iPhone Duo open: held wide, two pages split at the fold; turned tall, the one column.
         GeometryReader { geo in
-          if geo.size.width > geo.size.height {
+          // Wide or tall by the whole screen, insets included: the keyboard's inset would otherwise make the tall
+          // screen "wide" while typing, swap the layout and take the field (and the keyboard) away.
+          let insets = geo.safeAreaInsets
+          if geo.size.width + insets.leading + insets.trailing > geo.size.height + insets.top + insets.bottom {
             if mode == .adjusting { adjustingSpread } else { readingSpread }
           } else if mode == .adjusting {
             adjusting
@@ -85,31 +101,40 @@ struct SnipPage: View {
       }
     }
     .navigationBarTitleDisplayMode(besideList ? .large : .inline)
-    .navigationBarBackButtonHidden(mode != .reading)
+    // Leaving mid-edit would lose what was typed or moved: Cancel or Save first.
+    .navigationBarBackButtonHidden(mode != .reading || typing)
+    // Nor by swiping the player's sheet down (the iPhone or the Duo closed), which would close the page with it.
+    .interactiveDismissDisabled(mode != .reading || typing)
     .toolbar(sideways ? .hidden : .visible, for: .navigationBar, .tabBar)
     .persistentSystemOverlays(sideways ? .hidden : .automatic)
     .toolbar { toolbar }
     .task {
+      // A page built again on a model already in use (the device folded or opened) carries on as it was.
+      let first = !model.started
+      model.started = true
       await model.load()
       model.follow()
-      if renaming { beginTitle() } else if startAdjusting { beginAdjusting() }
+      guard first else { return }
+      if renaming { begin(.title) } else if startAdjusting { beginAdjusting() }
       #if DEBUG
-        // `-snipMode title|adjust|play` opens the page in that state, for scripted simulator checks: with `-openSnip`,
-        // only that snip's page (beside the list, the newest's page can come first).
-        let only = UserDefaults.standard.string(forKey: "openSnip")
-        switch only == nil || only == model.snipID ? UserDefaults.standard.string(forKey: "snipMode") : nil {
-        case "title": beginTitle()
-        case "adjust": beginAdjusting()
-        case "play": model.togglePreview(pausing: engine)
-        default: break
-        }
+        await debugLaunch()
       #endif
     }
+    // Turned, folded or opened, the page is laid out anew and the field open loses the keyboard: give it back. (The
+    // keyboard put away by hand, with a hardware one or the system's key, leaves the field open with Save and Cancel.)
+    // By the width across the insets, which the keyboard coming and going doesn't change: one put away by hand stays away.
+    .onGeometryChange(for: CGFloat.self) { $0.size.width + $0.safeAreaInsets.leading + $0.safeAreaInsets.trailing } action: { _ in
+      model.refocus()
+    }
+    // Sent to the background mid-edit, where the app can be ended: what was typed is saved.
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .background, typing { Task { await model.saveField() } }
+    }
     .onChange(of: sideways, initial: true) { _, sideways in app.readingSideways = sideways }
+    .onAppear { model.pageAppeared() }
     .onDisappear {
-      model.stopPreview()
-      model.stopFollowing()
-      app.readingSideways = false
+      model.pageDisappeared()
+      if !model.showing { app.readingSideways = false }
     }
     .onChange(of: model.snip) { _, snip in if let snip { onChange(snip) } }
     .confirmationDialog("Rewrite the summary?", isPresented: $askingToRewrite, titleVisibility: .visible) {
@@ -118,9 +143,10 @@ struct SnipPage: View {
       Button("Cancel", role: .cancel) {}
     } message: {
       let change = model.lengthChangeMs
+      let own = model.revision?.titleSource == "owner" || model.ownSummary
       Text(
         "The clip is now \(Format.duration(abs(change))) \(change > 0 ? "longer" : "shorter"). "
-          + (model.revision?.titleSource == "owner" ? "Your title stays either way." : "Rewriting also writes a new title."))
+          + (own ? "What you wrote stays either way." : "Rewriting also writes a new title."))
     }
     .confirmationDialog("Delete this snip?", isPresented: $confirmingDelete, titleVisibility: .visible) {
       Button("Delete snip", role: .destructive) {
@@ -164,27 +190,36 @@ struct SnipPage: View {
     if model.snip != nil { model.follow() }
   }
 
+  /// While a field is open its own Save and Cancel sit beside it, so the bar holds nothing (on the iPhone Duo closed or
+  /// held wide the bar is the column down the trailing edge, and the fields keep clear of it).
   @ToolbarContentBuilder private var toolbar: some ToolbarContent {
-    if mode == .reading {
-      ToolbarItem(placement: .topBarTrailing) {
-        Menu {
-          if let url = shareURL {
-            Button("Copy link", systemImage: "link") { UIPasteboard.general.url = url }
+    if !typing {
+      if mode == .reading {
+        ToolbarItem(placement: .topBarTrailing) {
+          Menu {
+            if let url = shareURL {
+              Button("Copy link", systemImage: "link") { UIPasteboard.general.url = url }
+            }
+            Button("Delete snip", systemImage: "trash", role: .destructive) { confirmingDelete = true }
+          } label: {
+            Image(systemName: "ellipsis")
           }
-          Button("Delete snip", systemImage: "trash", role: .destructive) { confirmingDelete = true }
-        } label: {
-          Image(systemName: "ellipsis")
+          .accessibilityLabel("More")
         }
-        .accessibilityLabel("More")
-      }
-    } else {
-      ToolbarItem(placement: .cancellationAction) {
-        Button("Cancel") { cancelEditing() }
-      }
-      ToolbarItem(placement: .confirmationAction) {
-        Button(mode == .title ? "Done" : "Save") { Task { await commit() } }
-          .tint(.accentColor)
-          .disabled(model.saving)
+      } else {
+        // In the trailing column where the Duo has one (closed, or held wide), not over the words to tap.
+        VerticalPreferred {
+          // Marks rather than words, which the column's round buttons cut off.
+          ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel", systemImage: "xmark") { cancelAdjusting() }
+          }
+          ToolbarItem(placement: .confirmationAction) {
+            Button("Save", systemImage: "checkmark") { Task { await commit() } }
+              .buttonStyle(.borderedProminent)
+              .tint(.accentColor)
+              .disabled(model.saving)
+          }
+        }
       }
     }
   }
@@ -192,9 +227,11 @@ struct SnipPage: View {
   // MARK: Reading
 
   private var reading: some View {
-    ScrollView {
+    page {
       VStack(alignment: .leading, spacing: 18) {
         about
+        // What the owner wrote above, the clip's own words below.
+        Divider().padding(.vertical, 6)
         clipWords
         from
       }
@@ -203,17 +240,17 @@ struct SnipPage: View {
       .padding(.top, 8)
       .padding(.bottom, 32)
     }
-    .scrollDismissesKeyboard(.never)
     .safeAreaInset(edge: .bottom) {
-      if mode == .reading { actions }
+      if mode == .reading, !typing { actions }
     }
   }
 
-  /// The iPhone Duo open and held wide: what the snip is on the left page, with its actions at the foot, and the
-  /// clip's own words on the right, so neither runs across the fold.
+  /// The iPhone Duo open and held wide: what the snip is (its title, summary and note, each editable, and where it is
+  /// from) on the left page, with its actions at the foot, and the clip's own words on the right, so neither runs
+  /// across the fold.
   private var readingSpread: some View {
     HingeSplit {
-      ScrollView {
+      page {
         VStack(alignment: .leading, spacing: 18) {
           about
           from
@@ -223,14 +260,17 @@ struct SnipPage: View {
         .padding(.top, 8)
         .padding(.bottom, 24)
       }
-      .scrollDismissesKeyboard(.never)
       .safeAreaInset(edge: .bottom) {
-        if mode == .reading { actions.padding(.trailing, -24) }
+        if mode == .reading, !typing { actions.padding(.trailing, -24) }
       }
     } trailing: {
       ScrollView {
         VStack(alignment: .leading, spacing: 18) {
           clipWords
+          if model.revision?.status == .selecting || model.revision?.status == .waiting {
+            // The right page would otherwise stand empty until the moment is chosen.
+            Text("The clip’s words show here once the moment is chosen.").font(.title3).foregroundStyle(.secondary)
+          }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.trailing, 24)
@@ -240,7 +280,30 @@ struct SnipPage: View {
     }
   }
 
-  /// The show and where the clip sits, the title, the playing video, the status, the quote and the summary.
+  /// A scrolling page that brings a field opened for typing to its top, heading and buttons first, with the keyboard
+  /// below it, so the keyboard never covers the field being typed in.
+  private func page<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+    let content = content()
+    return ScrollViewReader { proxy in
+      ScrollView { content }
+        .scrollDismissesKeyboard(.never)
+        // On a field opening, and on a page made with one open (Adjust's words stepping aside, the device folded or
+        // opened).
+        .task(id: model.editingField) {
+          guard let field = model.editingField else { return }
+          // Once the keyboard is up and the page has its new height.
+          try? await Task.sleep(for: .milliseconds(450))
+          withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(field, anchor: .top) }
+        }
+        // And whenever the keyboard comes up late (after the device was folded or opened), so it never covers the field.
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+          guard let field = model.editingField else { return }
+          withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(field, anchor: .top) }
+        }
+    }
+  }
+
+  /// The show and where the clip sits, the title, the playing video, the status, the quote, the summary and the note.
   @ViewBuilder private var about: some View {
     VStack(alignment: .leading, spacing: 2) {
       if let show = model.snip?.showTitle { Text(show).lineLimit(2) }
@@ -248,7 +311,7 @@ struct SnipPage: View {
     }
     .font(.body.weight(.medium))
     .foregroundStyle(.secondary)
-    titleView
+    field(.title)
     if model.previewing, model.previewHasVideo, let player = model.preview {
       PlayerLayerView(player: player)
         .aspectRatio(16 / 9, contentMode: .fit)
@@ -258,12 +321,11 @@ struct SnipPage: View {
     if let status {
       Label(status.text, systemImage: status.icon).font(.title3).foregroundStyle(status.failed ? .red : .secondary)
     }
-    if model.revision?.status == .ready {
-      if let quote = model.revision?.quote {
-        Text("“\(quote)”").font(.system(.title2, design: .serif, weight: .semibold)).padding(.vertical, 4)
-      }
-      if let summary = model.revision?.summary { SummaryText(summary: summary) }
+    if model.revision?.status == .ready, let quote = model.revision?.quote {
+      Text("“\(quote)”").font(.system(.title2, design: .serif, weight: .semibold)).padding(.vertical, 4)
     }
+    field(.summary)
+    field(.note)
   }
 
   /// The clip's words, by speaker, once the moment is chosen.
@@ -284,33 +346,255 @@ struct SnipPage: View {
     if let error = model.saveError { Text(error).font(.body).foregroundStyle(.red) }
   }
 
-  @ViewBuilder private var titleView: some View {
-    if mode == .title {
-      TextField("Title", text: $model.title, axis: .vertical)
-        .font(Self.titleFont)
-        .focused($titleFocused)
-        .submitLabel(.done)
-        .onAppear { titleFocused = true }
-        // The whole title starts selected, as in the snip bar: typing replaces it, a tap places the cursor.
-        .onReceive(NotificationCenter.default.publisher(for: UITextView.textDidBeginEditingNotification)) { note in
-          guard let view = note.object as? UITextView else { return }
-          Task { view.selectAll(nil) }
+  // MARK: The owner's texts
+
+  /// One of the owner's texts: shown, with a tap to open it, or open for typing. In the editor (`compact`) it is a size
+  /// smaller, so the words to tap keep their room.
+  /// `brief`: the summary as one row, its name and how many points (the one-column Adjust, where the words need the
+  /// room); a tap opens all of it.
+  @ViewBuilder private func field(_ field: Field, compact: Bool = false, brief: Bool = false) -> some View {
+    Group {
+      // Beside the snips list a field is written on the page pushed across both pages, which shares this model: only
+      // that page draws the box, or the two would take the keyboard from each other without end.
+      if model.editingField == field, !besideList {
+        editor(field, compact: compact)
+      } else {
+        shown(field, compact: compact, brief: brief)
+      }
+    }
+    .id(field)
+  }
+
+  @ViewBuilder private func shown(_ field: Field, compact: Bool, brief: Bool) -> some View {
+    switch field {
+    case .title:
+      Button { begin(.title) } label: {
+        Group {
+          if let title = model.revision?.title {
+            Text(title).foregroundStyle(.primary)
+          } else {
+            // Nothing yet: the step it is at, and a mark that it can be written now.
+            Text("\(titlePlaceholder)  \(Text(Image(systemName: "pencil")).foregroundStyle(Color.accentColor))")
+              .foregroundStyle(.secondary)
+          }
         }
-        .onChange(of: model.title) { _, title in
-          // Return ends the edit: a title is one line of thought, and a vertical field would take the newline.
-          guard title.contains("\n") else { return }
-          model.title = title.replacingOccurrences(of: "\n", with: "")
-          Task { await commit() }
-        }
-    } else {
-      Text(model.revision?.title ?? (model.snip?.isPending ?? false ? "Choosing the moment…" : "Snip"))
-        .font(Self.titleFont)
+        .font(compact ? Self.compactTitleFont : Self.titleFont)
+        .lineLimit(compact ? 3 : nil)
+        .multilineTextAlignment(.leading)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(.rect)
-        .onTapGesture { beginTitle() }
-        .accessibilityAddTraits(.isButton)
-        .accessibilityHint("Renames the snip")
+      }
+      .buttonStyle(.plain)
+      .accessibilityHint(model.revision?.title == nil ? "Writes your own title" : "Renames the snip")
+    case .summary:
+      if brief, let summary = model.revision?.summary {
+        let points = SnipPageModel.lines(summary).split(separator: "\n").count
+        Button { begin(.summary) } label: {
+          heading("\(model.ownSummary ? "Your summary" : "Summary") · \(points) \(points == 1 ? "point" : "points")", editable: true)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens the summary to edit")
+      } else if let summary = model.revision?.summary {
+        Button { begin(.summary) } label: {
+          VStack(alignment: .leading, spacing: 8) {
+            heading(model.ownSummary ? "Your summary" : "Summary", editable: true)
+            SummaryText(summary: summary, compact: compact)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Edits the summary")
+      } else if summaryWriting {
+        Button { begin(.summary) } label: {
+          VStack(alignment: .leading, spacing: 8) {
+            heading("Summary", editable: true)
+            Text("Writing the summary…").font(compact ? .title3 : .title2).foregroundStyle(.secondary)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Writes your own summary")
+      } else {
+        add("Add a summary") { begin(.summary) }
+      }
+    case .note:
+      if let note = model.snip?.note {
+        Button { begin(.note) } label: {
+          VStack(alignment: .leading, spacing: 8) {
+            heading("Your note", editable: true)
+            Text(note).font(compact ? .title3 : .title2).lineLimit(compact ? 3 : nil).multilineTextAlignment(.leading)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Edits the note")
+      } else {
+        add("Add a note") { begin(.note) }
+      }
     }
+  }
+
+  /// A field open for typing: what it is with Cancel and Save on one row above it (or under its name, when they don't
+  /// fit beside it), then the box, then a line saying how it saves, or why it didn't.
+  private func editor(_ field: Field, compact: Bool) -> some View {
+    VStack(alignment: .leading, spacing: 12) {
+      ViewThatFits(in: .horizontal) {
+        HStack(spacing: 12) {
+          heading(label(field), editable: false)
+          Spacer(minLength: 4)
+          editButtons
+        }
+        VStack(alignment: .leading, spacing: 10) {
+          heading(label(field), editable: false)
+          editButtons
+        }
+      }
+      // The whole title starts selected the first time, as in the snip bar: typing replaces it, and a tap after that
+      // places the cursor. The summary and the note open with the cursor at the end, to add to them. Return saves
+      // the title and starts a new line in the others, on the on-screen keyboard and a hardware one alike.
+      OwnerTextBox(
+        text: $model.draft, selection: $model.draftSelection, face: face(field, compact: compact), singleLine: field == .title,
+        locked: model.saving, focusRequest: model.focusRequest, accessibilityLabel: label(field)
+      ) {
+        Task { await model.saveField() }
+      }
+      .overlay(alignment: .topLeading) {
+        if model.draft.isEmpty {
+          Text(prompt(field)).font(font(field, compact: compact)).foregroundStyle(.tertiary).allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+      }
+      .padding(.horizontal, 14)
+      .padding(.vertical, 10)
+      .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 16, style: .continuous))
+      .overlay {
+        RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.accentColor, lineWidth: 2)
+      }
+      if let error = model.fieldError {
+        Text(error).font(.body.weight(.medium)).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
+      } else if let hint = hint(field) {
+        Text(hint).font(.body).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+      }
+      if field == .summary, model.ownSummary {
+        // Back to the generated bullets only where there are some, or some to come; else it just takes yours away.
+        Button(model.generatedSummaryAvailable ? "Use the generated summary instead" : "Remove your summary") {
+          Task { await model.saveField(restoringGenerated: true) }
+        }
+        .font(.body.weight(.semibold))
+        .disabled(model.saving)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var editButtons: some View {
+    HStack(spacing: 10) {
+      Button("Cancel") { model.cancelEditing() }
+        .buttonStyle(.bordered)
+      Button { Task { await model.saveField() } } label: {
+        if model.saving { ProgressView().tint(Self.ink) } else { Text("Save") }
+      }
+      .buttonStyle(.borderedProminent)
+      .foregroundStyle(Self.ink)
+    }
+    .font(.title3.weight(.semibold))
+    .buttonBorderShape(.capsule)
+    .controlSize(.large)
+    .disabled(model.saving)
+    .fixedSize()
+  }
+
+  /// A field's name above it, with a pencil where a tap opens it.
+  private func heading(_ text: String, editable: Bool) -> some View {
+    HStack(spacing: 8) {
+      Text(text)
+      if editable { Image(systemName: "pencil").foregroundStyle(Color.accentColor).accessibilityHidden(true) }
+    }
+    .font(.headline.weight(.bold))
+    .textCase(.uppercase)
+    .foregroundStyle(.secondary)
+  }
+
+  /// "Add a note", "Add a summary": a field with nothing in it, as a plain accent button.
+  private func add(_ text: String, action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+      Label(text, systemImage: "plus.circle.fill")
+        .font(.title3.weight(.semibold))
+        .frame(minHeight: 44)
+        .contentShape(.rect)
+    }
+    .buttonStyle(.plain)
+    .foregroundStyle(Color.accentColor)
+  }
+
+  private func label(_ field: Field) -> String {
+    switch field {
+    case .title: "Title"
+    case .summary: "Summary"
+    case .note: "Note"
+    }
+  }
+
+  private func prompt(_ field: Field) -> String {
+    switch field {
+    case .title: "Your title"
+    case .summary: "One point a line"
+    case .note: "Why you kept it"
+    }
+  }
+
+  private func face(_ field: Field, compact: Bool) -> OwnerTextBox.Face {
+    switch field {
+    case .title: compact ? .compactTitle : .title
+    case .summary, .note: compact ? .compactText : .text
+    }
+  }
+
+  private func font(_ field: Field, compact: Bool) -> Font {
+    switch field {
+    case .title: compact ? Self.compactTitleFont : Self.titleFont
+    case .summary, .note: compact ? .title3 : .title2
+    }
+  }
+
+  /// How the field saves, and that what is typed is kept when the generated one is still on its way.
+  private func hint(_ field: Field) -> String? {
+    switch field {
+    case .title:
+      if waitingForTranscript {
+        "A title is written once the transcript is in. Yours is kept instead. Return saves."
+      } else if model.revision?.title == nil || (model.titleIsStandIn && model.revision?.summaryStatus == "pending") {
+        "A title is still being written. Yours is kept instead. Return saves."
+      } else {
+        "Return saves."
+      }
+    case .summary:
+      summaryWriting
+        ? "A summary is still being written. Yours is kept instead. One point a line."
+        : "One point a line: Return starts the next."
+    case .note:
+      // Near the most the server keeps, say how much room is left.
+      model.draft.count > SnipPageModel.noteLimit - 500
+        ? "\(min(model.draft.count, SnipPageModel.noteLimit)) of \(SnipPageModel.noteLimit) characters." : nil
+    }
+  }
+
+  /// Nothing is being written yet: the recording has no transcript, and the title and summary wait on it.
+  private var waitingForTranscript: Bool { model.revision?.status == .waiting }
+
+  /// The summary is still to come: its job hasn't run and the snip hasn't failed, nor is it waiting for a transcript.
+  private var summaryWriting: Bool {
+    model.revision?.summary == nil && (model.revision?.summaryStatus ?? "pending") == "pending" && model.revision?.status != .failed
+      && !waitingForTranscript
+  }
+
+  private var titlePlaceholder: String {
+    model.revision?.status == .failed || waitingForTranscript ? "Add a title" : "Writing the title…"
   }
 
   /// Adjust, Play and Share, with Play in the middle of the screen whatever the others' widths.
@@ -378,40 +662,80 @@ struct SnipPage: View {
 
   // MARK: Adjusting
 
-  private var adjusting: some View {
-    VStack(alignment: .leading, spacing: 0) {
-      adjustRange
+  /// One column: the clip's times, its title and note, the words to tap, and Play at the foot. With a field open the
+  /// words step aside, so the field and the keyboard have the screen.
+  @ViewBuilder private var adjusting: some View {
+    if typing {
+      page {
+        VStack(alignment: .leading, spacing: 16) {
+          adjustRange
+          field(.title, compact: true)
+          field(.summary, compact: true)
+          field(.note, compact: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
+      }
+    } else {
+      VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 10) {
+          adjustRange
+          field(.title, compact: true)
+          field(.summary, compact: true, brief: true)
+          field(.note, compact: true)
+        }
+        // At their own height: the words below take what is left, rather than squeezing the title to a line.
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, 24)
         .padding(.bottom, 12)
-      adjustWords
-    }
-    .safeAreaInset(edge: .bottom) {
-      adjustPlay
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 24)
-        .padding(.top, 14)
-        .padding(.bottom, 6)
-        .background(Color(.systemBackground).ignoresSafeArea())
+        Divider().padding(.horizontal, 24)
+        adjustWords
+      }
+      .safeAreaInset(edge: .bottom) {
+        adjustPlay
+          .frame(maxWidth: .infinity)
+          .padding(.horizontal, 24)
+          .padding(.top, 14)
+          .padding(.bottom, 6)
+          .background(Color(.systemBackground).ignoresSafeArea())
+      }
     }
   }
 
-  /// The iPhone Duo open and held wide: the clip's times, how to move its ends and Play on the left page, the words to
-  /// tap on the right, so the words never run across the fold.
+  /// The iPhone Duo open and held wide: the clip's times, its title and note (each editable), how to move its ends
+  /// and Play on the left page, the words to tap on the right, so the words never run across the fold.
   private var adjustingSpread: some View {
     HingeSplit {
-      VStack(alignment: .leading, spacing: 16) {
-        adjustRange
-        Text("Tap a word to move the nearer end. Press and hold a word to choose which end.")
-          .font(.body)
-          .foregroundStyle(.secondary)
-          .fixedSize(horizontal: false, vertical: true)
-        Spacer(minLength: 0)
-        adjustPlay
+      page {
+        VStack(alignment: .leading, spacing: 16) {
+          adjustRange
+          field(.title, compact: true)
+          field(.summary, compact: true)
+          field(.note, compact: true)
+          if !typing {
+            Text("Tap a word to move the nearer end. Press and hold a word to choose which end.")
+              .font(.body)
+              .foregroundStyle(.secondary)
+              .fixedSize(horizontal: false, vertical: true)
+          }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 24)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
       }
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.leading, 24)
-      .padding(.top, 8)
-      .padding(.bottom, 12)
+      .safeAreaInset(edge: .bottom) {
+        if !typing {
+          adjustPlay
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 24)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
+            .background(Color(.systemBackground).ignoresSafeArea())
+        }
+      }
     } trailing: {
       adjustWords.padding(.leading, -24)
     }
@@ -516,38 +840,69 @@ struct SnipPage: View {
 
   // MARK: Editing
 
-  private func beginTitle() {
-    guard model.revision != nil, mode == .reading else { return }
-    // Beside the snips list the page is narrow: the title is edited across both pages instead.
-    if besideList, let openAcrossPages { return openAcrossPages(SnipRoute(id: model.snipID, renaming: true)) }
-    model.editing = true
-    mode = .title
+  /// Opens a field; one open already is saved first (SnipPageModel.beginEditing). Beside the snips list the page is
+  /// narrow, so the field is then written across both pages instead: the page pushed there shares this model
+  /// (AppModel.snipPage), so it opens with the field and its draft as they are.
+  private func begin(_ field: Field) {
+    guard model.snip != nil else { return }
+    model.stopPreview()
+    Task {
+      await model.beginEditing(field)
+      if besideList, model.editingField == field, let openAcrossPages { openAcrossPages(SnipRoute(id: model.snipID)) }
+    }
   }
 
   private func beginAdjusting() {
     model.stopPreview()
-    if besideList, let openAcrossPages { return openAcrossPages(SnipRoute(id: model.snipID, adjusting: true)) }
-    model.editing = true
-    mode = .adjusting
+    model.cancelEditing()
+    model.adjusting = true
+    if besideList, let openAcrossPages { openAcrossPages(SnipRoute(id: model.snipID)) }
   }
 
-  private func cancelEditing() {
+  private func cancelAdjusting() {
     model.stopPreview()
     model.revert()
-    titleFocused = false
-    mode = .reading
   }
 
   private func commit(regenerate: Bool? = nil) async {
-    if mode == .adjusting, regenerate == nil, model.savingAsks {
+    if regenerate == nil, model.savingAsks {
       askingToRewrite = true
       return
     }
-    if await model.save(regenerate: regenerate ?? false) {
-      titleFocused = false
-      mode = .reading
-    }
+    // Saved, the model leaves adjusting, and the page reads again.
+    _ = await model.save(regenerate: regenerate ?? false)
   }
+
+  #if DEBUG
+    /// Scripted simulator checks: `-snipMode adjust|play` opens the page in that state (`title` opens the title);
+    /// `-editSnipField title|summary|note` opens that field for typing (several, comma-separated, one after another),
+    /// `-typeText <text>` puts text in it as if typed (`\n` starts a new line; with several fields, one text each,
+    /// separated by `|`), and `-saveFieldAfter <s>` presses its Save that many seconds later.
+    private func debugLaunch() async {
+      let defaults = UserDefaults.standard
+      // With `-openSnip`, only that snip's page (beside the list, the newest's page can come first).
+      if let only = defaults.string(forKey: "openSnip"), only != model.snipID { return }
+      switch defaults.string(forKey: "snipMode") {
+      case "title": begin(.title)
+      case "adjust": beginAdjusting()
+      case "play": model.togglePreview(pausing: engine)
+      default: break
+      }
+      let fields = (defaults.string(forKey: "editSnipField") ?? "").split(separator: ",").compactMap { Field(rawValue: String($0)) }
+      let texts = defaults.string(forKey: "typeText").map { $0.components(separatedBy: "|") } ?? []
+      let saveAfter = defaults.double(forKey: "saveFieldAfter")
+      for (i, field) in fields.enumerated() {
+        model.stopPreview()
+        await model.beginEditing(field)
+        try? await Task.sleep(for: .milliseconds(700))
+        if i < texts.count { model.draft = texts[i].replacingOccurrences(of: "\\n", with: "\n") }
+        guard saveAfter > 0 else { break }
+        try? await Task.sleep(for: .seconds(saveAfter))
+        await model.saveField()
+        try? await Task.sleep(for: .milliseconds(500))
+      }
+    }
+  #endif
 
   // MARK: Labels
 
@@ -579,23 +934,45 @@ struct SnipPage: View {
   }
 }
 
+/// Toolbar items that go in the system's vertical bar where there is one (the iPhone Duo closed, or open and held wide,
+/// from iOS 27.1), instead of over the page.
+private struct VerticalPreferred<Content: ToolbarContent>: ToolbarContent {
+  @ToolbarContentBuilder let content: Content
+
+  var body: some ToolbarContent {
+    if #available(iOS 27.1, *) {
+      content.axisBehavior(.verticalPreferred)
+    } else {
+      content
+    }
+  }
+}
+
 /// A snip's summary at reading size: since snip-summary v3 its lines are bullets, each with its own dot and a hanging
-/// indent; an older one-paragraph summary reads as a paragraph.
+/// indent; an older one-paragraph summary reads as a paragraph. In the editor (`compact`) it is a size smaller and
+/// shows its first points, two lines each, so the words to tap keep their room; a tap opens all of it.
 private struct SummaryText: View {
   let summary: String
+  var compact = false
   @ScaledMetric(relativeTo: .title2) private var dot: CGFloat = 7
+  private static let compactPoints = 3
 
   var body: some View {
     let lines = summary.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    let font: Font = compact ? .title3 : .title2
     if lines.count < 2 {
-      Text(summary).font(.title2)
+      Text(summary).font(font).lineLimit(compact ? 3 : nil)
     } else {
-      VStack(alignment: .leading, spacing: 12) {
-        ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+      let shown = compact ? Array(lines.prefix(Self.compactPoints)) : lines
+      VStack(alignment: .leading, spacing: compact ? 8 : 12) {
+        ForEach(Array(shown.enumerated()), id: \.offset) { _, line in
           HStack(alignment: .firstTextBaseline, spacing: 12) {
             Circle().fill(Color.accentColor).frame(width: dot, height: dot).alignmentGuide(.firstTextBaseline) { $0[.bottom] + dot * 0.5 }
-            Text(line).font(.title2).frame(maxWidth: .infinity, alignment: .leading)
+            Text(line).font(font).lineLimit(compact ? 2 : nil).frame(maxWidth: .infinity, alignment: .leading)
           }
+        }
+        if lines.count > shown.count {
+          Text("\(lines.count - shown.count) more").font(.body.weight(.semibold)).foregroundStyle(.secondary)
         }
       }
       .accessibilityElement(children: .combine)

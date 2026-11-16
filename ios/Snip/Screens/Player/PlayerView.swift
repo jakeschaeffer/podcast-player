@@ -29,7 +29,6 @@ struct PlayerView: View {
   @AppStorage("player.panel") private var panel = Panel.transcript
   @AppStorage(SidewaysPlayer.key) private var sidewaysMode = SidewaysPlayer.karaoke
   @State private var showingSnips = false
-  @State private var openSnip: SnipRoute?
   /// The system draws its vertical bar here (the iPhone Duo closed, or open and held wide): the controls go in it.
   @State private var verticalBar = false
   /// Presented over the whole display rather than as a sheet: no sheet to swipe away, so a button closes it.
@@ -55,8 +54,10 @@ struct PlayerView: View {
         .toolbar(.hidden, for: .navigationBar)
         .modifier(BarControls(enabled: controlsInBar))
         .background(VerticalBar(present: $verticalBar))
-        .navigationDestination(item: $openSnip) { route in
-          SnipPage(snipID: route.id, api: model.api, renaming: route.renaming, onDelete: { Task { await engine.refreshEpisode() } })
+        // The page pushed here lives in the app's model (AppModel.playerSnip, snipPage), so folding or opening the
+        // iPhone Duo, which builds the player again as a sheet or a cover, brings it back as it was, typing included.
+        .navigationDestination(item: Binding(get: { model.playerSnip }, set: { model.playerSnip = $0 })) { route in
+          SnipPage(model: model.snipPage(route.id), renaming: route.renaming, onDelete: { Task { await engine.refreshEpisode() } })
         }
     }
     .task(id: model.renameRequest) { openRename() }
@@ -147,10 +148,10 @@ struct PlayerView: View {
     guard let id = model.renameRequest else { return }
     model.renameRequest = nil
     if let card = model.snipCard, card.snip?.id == id {
-      openSnip = nil
+      model.playerSnip = nil
       card.renameRequested = true
     } else {
-      openSnip = SnipRoute(id: id, renaming: true)
+      model.openInPlayer(SnipRoute(id: id, renaming: true))
     }
   }
 
@@ -251,7 +252,7 @@ struct PlayerView: View {
     } bottom: {
       Group {
         if let card = model.snipCard {
-          SnipPanel(card: card, onOpen: { openSnip = SnipRoute(id: $0) }, onCancel: { model.cancelSnip(card) }) {
+          SnipPanel(card: card, onOpen: { model.openInPlayer(SnipRoute(id: $0)) }, onCancel: { model.cancelSnip(card) }) {
             model.closeSnip(card)
           }
           .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -483,7 +484,7 @@ struct PlayerView: View {
   /// The snip bar, while a snip tap is being followed.
   @ViewBuilder private var pill: some View {
     if let card = model.snipCard {
-      SnipPill(card: card, onOpen: { openSnip = SnipRoute(id: $0) }, onCancel: { model.cancelSnip(card) }) {
+      SnipPill(card: card, onOpen: { model.openInPlayer(SnipRoute(id: $0)) }, onCancel: { model.cancelSnip(card) }) {
         model.closeSnip(card)
       }
       .transition(.move(edge: .bottom).combined(with: .opacity))

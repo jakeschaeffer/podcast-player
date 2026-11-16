@@ -58,6 +58,8 @@ export type PlaybackStateRow = { device_id: string; audio_asset_id: string; posi
 export type SnipRow = {
   id: string; audio_asset_id: string; anchor_ms: number; heard_from_ms: number; client_request_id: string; share_token: string;
   share_state: "active" | "revoked"; current_revision_id: string | null; note: string | null; created_at: number; deleted_at: number | null; captured_at: number | null;
+  /** The owner's edit from the device (offline), as JSON, waiting for the selector to choose its span (services/snips.ts applyOwnerEdit). */
+  owner_edit: string | null;
   /** The snip's highlight in the owner's Readwise (services/readwiseSync.ts): its id, the revision last sent, when, and when Readwise said it was deleted there. */
   readwise_highlight_id: number | null; readwise_revision_id: string | null; readwise_synced_at: number | null; readwise_gone_at: number | null;
 };
@@ -69,8 +71,12 @@ export type SnipRevisionRow = {
   id: string; snip_id: string; rev: number; method: "map" | "model" | "snap" | "heuristic" | "fixed" | "manual"; transcript_id: string | null;
   start_ms: number; end_ms: number; start_word: number | null; end_word: number | null; excerpt: string | null;
   title: string | null; summary: string | null; quote: string | null; summary_model: string | null; summary_prompt_version: string | null; summary_status: SummaryStatus;
-  /** Who wrote `title`: the summary model, the excerpt-based fallback, or the owner. */
-  title_source: "model" | "fallback" | "owner" | null; generated_title: string | null;
+  /** Who wrote `title`: the summary model, the excerpt-based fallback, the owner, or the episode map's passage title (a stand-in). */
+  title_source: "model" | "fallback" | "owner" | "map" | null; generated_title: string | null;
+  /** Who wrote `summary`: the summary model or the owner (whose bullets the summary job never replaces); null while there is none. */
+  summary_source: "model" | "owner" | null;
+  /** The model's bullets for this span, kept under the owner's own so clearing those shows the model's again. */
+  generated_summary: string | null;
   clip_path: string | null; clip_sha256: string | null; clip_duration_ms: number | null;
   /** The MP4 for the public page, when the snip was cut from a video; its poster sits beside it as `.jpg`. */
   video_clip_path: string | null; video_clip_sha256: string | null; video_clip_width: number | null; video_clip_height: number | null;
