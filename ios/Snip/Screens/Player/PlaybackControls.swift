@@ -2,7 +2,8 @@ import PlayerKit
 import SwiftUI
 
 /// The seek bar with the elapsed and remaining time under it. Dragging shows the position under the thumb; the seek
-/// happens when the drag ends. `onInteraction` is told of any touch, for a screen that hides its controls by itself.
+/// happens when the drag ends, or once the thumb has rested a moment. `onInteraction` is told of any touch, for a screen
+/// that hides its controls by itself.
 struct Scrubber: View {
   @Environment(PlayerEngine.self) private var engine
   var onInteraction: () -> Void = {}
@@ -11,19 +12,23 @@ struct Scrubber: View {
   /// The times in large type (the iPhone Duo standing half open, where the controls fill a half of the screen).
   var large = false
   @State private var scrubbing: Double?
+  /// Seeks to where the thumb rests once it has been still a moment. The slider's end-of-drag call doesn't always come:
+  /// on a phone a drag the system takes over (the sheet, an edge swipe) can end without it, and the bar then showed the
+  /// dragged time while the playhead never moved (TestFlight feedback, November 16, 2026).
+  @State private var settle: Task<Void, Never>?
+
+  /// How long the thumb rests before the seek happens without the end of the drag.
+  static let settleAfter: Duration = .milliseconds(600)
 
   var body: some View {
     let duration = Double(max(engine.durationMs, 1))
     let shown = scrubbing ?? Double(engine.positionMs)
     VStack(spacing: 2) {
       Slider(
-        value: Binding(get: { shown }, set: { scrubbing = $0; onInteraction() }), in: 0...duration,
+        value: Binding(get: { shown }, set: { moved(to: $0) }), in: 0...duration,
         onEditingChanged: { editing in
           onInteraction()
-          if !editing, let to = scrubbing {
-            engine.seek(to: Int(to))
-            scrubbing = nil
-          }
+          if !editing { commit() }
         })
       HStack {
         Text(Format.clock(Int(shown)))
@@ -34,6 +39,25 @@ struct Scrubber: View {
       .foregroundStyle(onVideo ? AnyShapeStyle(.white.opacity(0.9)) : AnyShapeStyle(.secondary))
       .shadow(color: .black.opacity(onVideo ? 0.7 : 0), radius: 3)
     }
+    .onDisappear { commit() }
+  }
+
+  private func moved(to value: Double) {
+    scrubbing = value
+    onInteraction()
+    settle?.cancel()
+    settle = Task {
+      try? await Task.sleep(for: Self.settleAfter)
+      if !Task.isCancelled, scrubbing == value { commit() }
+    }
+  }
+
+  private func commit() {
+    settle?.cancel()
+    settle = nil
+    guard let to = scrubbing else { return }
+    engine.seek(to: Int(to))
+    scrubbing = nil
   }
 }
 
