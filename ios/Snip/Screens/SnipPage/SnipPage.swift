@@ -32,6 +32,8 @@ struct SnipPage: View {
   @Environment(\.openAcrossPages) private var openAcrossPages
   @State private var model: SnipPageModel
   @State private var confirmingDelete = false
+  /// The system's vertical bar stands at the page's trailing edge (the iPhone Duo closed, or open held wide).
+  @State private var verticalBar = false
   /// Save was pressed on new In/Out points that change the length by more than 10 s: ask about the summary.
   @State private var askingToRewrite = false
   @ScaledMetric(relativeTo: .title) private var wordSize: CGFloat = 26
@@ -48,6 +50,12 @@ struct SnipPage: View {
   private static let titleFont = Font.system(.largeTitle, design: .rounded, weight: .bold)
   /// The title in the editor, where the words to tap need the room.
   private static let compactTitleFont = Font.system(.title, design: .rounded, weight: .bold)
+  /// The margins either side of the words. The vertical bar's inset already holds the words a little off its
+  /// buttons, and beside the list the split already keeps the page clear of the fold, so on those sides a narrow
+  /// margin gives the words the width.
+  private var leadingMargin: CGFloat { besideList ? 8 : 24 }
+  private var trailingMargin: CGFloat { verticalBar ? 4 : 24 }
+
   /// The app icon's dark, for marks on the accent colour.
   private static let ink = Color(red: 0x0E / 255, green: 0x0F / 255, blue: 0x11 / 255)
 
@@ -107,6 +115,7 @@ struct SnipPage: View {
     .interactiveDismissDisabled(mode != .reading || typing)
     .toolbar(sideways ? .hidden : .visible, for: .navigationBar, .tabBar)
     .persistentSystemOverlays(sideways ? .hidden : .automatic)
+    .background(VerticalBar(present: $verticalBar))
     .toolbar { toolbar }
     .task {
       // A page built again on a model already in use (the device folded or opened) carries on as it was.
@@ -236,7 +245,8 @@ struct SnipPage: View {
         from
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.horizontal, 24)
+      .padding(.leading, leadingMargin)
+      .padding(.trailing, trailingMargin)
       .padding(.top, 8)
       .padding(.bottom, 32)
     }
@@ -273,7 +283,7 @@ struct SnipPage: View {
           }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.trailing, 24)
+        .padding(.trailing, trailingMargin)
         .padding(.top, 8)
         .padding(.bottom, 32)
       }
@@ -626,7 +636,8 @@ struct SnipPage: View {
       }
       .frame(maxWidth: .infinity, alignment: .trailing)
     }
-    .padding(.horizontal, 24)
+    .padding(.leading, leadingMargin)
+    .padding(.trailing, trailingMargin)
     .padding(.top, 14)
     .padding(.bottom, 6)
     // Solid behind the buttons with a clear edge above them: the words end there rather than fading half drawn.
@@ -674,7 +685,8 @@ struct SnipPage: View {
           field(.note, compact: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
+        .padding(.leading, 24)
+        .padding(.trailing, trailingMargin)
         .padding(.top, 8)
         .padding(.bottom, 24)
       }
@@ -688,9 +700,10 @@ struct SnipPage: View {
         }
         // At their own height: the words below take what is left, rather than squeezing the title to a line.
         .fixedSize(horizontal: false, vertical: true)
-        .padding(.horizontal, 24)
+        .padding(.leading, 24)
+        .padding(.trailing, trailingMargin)
         .padding(.bottom, 12)
-        Divider().padding(.horizontal, 24)
+        Divider().padding(.leading, 24).padding(.trailing, trailingMargin)
         adjustWords
       }
       .safeAreaInset(edge: .bottom) {
@@ -805,7 +818,8 @@ struct SnipPage: View {
             Button("Show later") { model.showLater() }.font(.body.weight(.semibold)).frame(maxWidth: .infinity)
           }
         }
-        .padding(.horizontal, 24)
+        .padding(.leading, 24)
+        .padding(.trailing, trailingMargin)
         .padding(.vertical, 16)
       }
       .onAppear {
