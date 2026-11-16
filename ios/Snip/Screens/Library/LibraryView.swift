@@ -17,6 +17,9 @@ struct LibraryView: View {
   @State private var searchText = ""
   /// Topic search (TopicSearchView): episodes about a topic, in any show.
   @State private var findingTopic = false
+  /// DEBUG `-startTopic 1`: the topic search opened by `-searchTopic` starts at once, so each of its states can be
+  /// reached by a launch alone.
+  @State private var startTopic = false
   /// A show opened by something other than a row (the DEBUG `-openFeed` launch argument).
   @State private var opened: Feed?
   /// The show on the right page when the shows and one show's episodes share the screen; nil chooses the first.
@@ -76,6 +79,7 @@ struct LibraryView: View {
       ToolbarItem(placement: .topBarTrailing) {
         Button {
           searchText = ""
+          startTopic = false
           findingTopic = true
         } label: {
           // A word, not a second magnifying glass beside Find a show's.
@@ -95,7 +99,7 @@ struct LibraryView: View {
       AddShowView(showPlayer: $showPlayer, query: searchText)
     }
     .navigationDestination(isPresented: $findingTopic) {
-      TopicSearchView(showPlayer: $showPlayer, query: searchText)
+      TopicSearchView(showPlayer: $showPlayer, query: searchText, start: startTopic)
     }
     .navigationDestination(item: $opened) { feed in
       FeedEpisodesView(feed: feed, showPlayer: $showPlayer)
@@ -168,7 +172,7 @@ struct LibraryView: View {
 
   #if DEBUG
     /// `-searchShows <text>` opens show search with that text; `-searchTopic <text>` opens topic search with that
-    /// text (nothing is started); `-openFeed <id>` opens that show. For scripted simulator checks, once per launch.
+    /// text (started only with `-startTopic 1`); `-openFeed <id>` opens that show. For scripted simulator checks, once per launch.
     private func openFromLaunchArguments() async {
       guard !Self.launchArgumentsUsed else { return }
       Self.launchArgumentsUsed = true
@@ -177,6 +181,7 @@ struct LibraryView: View {
         searching = true
       } else if let text = UserDefaults.standard.string(forKey: "searchTopic") {
         searchText = text
+        startTopic = UserDefaults.standard.bool(forKey: "startTopic")
         findingTopic = true
       } else if let id = UserDefaults.standard.string(forKey: "openFeed") {
         // The first layout says whether the shows and a show share the screen.

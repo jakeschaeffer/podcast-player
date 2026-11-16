@@ -26,6 +26,9 @@ struct TopicSearchView: View {
   @State private var opening: Int?
   @State private var opened: Feed?
   @FocusState private var focused: Bool
+  @Environment(\.horizontalSizeClass) private var horizontal
+  @Environment(\.verticalSizeClass) private var vertical
+  @State private var size = CGSize.zero
 
   init(showPlayer: Binding<Bool>, query: String = "", start: Bool = false, search: TopicSearch? = nil) {
     _showPlayer = showPlayer
@@ -39,40 +42,41 @@ struct TopicSearchView: View {
   private var canStart: Bool { enabled == true && trimmed.count >= 2 && !starting && !running }
   /// The button goes while the search on screen is the field's own (running or answered), so the results start
   /// higher; editing the topic brings it back.
-  private var showsButton: Bool { search.map { $0.query != trimmed || $0.status == "failed" } ?? true }
+  private var showsButton: Bool { spread || (search.map { $0.query != trimmed || $0.status == "failed" } ?? true) }
+  /// The iPhone Duo open and held wide: the topic, Find episodes and the recent searches on the left page, the
+  /// search on screen on the right, so no title runs across the fold.
+  private var spread: Bool { UnfoldedDisplay.isSpread(horizontal: horizontal, vertical: vertical, size: size) }
 
   var body: some View {
-    List {
-      Section {
-        field
-        if showsButton {
-          Button(action: start) {
-            HStack(spacing: 10) {
-              if starting { ProgressView().tint(.white) }
-              Text("Find episodes")
-            }
-            .font(.title3.bold())
-            .frame(maxWidth: .infinity, minHeight: 44)
+    Group {
+      if spread {
+        HingeSplit(gapFill: Color(.systemGroupedBackground)) {
+          List {
+            ask
+            if enabled == true { idle }
           }
-          .buttonStyle(.borderedProminent)
-          .disabled(!canStart)
-          .listRowSeparator(.hidden)
+        } trailing: {
+          List {
+            if enabled == false { notSetUp } else if let search { searchSection(search) }
+          }
         }
-      }
-      if let error {
-        Text(error).font(.title3).foregroundStyle(.red)
-      }
-      if enabled == false {
-        Text("Topic search isn’t set up on the server. It needs an Exa API key (EXA_API_KEY).")
-          .font(.title3)
-      } else if let search {
-        searchSection(search)
-      } else if enabled == true {
-        idle
+        .background(Color(.systemGroupedBackground))
+      } else {
+        List {
+          ask
+          if enabled == false {
+            notSetUp
+          } else if let search {
+            searchSection(search)
+          } else if enabled == true {
+            idle
+          }
+        }
+        .unfoldedReadableWidth()
       }
     }
-    .unfoldedReadableWidth()
-    .navigationTitle("Episodes about…")
+    .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
+    .navigationTitle("Topics")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
     .navigationDestination(item: $opened) { feed in
@@ -112,13 +116,40 @@ struct TopicSearchView: View {
     }
   }
 
+  private var notSetUp: some View {
+    Text("Not set up").font(.title2.bold()).accessibilityHint("The server needs an Exa API key")
+  }
+
+  /// The topic, Find episodes, and what went wrong reaching the server.
+  @ViewBuilder private var ask: some View {
+    Section {
+      field
+      if showsButton {
+        Button(action: start) {
+          HStack(spacing: 10) {
+            if starting { ProgressView().tint(.white) }
+            Text("Find episodes")
+          }
+          .font(.title3.bold())
+          .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(!canStart)
+        .listRowSeparator(.hidden)
+      }
+    }
+    if let error {
+      Text(error).font(.title3).foregroundStyle(.red)
+    }
+  }
+
   /// The topic, in large type; Return starts the search, as Find episodes does.
   private var field: some View {
     HStack(spacing: 10) {
       Image(systemName: "text.magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
       // Wraps rather than cutting the topic short at large text sizes. A multi-line field takes Return as a new line,
       // so a new line is taken out and starts the search instead, as Find episodes does.
-      TextField("A topic: sleep and memory", text: $query, axis: .vertical)
+      TextField("Topic", text: $query, axis: .vertical)
         .lineLimit(1...4)
         .focused($focused)
         .submitLabel(.search)
@@ -143,12 +174,10 @@ struct TopicSearchView: View {
   }
 
   @ViewBuilder private var idle: some View {
-    if recent.isEmpty {
-      Text("Name a topic and Find episodes looks through podcast transcripts, in shows you follow and shows you don’t. It takes about a minute, and costs a few cents of Exa each time; the same topic again within a day is free.")
-        .font(.title3)
-    } else {
+    if !recent.isEmpty {
       Section {
-        ForEach(recent) { s in
+        // Two or three rows, not a long list: the newest searches are the ones come back to.
+        ForEach(recent.prefix(3)) { s in
           Button {
             focused = false
             query = s.query
@@ -160,7 +189,7 @@ struct TopicSearchView: View {
           .buttonStyle(.plain)
         }
       } header: {
-        Text("Recent searches").font(.title3.bold()).textCase(nil).foregroundStyle(.primary)
+        Text("Recent").font(.title3.bold()).textCase(nil).foregroundStyle(.primary)
       }
     }
   }
@@ -168,26 +197,18 @@ struct TopicSearchView: View {
   @ViewBuilder private func searchSection(_ s: TopicSearch) -> some View {
     switch s.status {
     case "running":
-      HStack(alignment: .top, spacing: 16) {
+      HStack(spacing: 16) {
         ProgressView().controlSize(.large)
-        VStack(alignment: .leading, spacing: 6) {
-          Text("Looking for episodes about “\(s.query)”").font(.title2.bold()).fixedSize(horizontal: false, vertical: true)
-          Text("This takes about a minute. You can leave this page; the search keeps going.")
-            .font(.title3).fixedSize(horizontal: false, vertical: true)
-        }
+        Text("Searching").font(.title2.bold())
       }
       .padding(.vertical, 8)
+      .accessibilityElement(children: .combine)
     case "failed":
-      VStack(alignment: .leading, spacing: 12) {
-        Text("The search for “\(s.query)” didn’t finish").font(.title2.bold()).fixedSize(horizontal: false, vertical: true)
-        if let reason = s.error { Text(reason).font(.title3) }
-        Text("Find episodes tries again.").font(.title3)
-      }
-      .padding(.vertical, 8)
+      // Exa's reason goes to VoiceOver only: it is a sentence, and Find episodes is the way on either way.
+      Text("Search failed").font(.title2.bold()).padding(.vertical, 8).accessibilityHint(s.error ?? "")
     default:
       if s.results.isEmpty {
-        Text("No episodes found about “\(s.query)”. Try other words for it.")
-          .font(.title3)
+        Text("No episodes").font(.title2.bold()).padding(.vertical, 8)
       } else {
         Section {
           ForEach(Array(s.results.enumerated()), id: \.offset) { index, result in
@@ -207,7 +228,7 @@ struct TopicSearchView: View {
         } header: {
           // The field above says the topic already, unless it has been edited since.
           if s.query != trimmed {
-            Text("Episodes about “\(s.query)”").font(.title3.bold()).textCase(nil).foregroundStyle(.primary)
+            Text(s.query).font(.title3.bold()).textCase(nil).foregroundStyle(.primary)
           }
         }
       }
@@ -354,11 +375,11 @@ private struct TopicResultRow: View {
   private var label: String {
     switch result.match {
     case "episode":
-      if let ms = result.startMs, ms > 0 { "Play from \(clock(ms))" } else { "Open the episode" }
-    case "show": "Open the show; this episode isn’t in the app yet"
-    case "new_show": "A show new to you: open it"
-    case "video": "Add this video"
-    default: "Not found in the podcast directory"
+      if let ms = result.startMs, ms > 0 { "Play from \(clock(ms))" } else { "Play" }
+    case "show": "Open show"
+    case "new_show": "New show"
+    case "video": "Add video"
+    default: "Not found"
     }
   }
 
@@ -368,27 +389,18 @@ private struct TopicResultRow: View {
   }
 }
 
-/// A search run before: the topic in large type, and how many episodes it found or that it is still running.
+/// A search run before: its topic, in large type.
 private struct RecentRow: View {
   let search: TopicSearch
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(search.query)
-        .font(.title2.bold())
-        .lineLimit(3)
-        .fixedSize(horizontal: false, vertical: true)
-      Text(detail).font(.title3).foregroundStyle(.secondary)
-    }
+    Text(search.query)
+      .font(.title2.bold())
+      .lineLimit(3)
+      .fixedSize(horizontal: false, vertical: true)
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(.vertical, 8)
     .contentShape(.rect)
     .accessibilityElement(children: .combine)
-  }
-
-  private var detail: String {
-    if search.status == "running" { return "Still searching" }
-    let n = search.results.count
-    return n == 0 ? "No episodes found" : n == 1 ? "1 episode" : "\(n) episodes"
   }
 }

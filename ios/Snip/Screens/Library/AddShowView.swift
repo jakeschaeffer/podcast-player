@@ -185,7 +185,7 @@ struct AddShowView: View {
           } label: {
             HStack(spacing: 12) {
               Image(systemName: "text.magnifyingglass").font(.title2).foregroundStyle(.tint).accessibilityHidden(true)
-              Text("Find episodes about “\(trimmed)”")
+              Text("Topic: “\(trimmed)”")
                 .font(.title3.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
             }
