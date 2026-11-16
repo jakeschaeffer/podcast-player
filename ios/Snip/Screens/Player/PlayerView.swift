@@ -224,31 +224,28 @@ struct PlayerView: View {
   }
 
   /// The iPhone Duo standing half open and turned tall, like a small laptop: the upright top half is the cover and the
-  /// titles alone, to be seen from a little way off; the flat bottom half is the seek bar and the controls, large, with
-  /// the close button. After a snip tap the bottom half is the snip (SnipPanel) until it is done or Done is pressed.
+  /// titles alone, to be seen from a little way off, or, for a recording with a picture, the video alone, filling the
+  /// half edge to edge, with the titles moved down above the controls; the flat bottom half is the seek bar and the
+  /// controls, large, with the close button. After a snip tap the bottom half is the snip (SnipPanel) until it is done
+  /// or Done is pressed.
   private func standing(_ ep: EpisodeDetail) -> some View {
     HingeStack {
-      VStack(spacing: 14) {
-        GeometryReader { geo in
-          Group {
-            if engine.video {
-              VideoSurface()
-            } else {
-              FittedArtwork(url: model.artwork(episodeImage: ep.imageUrl, feedID: ep.feedId), width: geo.size.width, height: geo.size.height)
-            }
+      if engine.video {
+        VideoSurface(cornerRadius: 0)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .background(Color.black)
+      } else {
+        VStack(spacing: 14) {
+          GeometryReader { geo in
+            FittedArtwork(url: model.artwork(episodeImage: ep.imageUrl, feedID: ep.feedId), width: geo.size.width, height: geo.size.height)
+              .frame(width: geo.size.width, height: geo.size.height)
           }
-          .frame(width: geo.size.width, height: geo.size.height)
+          .frame(minHeight: 96)
+          standingTitles(ep)
         }
-        .frame(minHeight: 96)
-        VStack(spacing: 4) {
-          Text(ep.title).font(.title2.weight(.bold)).lineLimit(2).multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-          Text(ep.showTitle ?? "").font(.title3).foregroundStyle(.secondary).lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 24)
+        .padding(.top, 8)
       }
-      .padding(.horizontal, 24)
-      .padding(.top, 8)
     } bottom: {
       Group {
         if let card = model.snipCard {
@@ -257,7 +254,8 @@ struct PlayerView: View {
           }
           .transition(.move(edge: .bottom).combined(with: .opacity))
         } else {
-          VStack(spacing: 28) {
+          VStack(spacing: engine.video ? 20 : 28) {
+            if engine.video { standingTitles(ep) }
             Scrubber(large: true)
             TransportRow(large: true)
             loadError
@@ -270,6 +268,16 @@ struct PlayerView: View {
       .padding(.horizontal, 24)
       .padding(.bottom, 8)
     }
+  }
+
+  /// The episode's title and show, centred, for the player standing half open.
+  private func standingTitles(_ ep: EpisodeDetail) -> some View {
+    VStack(spacing: 4) {
+      Text(ep.title).font(.title2.weight(.bold)).lineLimit(2).multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+      Text(ep.showTitle ?? "").font(.title3).foregroundStyle(.secondary).lineLimit(1)
+    }
+    .frame(maxWidth: .infinity)
   }
 
   /// Sideways, after the web app's wide layout: two equal columns, controls and reading.
