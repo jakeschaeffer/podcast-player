@@ -295,14 +295,14 @@ describe("end to end: feed → audio → transcript → snip → public page", (
 
     // The editor's Save: new In/Out points and a title in one PATCH. The summary job runs with a model this time.
     const fixed = new FixedTitleModel();
-    ctx.textModel = fixed;
+    ctx.textModel = ctx.snipTextModel = fixed;
     try {
       const saved = await app.inject({ method: "PATCH", url: `/v1/snips/${snipId}`, headers: auth(), payload: { start_ms: 101_000, end_ms: 139_000, if_revision: current.revision.id, title: "Flat fees left money on the table" } });
       expect(saved.statusCode).toBe(200);
       expect(saved.json().revision).toMatchObject({ rev: 3, title: "Flat fees left money on the table", title_source: "owner" });
       await drain(ctx);
     } finally {
-      ctx.textModel = null;
+      ctx.textModel = ctx.snipTextModel = null;
     }
     expect(fixed.calls).toBeGreaterThan(0);
     const afterSummary = (await app.inject({ method: "GET", url: `/v1/snips/${snipId}`, headers: auth() })).json();

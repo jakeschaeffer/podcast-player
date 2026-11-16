@@ -42,7 +42,7 @@ export async function selectSnipJob(ctx: AppContext, job: Job<{ revision_id: str
   // the rules choose, and the map is asked for so the next snip in the episode has it.
   const map = ctx.config.episodeMaps && asset.transcript_id ? loadEpisodeMap(ctx, asset.transcript_id) : null;
   if (!map && asset.transcript_id) queueEpisodeMap(ctx, asset.transcript_id);
-  const spanPicker = !map && ctx.textModel && ctx.config.selectionModel ? makeSpanPicker(ctx.textModel) : undefined;
+  const spanPicker = !map && ctx.snipTextModel && ctx.config.selectionModel ? makeSpanPicker(ctx.snipTextModel) : undefined;
   const picker = map ? mapPicker(map.map, "passage") : spanPicker;
   const selection = await selectSpan({ transcript, anchor_ms: snip.anchor_ms, heard_from_ms: snip.heard_from_ms, duration_ms: asset.duration_ms, ...(picker ? { picker } : {}) });
   const fromMap = map !== null && selection.method === "model";
@@ -153,7 +153,7 @@ export async function summarizeSnipJob(ctx: AppContext, job: Job<{ revision_id: 
     return markReadyIfComplete(ctx, rev.id);
   }
   const excerpt = sentencesForRange(transcript, rev.start_word, rev.end_word);
-  if (!ctx.textModel) {
+  if (!ctx.snipTextModel) {
     // Replaces any earlier placeholder title (such as "Snip" from before a transcript existed), never the owner's.
     ctx.db
       .prepare(
@@ -167,7 +167,7 @@ export async function summarizeSnipJob(ctx: AppContext, job: Job<{ revision_id: 
   const preceding = precedingSentences(transcript, rev.start_word, 2);
   // Speakers the publisher names (the host, an interview's guest) may be named in the summary; others stay "the host".
   const speaker_names = rev.transcript_id ? speakerNames(ctx, rev.transcript_id) : {};
-  const result = await summarizeSnip({ excerpt, context: { show_title: feed.title ?? "", episode_title: episode.title, preceding, speaker_names } }, ctx.textModel);
+  const result = await summarizeSnip({ excerpt, context: { show_title: feed.title ?? "", episode_title: episode.title, preceding, speaker_names } }, ctx.snipTextModel);
   // An unreachable model is not a verdict on the excerpt: the queue retries a couple of times, a minute or so
   // apart, and the clip is not held longer than that. A model that refuses us (not logged in, no binary) will not
   // answer a retry either, so that settles at once. The excerpt-based title stands in; the clip is ready regardless.

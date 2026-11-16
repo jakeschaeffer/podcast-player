@@ -188,7 +188,7 @@ describe("snip jobs", () => {
     expect(revision(ctx, snip.id)).toMatchObject({ rev: 2, status: "ready", summary_status: "skipped", start_word: null, title: "Snip" });
 
     const model = new ScriptedModel();
-    ctx.textModel = model;
+    ctx.textModel = ctx.snipTextModel = model;
     storeTranscript(ctx, assetId, transcriptAbout(PRICING), {});
     await drain(ctx, { kinds: ["summarize_snip"] });
     const after = revision(ctx, snip.id);
