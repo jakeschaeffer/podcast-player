@@ -15,6 +15,8 @@ struct LibraryView: View {
   @State private var loaded = false
   @State private var searching = false
   @State private var searchText = ""
+  /// Topic search (TopicSearchView): episodes about a topic, in any show.
+  @State private var findingTopic = false
   /// A show opened by something other than a row (the DEBUG `-openFeed` launch argument).
   @State private var opened: Feed?
   /// The show on the right page when the shows and one show's episodes share the screen; nil chooses the first.
@@ -74,6 +76,15 @@ struct LibraryView: View {
       ToolbarItem(placement: .topBarTrailing) {
         Button {
           searchText = ""
+          findingTopic = true
+        } label: {
+          // A word, not a second magnifying glass beside Find a show's.
+          Text("Topics").font(.body.weight(.semibold)).accessibilityLabel("Find episodes about a topic")
+        }
+      }
+      ToolbarItem(placement: .topBarTrailing) {
+        Button {
+          searchText = ""
           searching = true
         } label: {
           Image(systemName: "magnifyingglass").accessibilityLabel("Find a show")
@@ -82,6 +93,9 @@ struct LibraryView: View {
     }
     .navigationDestination(isPresented: $searching) {
       AddShowView(showPlayer: $showPlayer, query: searchText)
+    }
+    .navigationDestination(isPresented: $findingTopic) {
+      TopicSearchView(showPlayer: $showPlayer, query: searchText)
     }
     .navigationDestination(item: $opened) { feed in
       FeedEpisodesView(feed: feed, showPlayer: $showPlayer)
@@ -153,14 +167,17 @@ struct LibraryView: View {
   }
 
   #if DEBUG
-    /// `-searchShows <text>` opens show search with that text; `-openFeed <id>` opens that show. For scripted
-    /// simulator checks, once per launch.
+    /// `-searchShows <text>` opens show search with that text; `-searchTopic <text>` opens topic search with that
+    /// text (nothing is started); `-openFeed <id>` opens that show. For scripted simulator checks, once per launch.
     private func openFromLaunchArguments() async {
       guard !Self.launchArgumentsUsed else { return }
       Self.launchArgumentsUsed = true
       if let text = UserDefaults.standard.string(forKey: "searchShows") {
         searchText = text
         searching = true
+      } else if let text = UserDefaults.standard.string(forKey: "searchTopic") {
+        searchText = text
+        findingTopic = true
       } else if let id = UserDefaults.standard.string(forKey: "openFeed") {
         // The first layout says whether the shows and a show share the screen.
         while size == .zero { try? await Task.sleep(for: .milliseconds(20)) }

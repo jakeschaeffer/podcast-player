@@ -163,6 +163,24 @@ extension APIClient {
     try await send("POST", "/v1/readwise/retries")
   }
 
+  // MARK: Topic search
+
+  /// Whether topic search is on, and the newest searches (no Exa call).
+  public func topicSearches(limit: Int = 20) async throws -> TopicSearches {
+    try await send("GET", "/v1/topic-searches", query: [URLQueryItem(name: "limit", value: String(limit))])
+  }
+
+  /// Starts a search for episodes about `query`. Bills one Exa run on the server, unless the same query ran there
+  /// within a day or `clientRequestId` was sent before, which return that search. 409 when the server has no Exa key.
+  public func startTopicSearch(_ body: StartTopicSearch) async throws -> TopicSearch {
+    try await send("POST", "/v1/topic-searches", body: body)
+  }
+
+  /// One search; while it runs, the server asks Exa how it stands (free).
+  public func topicSearch(_ id: ULID) async throws -> TopicSearch {
+    try await send("GET", "/v1/topic-searches/\(id)")
+  }
+
   // MARK: Playback
 
   public func reportPlayback(assetID: ULID, _ report: PlaybackReport) async throws -> PlaybackAck {

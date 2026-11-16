@@ -832,3 +832,60 @@ public struct ReadwiseSummary: Codable, Sendable, Equatable {
     public var id: ULID { snipId }
   }
 }
+
+/// A topic search (`/v1/topic-searches`): episodes about a topic in any show, found by Exa's podcast search on the
+/// server. A search runs for about a minute; poll `topicSearch(_:)` while `status` is "running".
+public struct TopicSearch: Codable, Sendable, Identifiable, Hashable {
+  /// One episode the search found, matched to what the server has.
+  public struct Result: Codable, Sendable, Hashable, Identifiable {
+    public struct Show: Codable, Sendable, Hashable {
+      public let title: String
+      public let author: String?
+      public let feedUrl: String
+      public let artworkUrl: String?
+    }
+    public let podcast: String
+    public let title: String
+    public let published: String?
+    public let url: String?
+    public let speaker: String?
+    public let quote: String?
+    public let why: String?
+    /// Where the topic comes up, by the search's own transcript: approximate against ours.
+    public let startMs: Int?
+    /// "episode": ours, in `episode`; "show": a show the server has (`feedId`) without this episode; "new_show": a
+    /// directory show in `show`, opened unfollowed with `createFeed`; "video": a YouTube video (`url`) to add; "none".
+    public let match: String
+    public let episode: Episode?
+    public let feedId: ULID?
+    public let followed: Bool?
+    public let show: Show?
+    public let youtubeId: String?
+
+    public var id: String { "\(podcast)\u{1F}\(title)" }
+  }
+  public let id: ULID
+  public let query: String
+  /// "running", "completed" or "failed" (see `error`).
+  public let status: String
+  public let error: String?
+  public let results: [Result]
+  public let costDollars: Double?
+  public let createdAt: Int
+  public let completedAt: Int?
+}
+
+/// `GET /v1/topic-searches`: whether the server has topic search (an Exa key) and the newest searches.
+public struct TopicSearches: Codable, Sendable {
+  public let enabled: Bool
+  public let items: [TopicSearch]
+}
+
+public struct StartTopicSearch: Codable, Sendable, Hashable {
+  public var query: String
+  public var clientRequestId: String
+  public init(query: String, clientRequestId: String) {
+    self.query = query
+    self.clientRequestId = clientRequestId
+  }
+}

@@ -22,6 +22,8 @@ struct AddShowView: View {
   @State private var opening: String?
   /// The show to push.
   @State private var opened: Feed?
+  /// The topic to look for episodes about (TopicSearchView), pushed from the first row of the results.
+  @State private var topic: String?
   @FocusState private var focused: Bool
 
   init(showPlayer: Binding<Bool>, query: String = "") {
@@ -82,6 +84,9 @@ struct AddShowView: View {
     .toolbar(.hidden, for: .tabBar)
     .navigationDestination(item: $opened) { feed in
       FeedEpisodesView(feed: feed, showPlayer: $showPlayer)
+    }
+    .navigationDestination(item: $topic) { text in
+      TopicSearchView(showPlayer: $showPlayer, query: text)
     }
     .onAppear { if query.isEmpty { focused = true } }
     // Debounced: each keystroke cancels the previous wait.
@@ -173,6 +178,24 @@ struct AddShowView: View {
         // Held wide, the right-hand page says this.
         if !spread { Text(Self.guide).foregroundStyle(.secondary) }
       } else if let results {
+        // Not a show's name but what it talks about: the same words as a topic search, over episodes in any show.
+        Section {
+          Button {
+            topic = trimmed
+          } label: {
+            HStack(spacing: 12) {
+              Image(systemName: "text.magnifyingglass").font(.title2).foregroundStyle(.tint).accessibilityHidden(true)
+              Text("Find episodes about “\(trimmed)”")
+                .font(.title3.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 6)
+            .contentShape(.rect)
+          }
+          .buttonStyle(.plain)
+          .disabled(opening != nil)
+        }
         if results.results.isEmpty {
           Text("No shows match “\(trimmed)”.").foregroundStyle(.secondary)
         }
