@@ -173,6 +173,18 @@ export const EditSnipBody = Type.Partial(Type.Object({
   if_revision: Type.String({ minLength: 26, maxLength: 26, description: "The revision the edit was made against. Required when moving boundaries, so a replayed edit cannot create a second revision; 409 if the snip has moved on" }),
   regenerate_summary: Type.Boolean({ description: "With a boundary edit: write the title and summary again for the new span (true) or keep the current ones (false). Left out, they are written again only when the length changes by more than 10 s" }),
 }));
+export const SnipEpisodeListQuery = Type.Composite([PageQuery, Type.Object({ feed_id: Type.Optional(Id) })]);
+export const SnipEpisodeSchema = Type.Object({
+  episode_id: Id, episode_title: Type.String(), feed_id: Id, show_title: Nullable(Type.String()),
+  image_url: Nullable(Type.String({ description: "The episode's artwork, else its show's" })),
+  snip_count: Type.Integer({ minimum: 1, description: "Snips from the episode, whichever of its recordings each was cut from" }),
+  last_snipped_at: Type.Integer({ description: "When the newest of them was made (its captured_at)" }),
+});
+export const SnipShowSchema = Type.Object({
+  feed_id: Id, title: Nullable(Type.String()), image_url: Nullable(Type.String()),
+  episode_count: Type.Integer({ minimum: 1, description: "Episodes of the show with a snip" }), snip_count: Type.Integer({ minimum: 1 }),
+  last_snipped_at: Type.Integer(),
+});
 export const SnipListQuery = Type.Composite([PageQuery, Type.Object({ asset_id: Type.Optional(Id), episode_id: Type.Optional(Id), q: Type.Optional(Type.String({ maxLength: 200 })) })]);
 
 export const JobSchema = Type.Object({

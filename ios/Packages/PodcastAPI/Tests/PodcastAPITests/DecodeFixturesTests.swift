@@ -40,6 +40,8 @@ struct DecodeFixturesTests {
     "topics.get.running": { try decode(TopicSearch.self, $0) },
     "topics.get.completed": { try decode(TopicSearch.self, $0) },
     "topics.list": { try decode(TopicSearches.self, $0) },
+    "snips.episodes": { try decode(Page<SnipEpisode>.self, $0) },
+    "snips.shows": { try decode(SnipShowList.self, $0) },
     "readwise.summary": { try decode(ReadwiseSummary.self, $0) },
     "readwise.retries": { try decode(ReadwiseSummary.self, $0) },
     "errors.unauthorized": { try decode(APIError.Envelope.self, $0) },

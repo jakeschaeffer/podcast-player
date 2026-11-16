@@ -114,27 +114,3 @@ struct WaitingSnipSheet: View {
       summary: summary.isEmpty ? nil : String(summary.prefix(2000)))
   }
 }
-
-/// A waiting tap in the Snips list, laid out as a snip's row is.
-struct WaitingSnipRow: View {
-  let pending: SnipOutbox.Pending
-
-  var body: some View {
-    HStack(alignment: .top, spacing: 12) {
-      Artwork(url: pending.imageUrl, size: 44).padding(.top, 2)
-      VStack(alignment: .leading, spacing: 3) {
-        Text(pending.body.owner?.title ?? "Snipped at \(Format.clock(pending.body.anchorMs))").font(.body.weight(.medium)).lineLimit(2)
-        if let episode = pending.episodeTitle {
-          Text(episode).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-        }
-        HStack(spacing: 0) {
-          Text("\(Format.clock(pending.startMs)) · \(Format.duration(pending.endMs - pending.startMs)) · not sent yet").monospacedDigit().lineLimit(1)
-          Spacer(minLength: 8)
-          Text(Date(timeIntervalSince1970: Double(pending.body.capturedAt) / 1000), format: .relative(presentation: .named)).fixedSize()
-        }
-        .font(.caption).foregroundStyle(.secondary)
-      }
-    }
-    .padding(.vertical, 2)
-  }
-}

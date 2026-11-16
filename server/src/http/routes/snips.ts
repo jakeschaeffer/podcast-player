@@ -6,7 +6,7 @@ import type { AppContext } from "../../app/context.js";
 import * as S from "../schemas.js";
 
 const Id = Type.Object({ id: Type.String() });
-import { createSnip, deleteSnip, editSnip, getSnip, listSnips, restoreSnip, revokeSnip, type SnipView } from "../../services/snips.js";
+import { createSnip, deleteSnip, editSnip, getSnip, listSnipEpisodes, listSnips, listSnipShows, restoreSnip, revokeSnip, type SnipView } from "../../services/snips.js";
 import { listTitleEdits } from "../../services/titleEdits.js";
 
 /**
@@ -26,6 +26,12 @@ export function registerSnipsRoutes(instance: FastifyInstance, ctx: AppContext):
   });
   app.get("/v1/snips", { schema: { tags: ["snips"], summary: "The owner's snips newest first; `q` searches title, summary, excerpt, and note", querystring: S.SnipListQuery, response: { 200: Type.Object({ items: Type.Array(S.SnipSchema), next: S.Nullable(Type.String()) }) } } }, async (request) => {
     return listSnips(ctx, request.device.id, request.query);
+  });
+  app.get("/v1/snips/episodes", { schema: { tags: ["snips"], summary: "The episodes snipped from, the most recently snipped first, with their snip counts; `feed_id` keeps one show's", querystring: S.SnipEpisodeListQuery, response: { 200: Type.Object({ items: Type.Array(S.SnipEpisodeSchema), next: S.Nullable(Type.String()) }) } } }, async (request) => {
+    return listSnipEpisodes(ctx, request.query);
+  });
+  app.get("/v1/snips/shows", { schema: { tags: ["snips"], summary: "The shows snipped from, the most recently snipped first", response: { 200: Type.Object({ items: Type.Array(S.SnipShowSchema) }) } } }, async () => {
+    return { items: listSnipShows(ctx) };
   });
   app.get("/v1/snips/:id", { schema: { tags: ["snips"], summary: "Snip with its current revision; poll with If-None-Match while preparing", params: Id, response: { 200: S.SnipSchema, 304: Type.Null() } } }, async (request, reply) => {
     const snip = getSnip(ctx, request.params.id, request.device.id);

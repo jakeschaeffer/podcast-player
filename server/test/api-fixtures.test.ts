@@ -152,6 +152,8 @@ beforeAll(async () => {
   // The edit's revision goes to Readwise too, which refuses it: a failed send.
   await drain(ctx, { kinds: ["render_clip", "summarize_snip", "sync_readwise"] });
   await record("snips.list", { method: "GET", url: "/v1/snips?limit=30" });
+  await record("snips.episodes", { method: "GET", url: "/v1/snips/episodes?limit=50" });
+  await record("snips.shows", { method: "GET", url: "/v1/snips/shows" });
   await record("readwise.summary", { method: "GET", url: "/v1/readwise?days=30" });
   await record("readwise.retries", { method: "POST", url: "/v1/readwise/retries" });
 
