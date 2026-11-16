@@ -44,6 +44,7 @@ struct EpisodeSnipsPage: View {
   @State private var shareSheet: SharedPage?
   @State private var opened: SnipRoute?
   @ScaledMetric(relativeTo: .title) private var coverSize: CGFloat = 88
+  private static let rowInsets = EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20)
 
   /// The taps on this episode still on the phone, the newest first.
   private var waiting: [SnipOutbox.Pending] { model.waitingSnips.filter { $0.episodeID == episode.id }.reversed() }
@@ -54,13 +55,14 @@ struct EpisodeSnipsPage: View {
     List {
       head
         .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 12, trailing: 20))
+        .listRowInsets(EdgeInsets(top: 8, leading: Self.rowInsets.leading, bottom: 12, trailing: Self.rowInsets.trailing))
       if let error {
         Text(error).font(.body).foregroundStyle(.red).listRowSeparator(.hidden)
       }
       ForEach(waiting) { pending in
         Button { model.editingWaiting = pending } label: { waitingRow(pending) }
           .buttonStyle(.plain)
+          .listRowInsets(Self.rowInsets)
           .swipeActions {
             Button("Delete", systemImage: "trash", role: .destructive) { Task { await model.deleteWaiting(pending.id) } }
           }
@@ -68,6 +70,8 @@ struct EpisodeSnipsPage: View {
       ForEach(snips ?? []) { snip in
         Button { open(snip) } label: { row(snip) }
           .buttonStyle(.plain)
+          // The head's own inset: beside the fold the list's default one is gone, and the rows would start further left.
+          .listRowInsets(Self.rowInsets)
           .swipeActions {
             Button("Delete", systemImage: "trash", role: .destructive) { Task { await delete(snip) } }
           }
