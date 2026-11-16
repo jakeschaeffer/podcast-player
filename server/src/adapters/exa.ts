@@ -37,7 +37,7 @@ export type ExaEffort = "minimal" | "low" | "medium" | "high" | "xhigh";
 export const EXA_EFFORTS: readonly ExaEffort[] = ["minimal", "low", "medium", "high", "xhigh"];
 
 /** At most this many episodes a search: a bounded list keeps the run's cost and the screen's length predictable. */
-export const MAX_EPISODES = 8;
+export const MAX_EPISODES = 5;
 
 const BASE = "https://api.exa.ai";
 
@@ -55,7 +55,7 @@ export const OUTPUT_SCHEMA = {
       maxItems: MAX_EPISODES,
       items: {
         type: "object",
-        required: ["podcast", "episode", "speaker", "quote", "start_seconds"],
+        required: ["podcast", "episode", "speaker", "quote", "timestamp"],
         properties: {
           podcast: { type: "string", description: "The show's name, from Particle's podcast transcripts" },
           episode: { type: "string", description: "The episode's title, from Particle's podcast transcripts" },
@@ -64,18 +64,22 @@ export const OUTPUT_SCHEMA = {
           speaker: { type: "string", description: "Who says it, from Particle's speaker-attributed transcript" },
           quote: { type: "string", description: "What they say about the topic, word for word from Particle's transcript" },
           why: { type: "string", description: "One plain sentence: what the episode says about the topic" },
-          start_seconds: { type: "number", description: "Seconds into the episode where they say it, from Particle's transcript timestamps" },
+          // Text, as transcripts print it: asked for as a number of seconds, every one came back null.
+          timestamp: { type: "string", description: "Where in the episode they say it, as H:MM:SS or M:SS, from Particle's transcript timestamps" },
         },
       },
     },
   },
 } as const;
 
+// Each Particle call bills $0.015, and searching again for each episode cost nine calls for five episodes; a
+// search or two with the topic itself returns transcript windows from many episodes at once.
 export const SYSTEM_PROMPT =
-  "Find every episode with the Particle podcast transcript tool, and take each episode's speaker, quote and timestamp " +
-  "from its transcript results. Use web search only to find an episode's own page link, never as the source of an " +
-  "episode. One entry per episode; never list the same episode twice. Keep an episode only when the topic is " +
-  "discussed in it, not just mentioned in passing. Give the show's name and the episode's title exactly as published.";
+  "Search the Particle podcast transcript tool once or twice with the topic itself, and choose the episodes from " +
+  "those results; do not search again for each episode. Take each episode's speaker, quote and timestamp from its " +
+  "transcript results. Use web search only to find an episode's own page link, never as the source of an episode. " +
+  "One entry per episode; never list the same episode twice. Keep an episode only when the topic is discussed in it, " +
+  "not just mentioned in passing. Give the show's name and the episode's title exactly as published.";
 
 export function topicQuery(topic: string): string {
   return `Search podcast transcripts for episodes where hosts or guests discuss ${topic}. For each episode give the show, the episode title, who is speaking, their words quoted from the transcript, and the timestamp where they say it.`;
@@ -142,6 +146,18 @@ export function readRun(run: ExaRun): PodcastSearchRun {
   return { status: "running" };
 }
 
+/** "1:02:03", "31:48", "31m48s", or a number of seconds; null for anything else. */
+export function secondsIn(v: unknown): number | null {
+  if (typeof v === "number") return Number.isFinite(v) && v >= 0 ? Math.round(v) : null;
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  const clock = t.match(/^(?:(\d+):)?(\d{1,2}):(\d{2})(?:\.\d+)?$/);
+  if (clock) return Number(clock[1] ?? 0) * 3600 + Number(clock[2]) * 60 + Number(clock[3]);
+  const units = t.match(/^(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+)s)?$/i);
+  if (units && (units[1] || units[2] || units[3])) return Number(units[1] ?? 0) * 3600 + Number(units[2] ?? 0) * 60 + Number(units[3] ?? 0);
+  return /^\d+(\.\d+)?$/.test(t) ? Math.round(Number(t)) : null;
+}
+
 /** Validates the structured output loosely: a model filled it, so anything may be missing, null or the wrong type. */
 export function foundEpisodes(structured: unknown): FoundEpisode[] {
   const list = (structured as { episodes?: unknown } | null)?.episodes;
@@ -154,7 +170,7 @@ export function foundEpisodes(structured: unknown): FoundEpisode[] {
     const podcast = str(r.podcast);
     const episode = str(r.episode);
     if (!podcast || !episode) continue;
-    const start = typeof r.start_seconds === "number" && Number.isFinite(r.start_seconds) && r.start_seconds >= 0 ? Math.round(r.start_seconds) : null;
+    const start = secondsIn(r.timestamp ?? r.start_seconds);
     const url = str(r.url);
     out.push({ podcast, episode, published: str(r.published), url: url && /^https?:\/\//i.test(url) ? url : null, speaker: str(r.speaker), quote: str(r.quote), why: str(r.why), start_seconds: start });
     if (out.length >= MAX_EPISODES) break;
