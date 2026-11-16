@@ -72,11 +72,11 @@ export const OUTPUT_SCHEMA = {
   },
 } as const;
 
-// Each Particle call bills $0.015, and searching again for each episode cost nine calls for five episodes; a
-// search or two with the topic itself returns transcript windows from many episodes at once.
+// Each Particle call bills $0.015. Searching again for each episode cost nine calls for five episodes; "once or
+// twice" cost two and found one episode on a narrow topic. Up to three, with the topic and its other words.
 export const SYSTEM_PROMPT =
-  "Search the Particle podcast transcript tool once or twice with the topic itself, and choose the episodes from " +
-  "those results; do not search again for each episode. Take each episode's speaker, quote and timestamp from its " +
+  "Search the Particle podcast transcript tool up to three times, with the topic itself and then with other words " +
+  "for it, and choose the episodes from those results; do not search again for each episode. Take each episode's speaker, quote and timestamp from its " +
   "transcript results. Use web search only to find an episode's own page link, never as the source of an episode. " +
   "One entry per episode; never list the same episode twice. Keep an episode only when the topic is discussed in it, " +
   "not just mentioned in passing. Give the show's name and the episode's title exactly as published.";

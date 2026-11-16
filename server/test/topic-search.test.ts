@@ -57,7 +57,7 @@ describe("the Exa adapter", () => {
     expect(calls[1]!.init.method).toBe("GET");
     expect(run).toEqual({ status: "completed", cost_dollars: 0.055, podcast_index_calls: 3, episodes: [{ podcast: "Huberman Lab", episode: "Sleep and Memory", published: null, url: null, speaker: null, quote: null, why: null, start_seconds: 62 }] });
     expect(body.outputSchema.properties.episodes.items.required).toContain("timestamp");
-    expect(body.systemPrompt).toMatch(/once or twice/);
+    expect(body.systemPrompt).toMatch(/up to three times/);
   });
 
   it("reads timestamps the way transcripts print them", () => {
