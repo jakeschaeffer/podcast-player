@@ -88,9 +88,10 @@ struct SnipsView: View {
     .onChange(of: model.waitingSnips.count) { old, new in
       if new < old { Task { await load() } }
     }
-    // Folded or turned away from wide with an episode chosen: it is pushed, so it stays on screen.
+    // Folded or turned away from wide with an episode chosen: it is pushed, so it stays on screen. Not over a snip
+    // opened from it, which stays in front (back from it is the list).
     .onChange(of: spread) { was, now in
-      if was, !now, opened == nil, chosen != nil, let episode = shown { opened = episode }
+      if was, !now, opened == nil, openedSnip == nil, chosen != nil, let episode = shown { opened = episode }
     }
     // Another show's list: start from what the phone saved for it, then ask the server.
     .onChange(of: show) {
