@@ -7,6 +7,8 @@ struct SnipRoute: Hashable, Identifiable {
   let id: ULID
   /// Open with the title being edited, as the Live Activity's title asks.
   var renaming = false
+  /// Open adjusting the clip's ends (Adjust pressed on the page beside the snips list).
+  var adjusting = false
 }
 
 /// One snip's own page, pushed from the player's snip bar and from the snip lists; swipe from the left edge to go
@@ -26,6 +28,8 @@ struct SnipPage: View {
   @Environment(\.verticalSizeClass) private var verticalSizeClass
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @Environment(\.scenePhase) private var scenePhase
+  @Environment(\.besideList) private var besideList
+  @Environment(\.openAcrossPages) private var openAcrossPages
   @State private var model: SnipPageModel
   @State private var confirmingDelete = false
   /// Save was pressed on new In/Out points that change the length by more than 10 s: ask about the summary.
@@ -34,8 +38,9 @@ struct SnipPage: View {
   /// The list that opened the page hears about each change to the snip, and about its deletion.
   let onChange: (Snip) -> Void
   let onDelete: () -> Void
-  /// Start with the title being edited.
+  /// Start with the title being edited, or the clip's ends.
   let renaming: Bool
+  let startAdjusting: Bool
 
   enum Mode { case reading, adjusting }
   typealias Field = SnipPageModel.Field
@@ -48,11 +53,12 @@ struct SnipPage: View {
 
   /// `model` comes from AppModel.snipPage, which hands a page built again the state its last one left.
   init(
-    model: SnipPageModel, renaming: Bool = false, onChange: @escaping (Snip) -> Void = { _ in },
-    onDelete: @escaping () -> Void = {}
+    model: SnipPageModel, renaming: Bool = false, adjusting: Bool = false,
+    onChange: @escaping (Snip) -> Void = { _ in }, onDelete: @escaping () -> Void = {}
   ) {
     _model = State(initialValue: model)
     self.renaming = renaming
+    self.startAdjusting = adjusting
     self.onChange = onChange
     self.onDelete = onDelete
   }
@@ -67,14 +73,14 @@ struct SnipPage: View {
   var body: some View {
     Group {
       if let error = model.loadError, model.snip == nil {
-        ContentUnavailableView("Can't open this snip", systemImage: "exclamationmark.triangle", description: Text(error))
+        cantOpen(error)
       } else if model.snip == nil {
         ProgressView()
       } else if sideways {
         SnipSideways(words: model.spanWords, positionMs: model.previewMs, progress: progress) {
           model.togglePreview(pausing: engine)
         }
-      } else if UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) {
+      } else if !besideList, UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) {
         // The iPhone Duo open: held wide, two pages split at the fold; turned tall, the one column.
         GeometryReader { geo in
           // Wide or tall by the whole screen, insets included: the keyboard's inset would otherwise make the tall
@@ -94,7 +100,7 @@ struct SnipPage: View {
         reading
       }
     }
-    .navigationBarTitleDisplayMode(.inline)
+    .navigationBarTitleDisplayMode(besideList ? .large : .inline)
     // Leaving mid-edit would lose what was typed or moved: Cancel or Save first.
     .navigationBarBackButtonHidden(mode != .reading || typing)
     // Nor by swiping the player's sheet down (the iPhone or the Duo closed), which would close the page with it.
@@ -109,7 +115,7 @@ struct SnipPage: View {
       await model.load()
       model.follow()
       guard first else { return }
-      if renaming { await model.beginEditing(.title) }
+      if renaming { begin(.title) } else if startAdjusting { beginAdjusting() }
       #if DEBUG
         await debugLaunch()
       #endif
@@ -154,6 +160,34 @@ struct SnipPage: View {
     } message: {
       Text("Its shared link stops working.")
     }
+  }
+
+  /// The snip couldn't be read (no connection, most often): Try again, large, and a quiet retry every few seconds, so
+  /// the page comes back by itself once the server answers.
+  private func cantOpen(_ error: String) -> some View {
+    ContentUnavailableView {
+      Label("Can't open this snip", systemImage: "exclamationmark.triangle").font(.title.weight(.bold))
+    } description: {
+      Text(error).font(.title3)
+    } actions: {
+      Button { Task { await retryLoad() } } label: {
+        Text("Try again").font(.title2.weight(.semibold)).padding(.horizontal, 28).frame(minHeight: 60)
+      }
+      .buttonStyle(.borderedProminent)
+      .buttonBorderShape(.capsule)
+      .foregroundStyle(Self.ink)
+    }
+    .task(id: error) {
+      while !Task.isCancelled, model.snip == nil {
+        try? await Task.sleep(for: .seconds(5))
+        if !Task.isCancelled { await retryLoad() }
+      }
+    }
+  }
+
+  private func retryLoad() async {
+    await model.load()
+    if model.snip != nil { model.follow() }
   }
 
   /// While a field is open its own Save and Cancel sit beside it, so the bar holds nothing (on the iPhone Duo closed or
@@ -320,7 +354,9 @@ struct SnipPage: View {
   /// room); a tap opens all of it.
   @ViewBuilder private func field(_ field: Field, compact: Bool = false, brief: Bool = false) -> some View {
     Group {
-      if model.editingField == field {
+      // Beside the snips list a field is written on the page pushed across both pages, which shares this model: only
+      // that page draws the box, or the two would take the keyboard from each other without end.
+      if model.editingField == field, !besideList {
         editor(field, compact: compact)
       } else {
         shown(field, compact: compact, brief: brief)
@@ -593,15 +629,11 @@ struct SnipPage: View {
     .padding(.horizontal, 24)
     .padding(.top, 14)
     .padding(.bottom, 6)
-    // Solid behind the buttons, with a short fade above them so the words scroll away underneath.
+    // Solid behind the buttons with a clear edge above them: the words end there rather than fading half drawn.
     .background {
-      VStack(spacing: 0) {
-        LinearGradient(colors: [Color(.systemBackground).opacity(0), Color(.systemBackground)], startPoint: .top, endPoint: .bottom)
-          .frame(height: 36)
-        Color(.systemBackground)
-      }
-      .padding(.top, -36)
-      .ignoresSafeArea()
+      Color(.systemBackground)
+        .overlay(alignment: .top) { Divider() }
+        .ignoresSafeArea()
     }
   }
 
@@ -808,17 +840,23 @@ struct SnipPage: View {
 
   // MARK: Editing
 
-  /// Opens a field; one open already is saved first (SnipPageModel.beginEditing).
+  /// Opens a field; one open already is saved first (SnipPageModel.beginEditing). Beside the snips list the page is
+  /// narrow, so the field is then written across both pages instead: the page pushed there shares this model
+  /// (AppModel.snipPage), so it opens with the field and its draft as they are.
   private func begin(_ field: Field) {
     guard model.snip != nil else { return }
     model.stopPreview()
-    Task { await model.beginEditing(field) }
+    Task {
+      await model.beginEditing(field)
+      if besideList, model.editingField == field, let openAcrossPages { openAcrossPages(SnipRoute(id: model.snipID)) }
+    }
   }
 
   private func beginAdjusting() {
     model.stopPreview()
     model.cancelEditing()
     model.adjusting = true
+    if besideList, let openAcrossPages { openAcrossPages(SnipRoute(id: model.snipID)) }
   }
 
   private func cancelAdjusting() {
@@ -842,8 +880,10 @@ struct SnipPage: View {
     /// separated by `|`), and `-saveFieldAfter <s>` presses its Save that many seconds later.
     private func debugLaunch() async {
       let defaults = UserDefaults.standard
+      // With `-openSnip`, only that snip's page (beside the list, the newest's page can come first).
+      if let only = defaults.string(forKey: "openSnip"), only != model.snipID { return }
       switch defaults.string(forKey: "snipMode") {
-      case "title": await model.beginEditing(.title)
+      case "title": begin(.title)
       case "adjust": beginAdjusting()
       case "play": model.togglePreview(pausing: engine)
       default: break

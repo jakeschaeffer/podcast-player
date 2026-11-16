@@ -67,8 +67,14 @@ private struct UnfoldedReadableWidth: ViewModifier {
 /// screen rather than on the safe area, so the hinge falls in it even where the insets at the two edges differ (the
 /// Duo's camera and status bar keep to one side). Each page gets the width from its screen edge's inset to the gap;
 /// the pages pad their own outer edges.
+///
+/// `split: false` gives the leading page the whole width and leaves the trailing one out, in the same place in the
+/// view tree, so a list that is the leading page keeps its identity (and its scroll position) when the device folds
+/// or turns. `gapFill` paints the gap at the fold, so two pages of the same background read as one sheet.
 struct HingeSplit<Leading: View, Trailing: View>: View {
+  var split = true
   var gap: CGFloat = 48
+  var gapFill: Color = .clear
   @ViewBuilder var leading: Leading
   @ViewBuilder var trailing: Trailing
 
@@ -76,9 +82,11 @@ struct HingeSplit<Leading: View, Trailing: View>: View {
     GeometryReader { geo in
       let fold = Fold.x(in: geo)
       HStack(spacing: 0) {
-        leading.frame(width: max(0, fold - gap / 2))
-        Color.clear.frame(width: gap).accessibilityHidden(true)
-        trailing.frame(width: max(0, geo.size.width - fold - gap / 2))
+        leading.frame(width: split ? max(0, fold - gap / 2) : geo.size.width)
+        if split {
+          gapFill.frame(width: gap).ignoresSafeArea().accessibilityHidden(true)
+          trailing.frame(width: max(0, geo.size.width - fold - gap / 2))
+        }
       }
     }
   }
@@ -122,10 +130,25 @@ enum Fold {
     return (geo.size.height + insets.top + insets.bottom) / 2 - insets.top
   }
 
+  /// Half open with the fold across: the Duo standing like a small laptop, its top half upright and its bottom half
+  /// flat on the table. iOS 27.1 marks the division region active only while the hinge is partly folded.
+  static func isStanding(in geo: GeometryProxy) -> Bool {
+    if #available(iOS 27.1, *) {
+      return geo.reservedRegions(kind: .division).contains { $0.isActive && $0.frame.width > $0.frame.height }
+    }
+    return false
+  }
+
   @available(iOS 27.1, *)
   private static func division(in geo: GeometryProxy, vertical: Bool) -> CGRect? {
     geo.reservedRegions(kind: .division, options: .includeInactive)
       .map(\.frame)
       .first { vertical ? $0.height > $0.width : $0.width > $0.height }
   }
+}
+
+extension EnvironmentValues {
+  /// The page is the right page beside a list (the iPhone Duo open and held wide), not one pushed on its own: the
+  /// navigation bar's title is the list's, so the page leaves the bar's title alone.
+  @Entry var besideList = false
 }
