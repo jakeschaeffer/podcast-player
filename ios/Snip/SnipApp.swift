@@ -62,12 +62,33 @@ struct RootView: View {
   @State private var showPlayer = false
   @State private var tab = 0
   @State private var todayPath = NavigationPath()
+  /// When the device was last folded or opened, and whether the player is being shown again after it (`ended`).
+  @State private var foldedAt = Date.distantPast
+  @State private var reopening = false
 
   /// The iPhone Duo open: a sheet there is a floating card with the screen showing round it, so the player takes the
   /// whole display instead (and is closed with its own button). Folding it moves the player to a sheet and back.
   private var unfolded: Bool { UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
   /// An episode is in the player, or on its way into it.
   private var hasEpisode: Bool { model.engine.episode != nil || model.engine.status == .loading }
+
+  /// The player's sheet or cover was dismissed on its own kind of display: closed by the owner, unless the device was
+  /// folded or opened a moment ago. Then it is the hand-over between the two going wrong (the new one can't be shown
+  /// while the old one is still leaving, and SwiftUI reports it dismissed), so the player is shown again once that is
+  /// done, with the snip page it had (AppModel.playerSnip).
+  private func ended() {
+    guard Date.now.timeIntervalSince(foldedAt) < 2 else {
+      showPlayer = false
+      return
+    }
+    reopening = true
+    showPlayer = false
+    Task {
+      try? await Task.sleep(for: .milliseconds(800))
+      showPlayer = true
+      reopening = false
+    }
+  }
 
   var body: some View {
     TabView(selection: $tab) {
@@ -86,10 +107,10 @@ struct RootView: View {
     .modifier(MiniPlayerAccessory(showPlayer: $showPlayer, enabled: !model.readingSideways && hasEpisode))
     // Each presentation is shown only on its own kind of display; one dismissed because the device was folded or
     // opened leaves `showPlayer` alone, so the other takes over.
-    .sheet(isPresented: Binding(get: { showPlayer && !unfolded }, set: { if !$0, !unfolded { showPlayer = false } })) {
+    .sheet(isPresented: Binding(get: { showPlayer && !unfolded }, set: { if !$0, !unfolded { ended() } })) {
       player(fullScreen: false)
     }
-    .fullScreenCover(isPresented: Binding(get: { showPlayer && unfolded }, set: { if !$0, unfolded { showPlayer = false } })) {
+    .fullScreenCover(isPresented: Binding(get: { showPlayer && unfolded }, set: { if !$0, unfolded { ended() } })) {
       player(fullScreen: true).unfoldedTypeScale()
     }
     // The same, opened from the Snips tab with the player down.
@@ -98,7 +119,8 @@ struct RootView: View {
     }
     // The player closed (not just moved by a fold): the snip page pushed in it goes with it, as it did when the page
     // lived in the player's own state.
-    .onChange(of: showPlayer) { _, shown in if !shown { model.playerSnip = nil } }
+    .onChange(of: showPlayer) { _, shown in if !shown, !reopening { model.playerSnip = nil } }
+    .onChange(of: unfolded) { foldedAt = .now }
     // The Live Activity's title was tapped: the player takes it from there (PlayerView.openRename).
     .onChange(of: model.renameRequest, initial: true) { _, id in if id != nil { showPlayer = true } }
     #if DEBUG

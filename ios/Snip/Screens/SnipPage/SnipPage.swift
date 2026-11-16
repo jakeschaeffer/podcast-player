@@ -261,6 +261,11 @@ struct SnipPage: View {
           try? await Task.sleep(for: .milliseconds(450))
           withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(field, anchor: .top) }
         }
+        // And whenever the keyboard comes up late (after the device was folded or opened), so it never covers the field.
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+          guard let field = model.editingField else { return }
+          withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(field, anchor: .top) }
+        }
     }
   }
 
