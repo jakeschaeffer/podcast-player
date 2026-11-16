@@ -34,7 +34,8 @@ device token in `devices.create.json` belongs to a throwaway test database.
 | `snips.create`, `snips.create.selecting`, `snips.create.waiting` | A tap: on a transcribed recording, and on one still waiting for its transcript |
 | `snips.get.ready`, `snips.get.failed` | The result card's end states |
 | `snips.edit` | A boundary edit with `if_revision` (new revision, `preparing`) |
-| `snips.list` | The Snips screen |
+| `snips.list` | Every snip, newest first; with `episode_id`, one episode's snips in episode order |
+| `snips.episodes`, `snips.shows` | The Snips screen: episodes snipped from, the newest first, and the shows for its filter |
 | `readwise.summary`, `readwise.retries` | The account menu's Readwise line: snips of the past month in Readwise, a failed send (the recorder's Readwise refuses the token after the first highlight), and sending the failures again. Every snip shape carries its `readwise` state |
 | `episodes.share.create`, `episodes.share.get` | Share all |
 | `public.snip`, `public.episode` | What a shared link's `.json` twin returns (for rendering universal links) |

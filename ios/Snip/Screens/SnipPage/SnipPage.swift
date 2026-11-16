@@ -872,7 +872,7 @@ struct SnipPage: View {
     /// separated by `|`), and `-saveFieldAfter <s>` presses its Save that many seconds later.
     private func debugLaunch() async {
       let defaults = UserDefaults.standard
-      // With `-openSnip`, only that snip's page (beside the list, the newest's page can come first).
+      // With `-openSnip`, only that snip's page.
       if let only = defaults.string(forKey: "openSnip"), only != model.snipID { return }
       switch defaults.string(forKey: "snipMode") {
       case "title": begin(.title)

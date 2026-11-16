@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/snips/shows"
+  },
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "feed_id": "01M7JYRTB96PQK6VJ5K21RX3J9",
+        "title": "Fixture Show",
+        "image_url": null,
+        "episode_count": 1,
+        "snip_count": 1,
+        "last_snipped_at": 1799999999500
+      }
+    ]
+  }
+}

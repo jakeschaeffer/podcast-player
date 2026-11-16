@@ -15,11 +15,13 @@ enum OpenAPI {
     let path = url.split(separator: "?", maxSplits: 1).first.map(String.init) ?? url
     let paths = document["paths"] as? [String: [String: Any]] ?? [:]
     let segments = path.split(separator: "/")
-    let template = paths.keys.first { key in
+    // As the server's router does, a literal segment wins over a placeholder: /v1/snips/episodes is not /v1/snips/{id}.
+    let template = paths.keys.filter { key in
       let parts = key.split(separator: "/")
       return parts.count == segments.count
         && zip(parts, segments).allSatisfy { $0.hasPrefix("{") || $0 == $1 }
     }
+    .min { $0.filter { $0 == "{" }.count < $1.filter { $0 == "{" }.count }
     guard let template, let operation = paths[template]?[method] as? [String: Any] else { return nil }
     let responses = operation["responses"] as? [String: Any]
     let response = responses?[status] as? [String: Any]

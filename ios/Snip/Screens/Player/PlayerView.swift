@@ -134,7 +134,14 @@ struct PlayerView: View {
       }
     }
     .sheet(isPresented: $showingSnips, onDismiss: { Task { await engine.refreshEpisode() } }) {
-      if let ep = engine.episode { EpisodeSnipsView(episode: ep) }
+      if let ep = engine.episode {
+        NavigationStack {
+          EpisodeSnipsPage(episode: SnipsEpisode(id: ep.id, title: ep.title, showTitle: ep.showTitle, imageUrl: model.artwork(episodeImage: ep.imageUrl, feedID: ep.feedId)))
+            .toolbar {
+              ToolbarItem(placement: .cancellationAction) { Button("Done") { showingSnips = false } }
+            }
+        }
+      }
     }
     // A snip the server finished counts towards the episode's total; re-read it so the badge keeps up.
     .onChange(of: model.snipCard?.snip?.revision?.status == .ready) { _, ready in

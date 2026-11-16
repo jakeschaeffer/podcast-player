@@ -1,215 +1,306 @@
 import PodcastAPI
 import SwiftUI
+import SyncKit
 
-/// Every snip, newest first, paged with the server's cursor. Tap one to open its page; swipe to delete. On the iPhone
-/// Duo open and held wide, the list is the left page and the chosen snip the right, one each side of the fold: a tap
-/// chooses a snip instead of pushing it, and the newest is chosen until another is. The right page is for reading:
-/// starting to edit there (a tap on the title, Adjust), a second tap on the chosen row or Open pushes the snip across
-/// both pages, its title and words each on a page of their own, where there is room to type. Folding or turning the
-/// Duo away from wide pushes the snip that was chosen, so it stays on screen.
+/// The episodes snipped from, the one snipped from most recently first: each its cover, its title large and one line
+/// with the show and how many snips. One button at the top keeps a single show's. A tap opens the episode's snips
+/// (EpisodeSnipsPage), with Share all at its top; a tap there opens a snip's page. Taps made with no connection count
+/// on their episode's row ("1 not sent") until they are sent, and an episode that has nothing else yet shows by them
+/// alone.
+///
+/// On the iPhone Duo open and held wide, the episodes are the left page and the chosen one's snips the right, one each
+/// side of the fold, as the Library sets a show beside its episodes: a tap chooses an episode instead of pushing it,
+/// and the newest is chosen until another is. A snip opens across both pages. Folding or turning the Duo away from
+/// wide pushes the episode that was chosen, so it stays on screen.
 struct SnipsView: View {
   @Environment(AppModel.self) private var model
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @Environment(\.verticalSizeClass) private var verticalSizeClass
-  @State private var snips: [Snip] = []
+  @State private var episodes: [SnipEpisode] = []
   @State private var next: String?
   @State private var error: String?
   @State private var loading = false
-  @State private var loadingMore = false
   @State private var loaded = false
-  @State private var opened: SnipRoute?
-  /// The snip on the right page when the list and a snip share the screen; nil chooses the newest.
+  @State private var reloadWanted = false
+  /// One show's episodes only; nil for all of them.
+  @State private var show: SnipShow?
+  @State private var shows: [SnipShow] = []
+  @State private var choosingShow = false
+  /// An episode's snips pushed over the list.
+  @State private var opened: SnipsEpisode?
+  /// A snip's page over the list: opened from the episode beside it, or by a launch link.
+  @State private var openedSnip: SnipRoute?
+  /// The episode on the right page when the list and an episode share the screen; nil chooses the newest.
   @State private var chosen: ULID?
-  /// A snip chosen by something other than a tap on its row (a launch link, a delete): the list scrolls to it once it
-  /// is loaded, loading further pages to find it.
-  @State private var revealing: ULID?
   @State private var size = CGSize.zero
+  @ScaledMetric(relativeTo: .title) private var coverSize: CGFloat = 80
 
-  /// The iPhone Duo open and held wide: the list beside the chosen snip.
+  /// The iPhone Duo open and held wide: the episodes beside the chosen one's snips.
   private var spread: Bool {
     UnfoldedDisplay.isSpread(horizontal: horizontalSizeClass, vertical: verticalSizeClass, size: size)
   }
-  /// The snip on the right page: the one chosen (perhaps further down than the pages loaded so far), else the newest.
-  private var shown: ULID? { chosen ?? snips.first?.id }
+
+  /// The server's episodes with the taps still on the phone counted in, and an episode of the filter's show that has
+  /// only waiting taps so far put in by when they were made.
+  private var rows: [Row] {
+    let waiting = Dictionary(grouping: model.waitingSnips.filter { matchesFilter($0) }, by: \.episodeID)
+    var rows = episodes.map {
+      let taps = waiting[$0.episodeId] ?? []
+      return Row(episode: SnipsEpisode($0), count: $0.snipCount, waiting: taps.count, at: max($0.lastSnippedAt, taps.map(\.body.capturedAt).max() ?? 0))
+    }
+    let listed = Set(episodes.map(\.episodeId))
+    for (id, taps) in waiting where !listed.contains(id) {
+      guard let tap = taps.max(by: { $0.body.capturedAt < $1.body.capturedAt }) else { continue }
+      let episode = SnipsEpisode(id: id, title: tap.episodeTitle ?? "Episode", showTitle: tap.showTitle, imageUrl: tap.imageUrl)
+      rows.append(Row(episode: episode, count: 0, waiting: taps.count, at: tap.body.capturedAt))
+    }
+    // The newest snip, or waiting tap, first.
+    return rows.sorted { $0.at > $1.at }
+  }
+
+  /// The episode on the right page: the one chosen, else the newest.
+  private var shown: SnipsEpisode? {
+    let all = rows
+    return all.first { $0.episode.id == chosen }?.episode ?? all.first?.episode
+  }
 
   var body: some View {
     // One list in either layout, so folding or turning keeps its scroll position.
     HingeSplit(split: spread, gapFill: Color(.systemGroupedBackground)) {
-      // The grouped list's own margin stops at the safe area, and beside the snip its edge is the gap at the fold.
+      // Beside the episode, the list's edge is the gap at the fold.
       list.contentMargins(.trailing, spread ? 8 : 0, for: .scrollContent)
     } trailing: {
-      detail
+      if let episode = shown {
+        // A new page for each episode, so nothing of the last one carries over.
+        // Its snips open across both pages from here, so folding the Duo keeps one that is open (the right page goes).
+        EpisodeSnipsPage(episode: episode) { Task { await load() } }
+          .id(episode.id)
+          .environment(\.openAcrossPages) { openedSnip = $0 }
+      }
     }
     // Measured without the keyboard, which a pushed page's title can raise: it must not turn the list into a spread.
     .background {
       Color.clear.ignoresSafeArea(.keyboard).onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
     }
     .navigationTitle("Snips")
-    .toolbar {
-      if spread, let id = shown {
-        ToolbarItem(placement: .topBarTrailing) {
-          Button { opened = SnipRoute(id: id) } label: {
-            Image(systemName: "arrow.up.left.and.arrow.down.right")
-          }
-          .accessibilityLabel("Open across both pages")
-        }
-      }
-    }
-    .task { if !loaded { await load(more: false) } }
-    // A waiting tap was sent: it is a snip now, at the top of the list.
+    .task { if !loaded { await load() } }
+    // A waiting tap was sent: it is a snip now, on its episode's row.
     .onChange(of: model.waitingSnips.count) { old, new in
-      if new < old { Task { await load(more: false) } }
+      if new < old { Task { await load() } }
     }
-    // Folded or turned away from wide with a snip chosen: it is pushed, so it stays on screen as it did before.
+    // Folded or turned away from wide with an episode chosen: it is pushed, so it stays on screen. Not over a snip
+    // opened from it, which stays in front (back from it is the list).
     .onChange(of: spread) { was, now in
-      if was, !now, opened == nil, let id = chosen { opened = SnipRoute(id: id) }
-      if now { revealing = shown }
+      if was, !now, opened == nil, openedSnip == nil, chosen != nil, let episode = shown { opened = episode }
     }
-    .navigationDestination(item: $opened) { route in
-      SnipPage(model: model.snipPage(route.id), renaming: route.renaming, adjusting: route.adjusting, onChange: replace) {
-        removed(route.id)
+    // Another show's list: start from what the phone saved for it, then ask the server.
+    .onChange(of: show) {
+      (episodes, next, loaded) = ([], nil, false)
+      Task { await load() }
+    }
+    .navigationDestination(item: $opened) { episode in
+      EpisodeSnipsPage(episode: episode) { Task { await load() } }
+    }
+    .navigationDestination(item: $openedSnip) { route in
+      SnipPage(model: model.snipPage(route.id), renaming: route.renaming, adjusting: route.adjusting) { _ in } onDelete: {
+        Task { await load() }
       }
     }
+    .sheet(isPresented: $choosingShow) { showPicker }
     #if DEBUG
-      // `-openSnip <id>` opens that snip's page at launch (chooses it, beside the list), for scripted simulator checks.
+      // `-openSnip <id>` opens that snip's page at launch; `-openSnipsEpisode <id>` that episode's snips (chosen,
+      // beside the list, when they share the screen). For scripted simulator checks.
       .task {
-        if let id = UserDefaults.standard.string(forKey: "openSnip") {
-          // The first layout says whether the list and the snip share the screen.
-          while size == .zero { try? await Task.sleep(for: .milliseconds(20)) }
-          if spread { choose(id) } else { opened = SnipRoute(id: id) }
+        // Once per launch: the list appears again each time a page pushed over it is closed.
+        guard !Self.launchArgumentsUsed else { return }
+        Self.launchArgumentsUsed = true
+        let defaults = UserDefaults.standard
+        if let id = defaults.string(forKey: "openSnip") {
+          openedSnip = SnipRoute(id: id)
+        } else if let id = defaults.string(forKey: "openSnipsEpisode") {
+          // The first layout says whether the list and an episode share the screen.
+          while size == .zero || !loaded { try? await Task.sleep(for: .milliseconds(20)) }
+          if spread {
+            chosen = id
+          } else if let row = rows.first(where: { $0.episode.id == id }) {
+            opened = row.episode
+          }
         }
+        if defaults.bool(forKey: "chooseSnipsShow") { choosingShow = true }
       }
     #endif
   }
 
-  /// The chosen snip's own page, beside the list, for reading. A new page for each snip, so nothing of the last one
-  /// carries over. Editing it pushes it across both pages.
-  @ViewBuilder private var detail: some View {
-    if let id = shown {
-      SnipPage(model: model.snipPage(id), onChange: replace) { removed(id) }
-        .id(id)
-        .environment(\.besideList, true)
-        .environment(\.openAcrossPages) { opened = $0 }
-    }
-  }
+  #if DEBUG
+    @MainActor private static var launchArgumentsUsed = false
+  #endif
 
-  private func tapped(_ snip: Snip) {
-    if spread && shown != snip.id {
-      chosen = snip.id
-    } else {
-      opened = SnipRoute(id: snip.id)
-    }
-  }
-
-  /// Chooses a snip from elsewhere than its row, and brings its row into view.
-  private func choose(_ id: ULID) {
-    chosen = id
-    revealing = id
-  }
+  // MARK: The list
 
   private var list: some View {
-    ScrollViewReader { proxy in
-      rows
-        .onChange(of: revealing) { reveal(proxy) }
-        .onChange(of: snips) { reveal(proxy) }
-    }
-  }
-
-  /// Scrolls the snip being revealed to the middle of the list, loading more pages (a few at most) while it isn't
-  /// among those loaded.
-  private func reveal(_ proxy: ScrollViewProxy) {
-    guard let id = revealing, spread, loaded else { return }
-    if snips.contains(where: { $0.id == id }) {
-      revealing = nil
-      Task { withAnimation { proxy.scrollTo(id, anchor: .center) } }
-    } else if next != nil, !loading, snips.count < 300 {
-      Task { await load(more: true) }
-    } else if !loading {
-      revealing = nil
-    }
-  }
-
-  private var rows: some View {
     List {
-      if let error { Text(error).foregroundStyle(.secondary) }
-      // Taps made with no connection, until they are sent; a tap opens one to name it or change its length.
-      if !model.waitingSnips.isEmpty {
-        Section("Waiting to send") {
-          ForEach(model.waitingSnips.reversed()) { pending in
-            Button { model.editingWaiting = pending } label: { WaitingSnipRow(pending: pending) }
-              .buttonStyle(.plain)
-              .swipeActions {
-                Button("Delete", systemImage: "trash", role: .destructive) { Task { await model.deleteWaiting(pending.id) } }
-              }
-          }
-        }
-      }
-      ForEach(snips) { snip in
-        let marked = spread && snip.id == shown
-        // Beside the snip, the row is its title and one line: the right page has the episode and the show.
-        Button { tapped(snip) } label: { SnipRow(snip: snip, compact: spread, marked: marked) }
+      filterButton
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 4, leading: 20, bottom: 8, trailing: 20))
+      if let error { Text(error).font(.body).foregroundStyle(.secondary) }
+      ForEach(rows) { row in
+        let marked = spread && row.episode.id == shown?.id
+        Button { tapped(row.episode) } label: { episodeRow(row, marked: marked) }
           .buttonStyle(.plain)
           .listRowBackground(marked ? ChosenRowBackground() : nil)
           .accessibilityAddTraits(marked ? .isSelected : [])
-          .swipeActions {
-            Button("Delete", systemImage: "trash", role: .destructive) { Task { await delete(snip) } }
-          }
-          .onAppear { if snip.id == snips.last?.id, next != nil { Task { await load(more: true) } } }
+          .onAppear { if row.episode.id == episodes.last?.episodeId, next != nil { Task { await load(more: true) } } }
       }
-      if loading && loadingMore { ProgressView().frame(maxWidth: .infinity) }
+      if loading && next != nil { ProgressView().frame(maxWidth: .infinity) }
     }
+    .listStyle(.plain)
     .overlay {
       if !loaded && error == nil {
         ProgressView()
-      } else if loaded && snips.isEmpty && error == nil && model.waitingSnips.isEmpty {
-        ContentUnavailableView("No snips yet", systemImage: "scissors",
-          description: Text("Tap the scissors in the player to save a moment."))
+      } else if loaded && rows.isEmpty && error == nil {
+        ContentUnavailableView(
+          show == nil ? "No snips yet" : "No snips from this show", systemImage: "scissors",
+          description: Text(show == nil ? "Tap the scissors in the player to save a moment." : ""))
       }
     }
-    .refreshable { await load(more: false) }
+    .refreshable { await load() }
   }
 
-  /// A snip is gone from the list. If it was the one beside the list, the next one down takes its place (the one
-  /// above, if it was the last). Elsewhere nothing is chosen, so the newest stays the default when the Duo next opens.
-  private func removed(_ id: ULID) {
-    guard let i = snips.firstIndex(where: { $0.id == id }) else { return }
-    if chosen == id || (spread && shown == id) {
-      let rest = snips.indices.filter { $0 != i }
-      if let next = (rest.first { $0 > i } ?? rest.last).map({ snips[$0].id }) {
-        choose(next)
-      } else {
-        chosen = nil
+  /// All shows, or the one kept: a tap opens the list of shows to choose from.
+  private var filterButton: some View {
+    Button { choosingShow = true } label: {
+      HStack(spacing: 12) {
+        Text(show.map { $0.title ?? "Untitled show" } ?? "All shows").lineLimit(1)
+        Spacer(minLength: 8)
+        Image(systemName: "chevron.down").font(.body.weight(.bold)).foregroundStyle(.secondary)
+      }
+      .font(.title3.weight(.bold))
+      .padding(.horizontal, 20)
+      .frame(maxWidth: .infinity, minHeight: 56)
+      .background(Color(.secondarySystemFill), in: .capsule)
+      .contentShape(.capsule)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(show.map { "Showing \($0.title ?? "one show"). Choose a show" } ?? "All shows. Choose a show")
+  }
+
+  private func episodeRow(_ row: Row, marked: Bool) -> some View {
+    HStack(alignment: .top, spacing: 16) {
+      Artwork(url: row.episode.imageUrl, size: coverSize)
+      VStack(alignment: .leading, spacing: 6) {
+        Text(row.episode.title)
+          .font(.title.weight(.bold))
+          .lineLimit(3).multilineTextAlignment(.leading)
+        // The show gives way first: the count and anything not sent always show whole.
+        HStack(spacing: 0) {
+          // Under a show's filter, the button above already says the show.
+          if show == nil, let show = row.episode.showTitle {
+            Text(show).lineLimit(1)
+            if row.count > 0 || row.waiting > 0 { Text(" · ").fixedSize() }
+          }
+          if row.count > 0 { Text(row.count == 1 ? "1 snip" : "\(row.count) snips").fixedSize() }
+          if row.waiting > 0 {
+            Text("\(row.count > 0 ? " · " : "")\(row.waiting) not sent").bold().foregroundStyle(Color.accentColor).fixedSize()
+          }
+        }
+        .font(.body).foregroundStyle(.secondary)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .padding(.vertical, 10)
+    .padding(.leading, marked ? 6 : 0)
+    .contentShape(.rect)
+  }
+
+  private func tapped(_ episode: SnipsEpisode) {
+    if spread {
+      chosen = episode.id
+    } else {
+      opened = episode
+    }
+  }
+
+  // MARK: Choosing a show
+
+  private var showPicker: some View {
+    NavigationStack {
+      List {
+        showChoice(nil)
+        ForEach(shows) { showChoice($0) }
+      }
+      .listStyle(.plain)
+      .navigationTitle("Show")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .cancellationAction) { Button("Done") { choosingShow = false } }
       }
     }
-    snips.remove(at: i)
+    .task { await loadShows() }
   }
 
-  private func delete(_ snip: Snip) async {
-    removed(snip.id)
-    do {
-      try await model.api.deleteSnip(snip.id)
-      error = nil
-    } catch {
-      self.error = error.localizedDescription
-      await load(more: false)
+  private func showChoice(_ choice: SnipShow?) -> some View {
+    Button {
+      show = choice
+      chosen = nil
+      choosingShow = false
+    } label: {
+      HStack(spacing: 14) {
+        if let choice {
+          Artwork(url: choice.imageUrl, size: 56)
+        } else {
+          Image(systemName: "square.stack").font(.title2).frame(width: 56, height: 56)
+            .background(Color(.secondarySystemFill), in: .rect(cornerRadius: 7))
+        }
+        Text(choice.map { $0.title ?? "Untitled show" } ?? "All shows").font(.title3.weight(.semibold)).lineLimit(2)
+        Spacer(minLength: 8)
+        if choice?.feedId == show?.feedId {
+          Image(systemName: "checkmark").font(.title3.weight(.bold)).foregroundStyle(Color.accentColor)
+        } else if let choice {
+          Text("\(choice.episodeCount)").font(.body).foregroundStyle(.secondary)
+        }
+      }
+      .padding(.vertical, 6)
+      .contentShape(.rect)
     }
+    .buttonStyle(.plain)
+    .accessibilityAddTraits(choice?.feedId == show?.feedId ? .isSelected : [])
   }
 
-  private func replace(_ snip: Snip) {
-    if let i = snips.firstIndex(where: { $0.id == snip.id }) { snips[i] = snip }
+  // MARK: Loading
+
+  /// A waiting tap belongs under the filter when its show's name is the one kept (a tap knows its show only by name).
+  private func matchesFilter(_ tap: SnipOutbox.Pending) -> Bool {
+    guard let show else { return true }
+    return tap.showTitle != nil && tap.showTitle == show.title
   }
 
-  private func load(more: Bool) async {
-    guard !loading else { return }
+  /// One load at a time. A fresh load asked for meanwhile (another show chosen, a snip sent) runs as soon as this
+  /// one ends, so the list always ends up as the latest ask wanted.
+  private func load(more: Bool = false) async {
+    guard !loading else {
+      if !more { reloadWanted = true }
+      return
+    }
     loading = true
-    loadingMore = more
-    defer { loading = false }
-    if !more, !loaded, snips.isEmpty, let saved = model.api.savedSnips(limit: 30), !saved.items.isEmpty {
-      (snips, next, loaded) = (saved.items, saved.next, true)
+    let feed = show?.feedId
+    defer {
+      loading = false
+      if reloadWanted {
+        reloadWanted = false
+        Task { await load() }
+      }
+    }
+    if !more, !loaded || episodes.isEmpty, let saved = model.api.savedSnipEpisodes(feedID: feed) {
+      (episodes, next, loaded) = (saved.items, saved.next, true)
     }
     do {
-      let page = try await model.api.snips(limit: 30, after: more ? next : nil)
-      snips = more ? snips + page.items : page.items
+      let page = try await model.api.snipEpisodes(feedID: feed, after: more ? next : nil)
+      // Another show was chosen while this was on its way: its load follows this one.
+      guard feed == show?.feedId else {
+        reloadWanted = true
+        return
+      }
+      episodes = more ? episodes + page.items.filter { item in !episodes.contains { $0.episodeId == item.episodeId } } : page.items
       next = page.next
       error = nil
     } catch {
@@ -217,82 +308,33 @@ struct SnipsView: View {
     }
     loaded = true
   }
+
+  private func loadShows() async {
+    if shows.isEmpty, let saved = model.api.savedSnipShows() { shows = saved }
+    if let fresh = try? await model.api.snipShows() { shows = fresh }
+  }
+
+  struct Row: Identifiable {
+    let episode: SnipsEpisode
+    /// Snips the server has.
+    let count: Int
+    /// Taps still on the phone.
+    let waiting: Int
+    /// When the newest of them was made.
+    let at: Int
+    var id: ULID { episode.id }
+  }
 }
 
 extension EnvironmentValues {
-  /// Beside the list, the page asks for this to edit: the snip is pushed across both pages, in the mode asked for.
+  /// Beside a list, a snip's page asks for this to edit: the snip is pushed across both pages, in the mode asked for.
   @Entry var openAcrossPages: ((SnipRoute) -> Void)? = nil
 }
 
-/// The chosen row beside the snip: a deeper tint with a thick accent bar at its leading edge, plain at arm's length.
+/// The chosen row beside its page: a deeper tint with a thick accent bar at its leading edge, plain at arm's length.
 struct ChosenRowBackground: View {
   var body: some View {
     Color.accentColor.opacity(0.22)
       .overlay(alignment: .leading) { Color.accentColor.frame(width: 8) }
-  }
-}
-
-struct SnipRow: View {
-  let snip: Snip
-  /// Beside the chosen snip: the title larger, then one line of where, how long and when.
-  var compact = false
-  /// The snip on the right page.
-  var marked = false
-
-  var body: some View {
-    if compact {
-      VStack(alignment: .leading, spacing: 6) {
-        Text(title).font(.title2.weight(marked ? .bold : .semibold)).lineLimit(3)
-        HStack(spacing: 0) {
-          if let rev = snip.revision {
-            Text("\(Format.clock(rev.startMs)) · \(Format.duration(rev.endMs - rev.startMs)) · ").monospacedDigit()
-          }
-          if let status = statusLabel { Text("\(status) · ") }
-          Text(Date(timeIntervalSince1970: Double(snip.capturedAt ?? snip.createdAt) / 1000), format: .relative(presentation: .named))
-        }
-        .font(.body).foregroundStyle(.secondary).lineLimit(1)
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.vertical, 12)
-      .padding(.leading, 6)
-      .contentShape(.rect)
-    } else {
-      full
-    }
-  }
-
-  private var full: some View {
-    HStack(alignment: .top, spacing: 12) {
-      Artwork(url: snip.imageUrl, size: 44).padding(.top, 2)
-      VStack(alignment: .leading, spacing: 3) {
-        Text(title).font(.body.weight(.medium)).lineLimit(2)
-        Text(snip.episodeTitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-        HStack(spacing: 0) {
-          if let show = snip.showTitle { Text(show).lineLimit(1) }
-          if let rev = snip.revision {
-            Text("\(snip.showTitle == nil ? "" : " · ")\(Format.clock(rev.startMs)) · \(Format.duration(rev.endMs - rev.startMs))")
-              .monospacedDigit().fixedSize()
-          }
-          if let status = statusLabel { Text(" · \(status)").fixedSize() }
-          Spacer(minLength: 8)
-          Text(Date(timeIntervalSince1970: Double(snip.capturedAt ?? snip.createdAt) / 1000), format: .relative(presentation: .named)).fixedSize()
-        }
-        .font(.caption).foregroundStyle(.secondary)
-      }
-    }
-    .padding(.vertical, 2)
-  }
-
-  private var title: String {
-    snip.revision?.title ?? (snip.isPending ? "Choosing the moment…" : "Snip")
-  }
-
-  private var statusLabel: String? {
-    switch snip.revision?.status {
-    case .waiting: "waiting for transcript"
-    case .selecting, .preparing, nil: "preparing"
-    case .failed: "failed"
-    default: nil
-    }
   }
 }

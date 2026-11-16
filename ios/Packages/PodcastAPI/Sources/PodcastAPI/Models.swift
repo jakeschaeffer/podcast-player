@@ -793,6 +793,47 @@ public struct EvalRunDetail: Codable, Sendable {
   public let cases: [Case]
 }
 
+// MARK: - Snips by episode
+
+/// An episode the owner has snipped from (`GET /v1/snips/episodes`): the Snips tab's row.
+public struct SnipEpisode: Codable, Sendable, Hashable, Identifiable {
+  public let episodeId: ULID
+  public let episodeTitle: String
+  public let feedId: ULID
+  public let showTitle: String?
+  /// The episode's artwork, else its show's.
+  public let imageUrl: String?
+  public let snipCount: Int
+  /// When the newest of its snips was made.
+  public let lastSnippedAt: Int
+  public var id: ULID { episodeId }
+
+  public init(episodeId: ULID, episodeTitle: String, feedId: ULID, showTitle: String?, imageUrl: String?, snipCount: Int, lastSnippedAt: Int) {
+    self.episodeId = episodeId
+    self.episodeTitle = episodeTitle
+    self.feedId = feedId
+    self.showTitle = showTitle
+    self.imageUrl = imageUrl
+    self.snipCount = snipCount
+    self.lastSnippedAt = lastSnippedAt
+  }
+}
+
+/// A show the owner has snipped from (`GET /v1/snips/shows`), for the Snips tab's filter.
+public struct SnipShow: Codable, Sendable, Hashable, Identifiable {
+  public let feedId: ULID
+  public let title: String?
+  public let imageUrl: String?
+  public let episodeCount: Int
+  public let snipCount: Int
+  public let lastSnippedAt: Int
+  public var id: ULID { feedId }
+}
+
+public struct SnipShowList: Codable, Sendable {
+  public let items: [SnipShow]
+}
+
 // MARK: - Sharing and status
 
 public struct EpisodeShare: Codable, Sendable {
