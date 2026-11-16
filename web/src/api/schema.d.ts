@@ -3582,6 +3582,7 @@ export interface paths {
                                     youtube_id: string | null;
                                 }[];
                                 cost_dollars: number | null;
+                                podcast_index_calls: number | null;
                                 created_at: number;
                                 completed_at: number | null;
                             }[];
@@ -3685,6 +3686,7 @@ export interface paths {
                                 youtube_id: string | null;
                             }[];
                             cost_dollars: number | null;
+                            podcast_index_calls: number | null;
                             created_at: number;
                             completed_at: number | null;
                         };
@@ -3765,6 +3767,7 @@ export interface paths {
                                 youtube_id: string | null;
                             }[];
                             cost_dollars: number | null;
+                            podcast_index_calls: number | null;
                             created_at: number;
                             completed_at: number | null;
                         };
@@ -3904,6 +3907,7 @@ export interface paths {
                                 youtube_id: string | null;
                             }[];
                             cost_dollars: number | null;
+                            podcast_index_calls: number | null;
                             created_at: number;
                             completed_at: number | null;
                         };

@@ -35,7 +35,7 @@ describe("the Exa adapter", () => {
     const fakeFetch = (async (url: string, init: RequestInit) => {
       calls.push({ url, init });
       if (init.method === "POST") return Response.json({ id: "agent_run_01", status: "queued" });
-      return Response.json({ id: "agent_run_01", status: "completed", output: { structured: { episodes: [{ podcast: "Huberman Lab", episode: "Sleep and Memory", start_seconds: 61.6, url: "javascript:alert(1)" }] } }, costDollars: { total: 0.055 } });
+      return Response.json({ id: "agent_run_01", status: "completed", output: { structured: { episodes: [{ podcast: "Huberman Lab", episode: "Sleep and Memory", start_seconds: 61.6, url: "javascript:alert(1)" }] } }, costDollars: { total: 0.055 }, usage: { agentComputeUnits: 0.2, searches: 1, dataSources: { particle: 3 } } });
     }) as unknown as typeof fetch;
     const exa = new ExaPodcastSearch({ apiKey: "test-key", effort: "low", fetch: fakeFetch, base: "https://exa.test" });
     expect(await exa.start("sleep and memory")).toEqual({ run_id: "agent_run_01" });
@@ -46,12 +46,16 @@ describe("the Exa adapter", () => {
     expect(body).toMatchObject({ effort: "low", dataSources: [{ provider: "particle" }] });
     expect(body.query).toContain("sleep and memory");
     expect(body.outputSchema.properties.episodes.maxItems).toBe(MAX_EPISODES);
+    // What only a transcript gives is required of every episode, so the agent has to call Particle to fill it.
+    expect(body.outputSchema.properties.episodes.items.required).toEqual(expect.arrayContaining(["speaker", "quote", "start_seconds"]));
+    expect(body.systemPrompt).toMatch(/Particle podcast transcript tool/);
+    expect(body.query).toMatch(/podcast transcripts/);
     expect(body.budget).toBeUndefined(); // a fixed effort rejects a budget
 
     const run = await exa.check("agent_run_01");
     expect(calls[1]!.url).toBe("https://exa.test/agent/runs/agent_run_01");
     expect(calls[1]!.init.method).toBe("GET");
-    expect(run).toEqual({ status: "completed", cost_dollars: 0.055, episodes: [{ podcast: "Huberman Lab", episode: "Sleep and Memory", published: null, url: null, speaker: null, quote: null, why: null, start_seconds: 62 }] });
+    expect(run).toEqual({ status: "completed", cost_dollars: 0.055, podcast_index_calls: 3, episodes: [{ podcast: "Huberman Lab", episode: "Sleep and Memory", published: null, url: null, speaker: null, quote: null, why: null, start_seconds: 62 }] });
   });
 
   it("reads only completed runs as results, and refuses a bad key for good", async () => {
@@ -59,7 +63,10 @@ describe("the Exa adapter", () => {
     expect(readRun({ status: "queued" })).toEqual({ status: "running" });
     expect(readRun({ status: "failed", error: { message: "TIMEOUT" } })).toEqual({ status: "failed", error: "TIMEOUT" });
     expect(readRun({ status: "cancelled" }).status).toBe("failed");
-    expect(readRun({ status: "completed", output: { structured: null } })).toEqual({ status: "completed", episodes: [], cost_dollars: null });
+    expect(readRun({ status: "completed", output: { structured: null } })).toEqual({ status: "completed", episodes: [], cost_dollars: null, podcast_index_calls: null });
+    // A run that never called Particle reports no dataSources at all: zero calls, not unknown.
+    expect(readRun({ status: "completed", usage: {} })).toMatchObject({ podcast_index_calls: 0 });
+    expect(readRun({ status: "completed", usage: { dataSources: { particle: 4 } } })).toMatchObject({ podcast_index_calls: 4 });
     expect(foundEpisodes({ episodes: [{ podcast: "", episode: "x" }, "junk", { podcast: "P", episode: "E", start_seconds: -4 }] })).toEqual([{ podcast: "P", episode: "E", published: null, url: null, speaker: null, quote: null, why: null, start_seconds: null }]);
 
     const refused = new ExaPodcastSearch({ apiKey: "bad", effort: "low", fetch: (async () => new Response("invalid key", { status: 401 })) as unknown as typeof fetch });
@@ -143,6 +150,7 @@ describe("topic search", () => {
     const done = (await get(search.id)).json();
     expect(done.status).toBe("completed");
     expect(done.cost_dollars).toBe(0.04);
+    expect(done.podcast_index_calls).toBe(2);
     expect(done.results.map((r: { match: string }) => r.match)).toEqual(["episode", "show", "new_show", "video", "episode", "none", "episode"]);
     expect(done.results[6].episode.id).toBe(renamedId);
 

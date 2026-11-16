@@ -21,7 +21,7 @@ export type FoundEpisode = {
 
 export type PodcastSearchRun =
   | { status: "running" }
-  | { status: "completed"; episodes: FoundEpisode[]; cost_dollars: number | null }
+  | { status: "completed"; episodes: FoundEpisode[]; cost_dollars: number | null; podcast_index_calls: number | null }
   | { status: "failed"; error: string };
 
 export interface PodcastSearch {
@@ -41,7 +41,11 @@ export const MAX_EPISODES = 8;
 
 const BASE = "https://api.exa.ai";
 
-/** The run's output, `output.structured`. "from Particle" steers the agent to the podcast tool, as Exa's examples do. */
+/**
+ * The run's output, `output.structured`. Attaching Particle does not make the agent call it (Exa's "Combining
+ * providers" guide): it calls a partner when the query and the schema ask for data only that partner has. So the
+ * speaker, their words and the timestamp, which only a transcript gives, are required of every episode.
+ */
 export const OUTPUT_SCHEMA = {
   type: "object",
   required: ["episodes"],
@@ -51,29 +55,30 @@ export const OUTPUT_SCHEMA = {
       maxItems: MAX_EPISODES,
       items: {
         type: "object",
-        required: ["podcast", "episode"],
+        required: ["podcast", "episode", "speaker", "quote", "start_seconds"],
         properties: {
-          podcast: { type: "string", description: "The show's name as its feed gives it, from Particle" },
-          episode: { type: "string", description: "The episode's title as published, from Particle" },
+          podcast: { type: "string", description: "The show's name, from Particle's podcast transcripts" },
+          episode: { type: "string", description: "The episode's title, from Particle's podcast transcripts" },
           published: { type: "string", description: "The episode's release date, YYYY-MM-DD" },
-          url: { type: "string", format: "uri", description: "A page or video link for this episode, when known" },
-          speaker: { type: "string", description: "Who talks about the topic" },
-          quote: { type: "string", description: "A short line they said about it, word for word from the transcript" },
+          url: { type: "string", format: "uri", description: "The episode's own page or video link, when known" },
+          speaker: { type: "string", description: "Who says it, from Particle's speaker-attributed transcript" },
+          quote: { type: "string", description: "What they say about the topic, word for word from Particle's transcript" },
           why: { type: "string", description: "One plain sentence: what the episode says about the topic" },
-          start_seconds: { type: "number", description: "Seconds from the start of the episode where the topic comes up" },
+          start_seconds: { type: "number", description: "Seconds into the episode where they say it, from Particle's transcript timestamps" },
         },
       },
     },
   },
 } as const;
 
-const SYSTEM_PROMPT =
-  "Use the Particle podcast transcripts to find episodes. One entry per episode; never list the same episode twice. " +
-  "Keep an episode only when the topic is discussed in it, not just mentioned in passing. Give the show's name and the " +
-  "episode's title exactly as published, never paraphrased. Leave a field out when the sources do not support it.";
+export const SYSTEM_PROMPT =
+  "Find every episode with the Particle podcast transcript tool, and take each episode's speaker, quote and timestamp " +
+  "from its transcript results. Use web search only to find an episode's own page link, never as the source of an " +
+  "episode. One entry per episode; never list the same episode twice. Keep an episode only when the topic is " +
+  "discussed in it, not just mentioned in passing. Give the show's name and the episode's title exactly as published.";
 
 export function topicQuery(topic: string): string {
-  return `Find podcast episodes that discuss ${topic}, from Particle's podcast transcripts.`;
+  return `Search podcast transcripts for episodes where hosts or guests discuss ${topic}. For each episode give the show, the episode title, who is speaking, their words quoted from the transcript, and the timestamp where they say it.`;
 }
 
 export class ExaPodcastSearch implements PodcastSearch {
@@ -122,12 +127,15 @@ export type ExaRun = {
   error?: { message?: string; code?: string } | null;
   output?: { structured?: unknown } | null;
   costDollars?: { total?: number } | null;
+  /** Per-provider Exa Connect call counts; only providers the run called appear. */
+  usage?: { dataSources?: Record<string, number> } | null;
 };
 
 /** Only `completed` carries results; `failed` and `cancelled` end the run without them. */
 export function readRun(run: ExaRun): PodcastSearchRun {
   if (run.status === "completed") {
-    return { status: "completed", episodes: foundEpisodes(run.output?.structured), cost_dollars: typeof run.costDollars?.total === "number" ? run.costDollars.total : null };
+    const calls = run.usage ? (run.usage.dataSources?.particle ?? 0) : null;
+    return { status: "completed", episodes: foundEpisodes(run.output?.structured), cost_dollars: typeof run.costDollars?.total === "number" ? run.costDollars.total : null, podcast_index_calls: calls };
   }
   if (run.status === "failed") return { status: "failed", error: run.error?.message || run.error?.code || "the search failed" };
   if (run.status === "cancelled") return { status: "failed", error: "the search was cancelled" };

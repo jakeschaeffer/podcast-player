@@ -25,7 +25,7 @@ export const GIVE_UP_MS = 15 * 60_000;
 type TopicSearchRow = {
   id: string; query: string; query_key: string; client_request_id: string | null; run_id: string;
   status: "running" | "completed" | "failed"; episodes: string | null; shows: string | null; error: string | null;
-  cost_dollars: number | null; checked_at: number | null; created_at: number; completed_at: number | null;
+  cost_dollars: number | null; podcast_index_calls: number | null; checked_at: number | null; created_at: number; completed_at: number | null;
 };
 
 /**
@@ -59,6 +59,7 @@ export type TopicSearchView = {
   error: string | null;
   results: TopicResult[];
   cost_dollars: number | null;
+  podcast_index_calls: number | null;
   created_at: number;
   completed_at: number | null;
 };
@@ -164,9 +165,9 @@ async function advanceOnce(ctx: AppContext, row: TopicSearchRow): Promise<void> 
   }
   const shows = await lookUpShows(ctx, run.episodes);
   ctx.db
-    .prepare("UPDATE topic_search SET status = 'completed', episodes = ?, shows = ?, cost_dollars = ?, error = NULL, checked_at = ?, completed_at = ? WHERE id = ? AND status = 'running'")
-    .run(JSON.stringify(run.episodes), JSON.stringify(shows), run.cost_dollars, now, now, row.id);
-  ctx.log("topic search: completed", { id: row.id, episodes: run.episodes.length, cost_dollars: run.cost_dollars });
+    .prepare("UPDATE topic_search SET status = 'completed', episodes = ?, shows = ?, cost_dollars = ?, podcast_index_calls = ?, error = NULL, checked_at = ?, completed_at = ? WHERE id = ? AND status = 'running'")
+    .run(JSON.stringify(run.episodes), JSON.stringify(shows), run.cost_dollars, run.podcast_index_calls, now, now, row.id);
+  ctx.log("topic search: completed", { id: row.id, episodes: run.episodes.length, cost_dollars: run.cost_dollars, podcast_index_calls: run.podcast_index_calls });
 }
 
 /** Shows we have no feed for are looked up once in the directory (free), so the owner can open them. */
@@ -231,6 +232,7 @@ function view(ctx: AppContext, row: TopicSearchRow): TopicSearchView {
     error: row.error,
     results: found.map((f) => matchOne(ctx, f, feeds, byHash, shows[f.podcast] ?? null)),
     cost_dollars: row.cost_dollars,
+    podcast_index_calls: row.podcast_index_calls,
     created_at: row.created_at,
     completed_at: row.completed_at,
   };

@@ -86,7 +86,7 @@ export class FakePodcastSearch implements PodcastSearch {
   async start(topic: string): Promise<{ run_id: string }> {
     this.starts.push(topic);
     const run_id = `agent_run_fake${this.starts.length}`;
-    this.runs.set(run_id, { left: this.pending, outcome: { status: "completed", episodes: this.episodes, cost_dollars: 0.04 } });
+    this.runs.set(run_id, { left: this.pending, outcome: { status: "completed", episodes: this.episodes, cost_dollars: 0.04, podcast_index_calls: 2 } });
     return { run_id };
   }
   finish(runId: string, outcome: PodcastSearchRun): void {
