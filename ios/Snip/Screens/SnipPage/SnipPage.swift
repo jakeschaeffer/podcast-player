@@ -279,7 +279,7 @@ struct SnipPage: View {
           clipWords
           if model.revision?.status == .selecting || model.revision?.status == .waiting {
             // The right page would otherwise stand empty until the moment is chosen.
-            Text("The clip’s words show here once the moment is chosen.").font(.title3).foregroundStyle(.secondary)
+            Text("Words to come").font(.title3).foregroundStyle(.secondary)
           }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -450,7 +450,7 @@ struct SnipPage: View {
   }
 
   /// A field open for typing: what it is with Cancel and Save on one row above it (or under its name, when they don't
-  /// fit beside it), then the box, then a line saying how it saves, or why it didn't.
+  /// fit beside it), then the box, and under it only why it didn't save, or the note's room near its limit.
   private func editor(_ field: Field, compact: Bool) -> some View {
     VStack(alignment: .leading, spacing: 12) {
       ViewThatFits(in: .horizontal) {
@@ -487,12 +487,12 @@ struct SnipPage: View {
       }
       if let error = model.fieldError {
         Text(error).font(.body.weight(.medium)).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
-      } else if let hint = hint(field) {
-        Text(hint).font(.body).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+      } else if let room = room(field) {
+        Text(room).font(.body).monospacedDigit().foregroundStyle(.secondary)
       }
       if field == .summary, model.ownSummary {
         // Back to the generated bullets only where there are some, or some to come; else it just takes yours away.
-        Button(model.generatedSummaryAvailable ? "Use the generated summary instead" : "Remove your summary") {
+        Button(model.generatedSummaryAvailable ? "Use generated summary" : "Remove summary") {
           Task { await model.saveField(restoringGenerated: true) }
         }
         .font(.body.weight(.semibold))
@@ -572,26 +572,10 @@ struct SnipPage: View {
     }
   }
 
-  /// How the field saves, and that what is typed is kept when the generated one is still on its way.
-  private func hint(_ field: Field) -> String? {
-    switch field {
-    case .title:
-      if waitingForTranscript {
-        "A title is written once the transcript is in. Yours is kept instead. Return saves."
-      } else if model.revision?.title == nil || (model.titleIsStandIn && model.revision?.summaryStatus == "pending") {
-        "A title is still being written. Yours is kept instead. Return saves."
-      } else {
-        "Return saves."
-      }
-    case .summary:
-      summaryWriting
-        ? "A summary is still being written. Yours is kept instead. One point a line."
-        : "One point a line: Return starts the next."
-    case .note:
-      // Near the most the server keeps, say how much room is left.
-      model.draft.count > SnipPageModel.noteLimit - 500
-        ? "\(min(model.draft.count, SnipPageModel.noteLimit)) of \(SnipPageModel.noteLimit) characters." : nil
-    }
+  /// The note's length against the most the server keeps, once it is near it.
+  private func room(_ field: Field) -> String? {
+    guard field == .note, model.draft.count > SnipPageModel.noteLimit - 500 else { return nil }
+    return "\(min(model.draft.count, SnipPageModel.noteLimit)) / \(SnipPageModel.noteLimit)"
   }
 
   /// Nothing is being written yet: the recording has no transcript, and the title and summary wait on it.
@@ -727,12 +711,6 @@ struct SnipPage: View {
           field(.title, compact: true)
           field(.summary, compact: true)
           field(.note, compact: true)
-          if !typing {
-            Text("Tap a word to move the nearer end. Press and hold a word to choose which end.")
-              .font(.body)
-              .foregroundStyle(.secondary)
-              .fixedSize(horizontal: false, vertical: true)
-          }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 24)
