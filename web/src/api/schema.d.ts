@@ -3520,7 +3520,7 @@ export interface paths {
                                 /** @description running: ask again in a few seconds (a search takes about a minute); failed: see error */
                                 status: "running" | "completed" | "failed";
                                 error: string | null;
-                                /** @description Empty until completed; at most 8 */
+                                /** @description Empty until completed; at most 5 */
                                 results: {
                                     /** @description The show's name, as the search found it */
                                     podcast: string;
@@ -3624,7 +3624,7 @@ export interface paths {
                             /** @description running: ask again in a few seconds (a search takes about a minute); failed: see error */
                             status: "running" | "completed" | "failed";
                             error: string | null;
-                            /** @description Empty until completed; at most 8 */
+                            /** @description Empty until completed; at most 5 */
                             results: {
                                 /** @description The show's name, as the search found it */
                                 podcast: string;
@@ -3705,7 +3705,7 @@ export interface paths {
                             /** @description running: ask again in a few seconds (a search takes about a minute); failed: see error */
                             status: "running" | "completed" | "failed";
                             error: string | null;
-                            /** @description Empty until completed; at most 8 */
+                            /** @description Empty until completed; at most 5 */
                             results: {
                                 /** @description The show's name, as the search found it */
                                 podcast: string;
@@ -3845,7 +3845,7 @@ export interface paths {
                             /** @description running: ask again in a few seconds (a search takes about a minute); failed: see error */
                             status: "running" | "completed" | "failed";
                             error: string | null;
-                            /** @description Empty until completed; at most 8 */
+                            /** @description Empty until completed; at most 5 */
                             results: {
                                 /** @description The show's name, as the search found it */
                                 podcast: string;

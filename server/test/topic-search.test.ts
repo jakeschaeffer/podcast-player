@@ -1,7 +1,7 @@
 /** Topic search: Exa's podcast search, faked. Nothing here reaches the network or bills. */
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ExaPodcastSearch, foundEpisodes, MAX_EPISODES, readRun, type FoundEpisode } from "../src/adapters/exa.js";
+import { ExaPodcastSearch, foundEpisodes, MAX_EPISODES, readRun, secondsIn, type FoundEpisode } from "../src/adapters/exa.js";
 import type { ShowResult } from "../src/adapters/showSearch.js";
 import type { AppContext } from "../src/app/context.js";
 import { buildApp } from "../src/http/app.js";
@@ -35,7 +35,7 @@ describe("the Exa adapter", () => {
     const fakeFetch = (async (url: string, init: RequestInit) => {
       calls.push({ url, init });
       if (init.method === "POST") return Response.json({ id: "agent_run_01", status: "queued" });
-      return Response.json({ id: "agent_run_01", status: "completed", output: { structured: { episodes: [{ podcast: "Huberman Lab", episode: "Sleep and Memory", start_seconds: 61.6, url: "javascript:alert(1)" }] } }, costDollars: { total: 0.055 }, usage: { agentComputeUnits: 0.2, searches: 1, dataSources: { particle: 3 } } });
+      return Response.json({ id: "agent_run_01", status: "completed", output: { structured: { episodes: [{ podcast: "Huberman Lab", episode: "Sleep and Memory", timestamp: "1:02", url: "javascript:alert(1)" }] } }, costDollars: { total: 0.055 }, usage: { agentComputeUnits: 0.2, searches: 1, dataSources: { particle: 3 } } });
     }) as unknown as typeof fetch;
     const exa = new ExaPodcastSearch({ apiKey: "test-key", effort: "low", fetch: fakeFetch, base: "https://exa.test" });
     expect(await exa.start("sleep and memory")).toEqual({ run_id: "agent_run_01" });
@@ -47,7 +47,7 @@ describe("the Exa adapter", () => {
     expect(body.query).toContain("sleep and memory");
     expect(body.outputSchema.properties.episodes.maxItems).toBe(MAX_EPISODES);
     // What only a transcript gives is required of every episode, so the agent has to call Particle to fill it.
-    expect(body.outputSchema.properties.episodes.items.required).toEqual(expect.arrayContaining(["speaker", "quote", "start_seconds"]));
+    expect(body.outputSchema.properties.episodes.items.required).toEqual(expect.arrayContaining(["speaker", "quote", "timestamp"]));
     expect(body.systemPrompt).toMatch(/Particle podcast transcript tool/);
     expect(body.query).toMatch(/podcast transcripts/);
     expect(body.budget).toBeUndefined(); // a fixed effort rejects a budget
@@ -56,6 +56,13 @@ describe("the Exa adapter", () => {
     expect(calls[1]!.url).toBe("https://exa.test/agent/runs/agent_run_01");
     expect(calls[1]!.init.method).toBe("GET");
     expect(run).toEqual({ status: "completed", cost_dollars: 0.055, podcast_index_calls: 3, episodes: [{ podcast: "Huberman Lab", episode: "Sleep and Memory", published: null, url: null, speaker: null, quote: null, why: null, start_seconds: 62 }] });
+    expect(body.outputSchema.properties.episodes.items.required).toContain("timestamp");
+    expect(body.systemPrompt).toMatch(/once or twice/);
+  });
+
+  it("reads timestamps the way transcripts print them", () => {
+    expect([secondsIn("31:48"), secondsIn("1:02:03"), secondsIn("00:05:07.5"), secondsIn("31m48s"), secondsIn("1h2m"), secondsIn("1908"), secondsIn(61.6)]).toEqual([1908, 3723, 307, 1908, 3720, 1908, 62]);
+    expect([secondsIn("about half way"), secondsIn(""), secondsIn(-3), secondsIn(null), secondsIn("12:3")]).toEqual([null, null, null, null, null]);
   });
 
   it("reads only completed runs as results, and refuses a bad key for good", async () => {
