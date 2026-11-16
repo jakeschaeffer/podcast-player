@@ -17287,6 +17287,214 @@
         }
       }
     },
+    "/v1/snips/episodes": {
+      "get": {
+        "summary": "The episodes snipped from, the most recently snipped first, with their snip counts; `feed_id` keeps one show's",
+        "tags": [
+          "snips"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "after",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "feed_id",
+            "required": false,
+            "description": "ULID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "next"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "episode_id",
+                          "episode_title",
+                          "feed_id",
+                          "show_title",
+                          "image_url",
+                          "snip_count",
+                          "last_snipped_at"
+                        ],
+                        "properties": {
+                          "episode_id": {
+                            "minLength": 26,
+                            "maxLength": 26,
+                            "description": "ULID",
+                            "type": "string"
+                          },
+                          "episode_title": {
+                            "type": "string"
+                          },
+                          "feed_id": {
+                            "minLength": 26,
+                            "maxLength": 26,
+                            "description": "ULID",
+                            "type": "string"
+                          },
+                          "show_title": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "image_url": {
+                            "anyOf": [
+                              {
+                                "description": "The episode's artwork, else its show's",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "snip_count": {
+                            "minimum": 1,
+                            "description": "Snips from the episode, whichever of its recordings each was cut from",
+                            "type": "integer"
+                          },
+                          "last_snipped_at": {
+                            "description": "When the newest of them was made (its captured_at)",
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snips/shows": {
+      "get": {
+        "summary": "The shows snipped from, the most recently snipped first",
+        "tags": [
+          "snips"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "feed_id",
+                          "title",
+                          "image_url",
+                          "episode_count",
+                          "snip_count",
+                          "last_snipped_at"
+                        ],
+                        "properties": {
+                          "feed_id": {
+                            "minLength": 26,
+                            "maxLength": 26,
+                            "description": "ULID",
+                            "type": "string"
+                          },
+                          "title": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "image_url": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "episode_count": {
+                            "minimum": 1,
+                            "description": "Episodes of the show with a snip",
+                            "type": "integer"
+                          },
+                          "snip_count": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "last_snipped_at": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/snips/{id}": {
       "get": {
         "summary": "Snip with its current revision; poll with If-None-Match while preparing",

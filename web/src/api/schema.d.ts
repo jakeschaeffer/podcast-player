@@ -3813,6 +3813,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/snips/episodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The episodes snipped from, the most recently snipped first, with their snip counts; `feed_id` keeps one show's */
+        get: {
+            parameters: {
+                query?: {
+                    after?: string;
+                    limit?: number;
+                    /** @description ULID */
+                    feed_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                /** @description ULID */
+                                episode_id: string;
+                                episode_title: string;
+                                /** @description ULID */
+                                feed_id: string;
+                                show_title: string | null;
+                                image_url: string | null;
+                                /** @description Snips from the episode, whichever of its recordings each was cut from */
+                                snip_count: number;
+                                /** @description When the newest of them was made (its captured_at) */
+                                last_snipped_at: number;
+                            }[];
+                            next: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/snips/shows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The shows snipped from, the most recently snipped first */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                /** @description ULID */
+                                feed_id: string;
+                                title: string | null;
+                                image_url: string | null;
+                                /** @description Episodes of the show with a snip */
+                                episode_count: number;
+                                snip_count: number;
+                                last_snipped_at: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/snips/{id}": {
         parameters: {
             query?: never;

@@ -198,8 +198,39 @@ extension APIClient {
     var query = [URLQueryItem(name: "limit", value: String(limit))]
     if let episodeID { query.append(URLQueryItem(name: "episode_id", value: episodeID)) }
     if let after { query.append(URLQueryItem(name: "after", value: after)) }
-    // Only the first page of every snip is remembered: the Snips tab as it opens.
-    return try await send("GET", "/v1/snips", query: query, remember: episodeID == nil && after == nil)
+    // The first page of every snip, and each episode's snips (the episode page, offline too), are remembered.
+    return try await send("GET", "/v1/snips", query: query, remember: after == nil)
+  }
+
+  /// The episodes snipped from, the most recently snipped first; `feedID` keeps one show's.
+  public func snipEpisodes(feedID: ULID? = nil, limit: Int = 50, after: String? = nil) async throws -> Page<SnipEpisode> {
+    var query = [URLQueryItem(name: "limit", value: String(limit))]
+    if let feedID { query.append(URLQueryItem(name: "feed_id", value: feedID)) }
+    if let after { query.append(URLQueryItem(name: "after", value: after)) }
+    // The first page is remembered, for each show and for all of them: the Snips tab as it opens, offline too.
+    return try await send("GET", "/v1/snips/episodes", query: query, remember: after == nil)
+  }
+
+  /// The first page of episodes as last read with this filter and `limit`, from the phone.
+  public func savedSnipEpisodes(feedID: ULID? = nil, limit: Int = 50) -> Page<SnipEpisode>? {
+    var query = [URLQueryItem(name: "limit", value: String(limit))]
+    if let feedID { query.append(URLQueryItem(name: "feed_id", value: feedID)) }
+    return lastSeen("/v1/snips/episodes", query: query)
+  }
+
+  /// The shows snipped from, the most recently snipped first.
+  public func snipShows() async throws -> [SnipShow] {
+    let list: SnipShowList = try await send("GET", "/v1/snips/shows", remember: true)
+    return list.items
+  }
+
+  public func savedSnipShows() -> [SnipShow]? {
+    (lastSeen("/v1/snips/shows") as SnipShowList?)?.items
+  }
+
+  /// One episode's snips in episode order (no paging), as last read, from the phone.
+  public func savedEpisodeSnips(_ episodeID: ULID) -> Page<Snip>? {
+    lastSeen("/v1/snips", query: [URLQueryItem(name: "limit", value: "200"), URLQueryItem(name: "episode_id", value: episodeID)])
   }
 
   /// The newest snips as last read with this `limit`, from the phone.

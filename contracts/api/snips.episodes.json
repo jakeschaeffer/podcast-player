@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/snips/episodes?limit=50"
+  },
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "episode_id": "01M7JYRTBA14R0R0N6K88HV2QN",
+        "episode_title": "Pricing",
+        "feed_id": "01M7JYRTB96PQK6VJ5K21RX3J9",
+        "show_title": "Fixture Show",
+        "image_url": null,
+        "snip_count": 1,
+        "last_snipped_at": 1799999999500
+      }
+    ],
+    "next": null
+  }
+}

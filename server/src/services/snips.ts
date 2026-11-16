@@ -142,6 +142,59 @@ export function listSnips(ctx: AppContext, deviceId: string | null, opts: { asse
   return { items: page.map((s) => toSnipView(ctx, s, deviceId)), next: rows.length > limit && !byStart ? page[page.length - 1]!.id : null };
 }
 
+export interface SnipEpisodeView {
+  episode_id: string; episode_title: string; feed_id: string; show_title: string | null; image_url: string | null;
+  snip_count: number; last_snipped_at: number;
+}
+
+export interface SnipShowView { feed_id: string; title: string | null; image_url: string | null; episode_count: number; snip_count: number; last_snipped_at: number }
+
+/** When a snip was made: the tap's own time when the device sent one, else when the server took it. */
+const SNIPPED_AT = "COALESCE(s.captured_at, s.created_at)";
+const SNIPS_BY_EPISODE = `FROM snip s JOIN audio_asset a ON a.id = s.audio_asset_id JOIN episode e ON e.id = a.episode_id JOIN feed f ON f.id = e.feed_id`;
+
+/**
+ * The episodes the owner has snipped from, the one snipped from most recently first, each with how many snips it has
+ * (whichever of its recordings they were cut from). `feed_id` keeps one show's. Paged by `after`, the last item's
+ * `last_snipped_at` and `episode_id` joined by a colon.
+ */
+export function listSnipEpisodes(ctx: AppContext, opts: { feed_id?: string; after?: string; limit?: number } = {}): { items: SnipEpisodeView[]; next: string | null } {
+  const limit = Math.min(200, Math.max(1, opts.limit ?? 50));
+  const where = ["s.deleted_at IS NULL"];
+  const args: unknown[] = [];
+  if (opts.feed_id) { where.push("f.id = ?"); args.push(opts.feed_id); }
+  const having: string[] = [];
+  const havingArgs: unknown[] = [];
+  if (opts.after) {
+    const m = /^(\d+):([0-9A-Z]+)$/.exec(opts.after);
+    if (!m) throw badRequest("after is not a cursor from this list");
+    having.push("(last_snipped_at < ? OR (last_snipped_at = ? AND e.id < ?))");
+    havingArgs.push(Number(m[1]), Number(m[1]), m[2]);
+  }
+  const rows = ctx.db
+    .prepare(
+      `SELECT e.id AS episode_id, e.title AS episode_title, f.id AS feed_id, f.title AS show_title, COALESCE(e.image_url, f.image_url) AS image_url,
+        COUNT(*) AS snip_count, MAX(${SNIPPED_AT}) AS last_snipped_at
+      ${SNIPS_BY_EPISODE} WHERE ${where.join(" AND ")} GROUP BY e.id ${having.length ? `HAVING ${having.join(" AND ")}` : ""}
+      ORDER BY last_snipped_at DESC, e.id DESC LIMIT ?`,
+    )
+    .all(...args, ...havingArgs, limit + 1) as SnipEpisodeView[];
+  const page = rows.slice(0, limit);
+  const last = page[page.length - 1];
+  return { items: page, next: rows.length > limit && last ? `${last.last_snipped_at}:${last.episode_id}` : null };
+}
+
+/** The shows the owner has snipped from, most recently snipped first, for choosing one to list. */
+export function listSnipShows(ctx: AppContext): SnipShowView[] {
+  return ctx.db
+    .prepare(
+      `SELECT f.id AS feed_id, f.title AS title, f.image_url AS image_url, COUNT(DISTINCT e.id) AS episode_count, COUNT(*) AS snip_count,
+        MAX(${SNIPPED_AT}) AS last_snipped_at
+      ${SNIPS_BY_EPISODE} WHERE s.deleted_at IS NULL GROUP BY f.id ORDER BY last_snipped_at DESC, f.id DESC`,
+    )
+    .all() as SnipShowView[];
+}
+
 /**
  * Persist the tap and allocate the public link immediately. Idempotent on `client_request_id`.
  * Selection, rendering, and summarization run as jobs; the owner sees a fixed provisional range meanwhile.
