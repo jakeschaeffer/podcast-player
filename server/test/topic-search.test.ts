@@ -21,11 +21,11 @@ function addShow(ctx: AppContext, url: string, title: string, followed = true): 
   ctx.db.prepare("UPDATE feed SET title = ? WHERE id = ?").run(title, id);
   return id;
 }
-function addEpisode(ctx: AppContext, feedId: string, title: string, youtubeId: string | null = null): string {
+function addEpisode(ctx: AppContext, feedId: string, title: string, youtubeId: string | null = null, link: string | null = null): string {
   const id = newId();
   ctx.db
-    .prepare("INSERT INTO episode (id, feed_id, guid, title, published_at, first_seen_at, enclosure_url_enc, media_kind, youtube_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-    .run(id, feedId, `guid-${id}`, title, 1_790_000_000_000, 1_790_000_000_000, ctx.secrets.encrypt(`https://cdn.example.com/${id}.mp3`), youtubeId ? "video" : "audio", youtubeId);
+    .prepare("INSERT INTO episode (id, feed_id, guid, title, published_at, first_seen_at, enclosure_url_enc, media_kind, youtube_id, link) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .run(id, feedId, `guid-${id}`, title, 1_790_000_000_000, 1_790_000_000_000, ctx.secrets.encrypt(`https://cdn.example.com/${id}.mp3`), youtubeId ? "video" : "audio", youtubeId, link);
   return id;
 }
 
@@ -98,6 +98,7 @@ describe("topic search", () => {
   let browsedFeed: string;
   let episodeId: string;
   let videoEpisodeId: string;
+  let renamedId: string;
 
   beforeAll(async () => {
     ctx = testContext({ podcastSearch: exa, showSearch: directory, now: () => clock });
@@ -108,6 +109,8 @@ describe("topic search", () => {
     browsedFeed = addShow(ctx, "https://feeds.example.com/lex.xml", "Lex Fridman Podcast", false);
     const channel = addShow(ctx, "https://www.youtube.com/feeds/videos.xml?channel_id=UCabcdefghijklmnopqrstuv", "Some Channel");
     videoEpisodeId = addEpisode(ctx, channel, "A video about sleep", "dQw4w9WgXcQ");
+    // Renamed in its feed since the page Exa read was written: the title no longer matches, the link does.
+    renamedId = addEpisode(ctx, followedFeed, "Kenneth T. Jackson - Robert Moses, Hero of New York?", null, "https://www.example.com/p/kenneth-jackson");
     exa.episodes = [
       found("Huberman Lab", "Dr Matt Walker - Sleep and Memory"),
       found("Lex Fridman Podcast", "#999 – An episode we do not have"),
@@ -115,6 +118,7 @@ describe("topic search", () => {
       found("A Channel We Lack", "Sleep, filmed", { url: "https://www.youtube.com/watch?v=abcdefghijk" }),
       found("Whatever Show", "Our own copy", { url: "https://youtu.be/dQw4w9WgXcQ" }),
       found("Nobody Has Heard Of This", "Mystery"),
+      found("Huberman Lab", "Kenneth T. Jackson - Robert Moses, Hero & Master Builder of NYC?", { url: "http://example.com/p/kenneth-jackson/?utm_source=x" }),
     ];
   });
 
@@ -139,7 +143,8 @@ describe("topic search", () => {
     const done = (await get(search.id)).json();
     expect(done.status).toBe("completed");
     expect(done.cost_dollars).toBe(0.04);
-    expect(done.results.map((r: { match: string }) => r.match)).toEqual(["episode", "show", "new_show", "video", "episode", "none"]);
+    expect(done.results.map((r: { match: string }) => r.match)).toEqual(["episode", "show", "new_show", "video", "episode", "none", "episode"]);
+    expect(done.results[6].episode.id).toBe(renamedId);
 
     const [mine, browsed, fresh, video, ownVideo, none] = done.results;
     expect(mine).toMatchObject({ podcast: "Huberman Lab", feed_id: followedFeed, followed: true, start_ms: 1_908_000, speaker: "A Guest", why: "A sleep researcher on memory." });

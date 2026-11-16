@@ -2,8 +2,8 @@
  * Topic search: "find episodes about X", over podcast transcripts through Exa (adapters/exa.ts), including shows the
  * owner does not follow. A search is an asynchronous Exa run: POST starts it (that bills), GET reads it, asking Exa
  * how the run stands at most every few seconds while it runs (free). Each episode found is matched to ours where it
- * can be: an episode we have, else a show we have, else a show from the directory to open, else a YouTube video to
- * add. Matching happens on every read, so a show the owner adds afterwards turns its rows into episodes.
+ * can be: an episode we have (by its page link, its YouTube video, or its title within the show), else a show we
+ * have, else a show from the directory to open, else a YouTube video to add. Matching happens on every read, so a show the owner adds afterwards turns its rows into episodes.
  */
 import type { AppContext } from "../app/context.js";
 import { HttpError, badRequest, conflict, notFound } from "../app/errors.js";
@@ -203,6 +203,18 @@ function feedByTitle(feeds: FeedLite[], podcast: string): FeedLite | undefined {
   return feeds.find((f) => f.title !== null && sameTitle(f.title, podcast));
 }
 
+/** A page link compared loosely: no scheme, no www., no query or fragment, no trailing slash, host in lower case. */
+export function pageKey(u: string): string | null {
+  try {
+    const url = new URL(u.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    const path = url.pathname.replace(/\/+$/, "");
+    return `${url.hostname.toLowerCase().replace(/^www\./, "")}${path}`;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeFeedUrl(u: string): string {
   try { return new URL(u.trim()).toString(); } catch { return u; }
 }
@@ -233,6 +245,15 @@ function matchOne(ctx: AppContext, f: FoundEpisode, feeds: FeedLite[], byHash: M
   };
   if (youtubeId) {
     const ep = ctx.db.prepare("SELECT * FROM episode WHERE youtube_id = ? ORDER BY media_kind = 'video' DESC LIMIT 1").get(youtubeId) as EpisodeRow | undefined;
+    if (ep) return found(ep);
+  }
+  // The episode's own page, as its feed links it: titles drift (a show renames an episode), links rarely do. A bare
+  // site (no path) is a show's home page, not an episode's.
+  const key = f.url && !youtubeId ? pageKey(f.url) : null;
+  if (key && key.includes("/")) {
+    const host = key.slice(0, key.indexOf("/"));
+    const candidates = ctx.db.prepare("SELECT * FROM episode WHERE link LIKE ?").all(`%${host}%`) as EpisodeRow[];
+    const ep = candidates.find((e) => e.link !== null && pageKey(e.link) === key);
     if (ep) return found(ep);
   }
   const feed = feedByTitle(feeds, f.podcast) ?? (show ? byHash.get(ctx.secrets.hash(normalizeFeedUrl(show.feed_url))) : undefined);
