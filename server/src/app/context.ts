@@ -6,6 +6,7 @@ import { ElevenLabsForcedAligner, type ForcedAligner } from "../adapters/forcedA
 import type { TextModel } from "../adapters/textModel.js";
 import type { Transcriber } from "../adapters/transcriber.js";
 import { ReadwiseApi, type Readwise } from "../adapters/readwise.js";
+import { ExaPodcastSearch, type PodcastSearch } from "../adapters/exa.js";
 import { showSearchFromEnv, type ShowSearch } from "../adapters/showSearch.js";
 import { openDb, type Db } from "../db/index.js";
 import { JobQueue } from "../jobs/queue.js";
@@ -28,11 +29,13 @@ export type AppContext = {
   showSearch: ShowSearch;
   /** The owner's Readwise, when READWISE_TOKEN is set; every snip goes there as a highlight. */
   readwise: Readwise | null;
+  /** Exa's podcast search, when EXA_API_KEY is set: topic search for episodes, including shows not followed. */
+  podcastSearch: PodcastSearch | null;
   now: () => number;
   log: (msg: string, extra?: Record<string, unknown>) => void;
 };
 
-export type ContextOverrides = Partial<Pick<AppContext, "transcriber" | "aligner" | "textModel" | "showSearch" | "readwise" | "now" | "log">> & { dbPath?: string };
+export type ContextOverrides = Partial<Pick<AppContext, "transcriber" | "aligner" | "textModel" | "showSearch" | "readwise" | "podcastSearch" | "now" | "log">> & { dbPath?: string };
 
 export function createContext(config: Config, overrides: ContextOverrides = {}): AppContext {
   const paths = pathsFor(config.dataDir);
@@ -64,6 +67,7 @@ export function createContext(config: Config, overrides: ContextOverrides = {}):
     textModel,
     showSearch: overrides.showSearch ?? showSearchFromEnv(),
     readwise: overrides.readwise !== undefined ? overrides.readwise : config.readwiseToken ? new ReadwiseApi({ token: config.readwiseToken }) : null,
+    podcastSearch: overrides.podcastSearch !== undefined ? overrides.podcastSearch : config.exaApiKey ? new ExaPodcastSearch({ apiKey: config.exaApiKey, effort: config.exaEffort }) : null,
     now,
     log: overrides.log ?? ((msg, extra) => console.error(JSON.stringify({ t: new Date().toISOString(), msg, ...extra }))),
   };

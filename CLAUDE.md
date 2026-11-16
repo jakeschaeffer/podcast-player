@@ -83,6 +83,10 @@ Whether a session may merge its own PRs and deploy is the owner's standing instr
   database fills the owner's Readwise from it. `scripts/dev-server.sh` forces it off. `GET /v1/readwise` says how
   the past month's snips stand (the app's account menu shows the line, and the failed sends when there are any);
   `POST /v1/readwise/retries` sends the failures again.
+- **Exa bills per topic search** when `EXA_API_KEY` is set (`server/src/services/topicSearch.ts`): each new
+  `POST /v1/topic-searches` is one Exa Agent run with Particle's podcast index (the effort's fixed price, `low` is
+  $0.025, plus $0.015 a Particle call). The same query within a day, or a replayed `client_request_id`, reuses the
+  search; polling a running one is free. `scripts/dev-server.sh` forces it off, and tests use a fake.
 - **Private data stays out of git**: eval fixtures and cases are gitignored (`evals/**/fixtures/`, `cases/`) because
   they hold listening history and private-feed text, and the committed scorecards carry aggregate scores only (the
   per-case rows, which quote the owner's own titles, stay in the gitignored JSON). Never commit them, and never put

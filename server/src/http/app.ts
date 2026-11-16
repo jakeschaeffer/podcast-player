@@ -16,6 +16,7 @@ import { registerPlaybackRoutes } from "./routes/playback.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerReadwiseRoutes } from "./routes/readwise.js";
 import { registerSnipsRoutes } from "./routes/snips.js";
+import { registerTopicSearchRoutes } from "./routes/topicSearch.js";
 import { registerVideoRoutes } from "./routes/video.js";
 
 export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
@@ -71,6 +72,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   registerEpisodesRoutes(app, ctx);
   registerVideoRoutes(app, ctx);
   registerLinksRoutes(app, ctx);
+  registerTopicSearchRoutes(app, ctx);
   registerPlaybackRoutes(app, ctx);
   registerSnipsRoutes(app, ctx);
   registerReadwiseRoutes(app, ctx);

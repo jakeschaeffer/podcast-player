@@ -1,0 +1,138 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/topic-searches?limit=20"
+  },
+  "status": 200,
+  "body": {
+    "enabled": true,
+    "items": [
+      {
+        "id": "01M7JZAHSDTRXY2WQEXK0CR93M",
+        "query": "flat fee pricing",
+        "status": "completed",
+        "error": null,
+        "results": [
+          {
+            "podcast": "Fixture Show",
+            "title": "Pricing",
+            "published": "2026-10-01",
+            "url": null,
+            "speaker": "The guest",
+            "quote": "Nobody upgraded for three months.",
+            "why": "Why a flat monthly fee failed.",
+            "start_ms": 95000,
+            "match": "episode",
+            "episode": {
+              "id": "01M7JZAHM6YF0F1N6KVK9AVA7N",
+              "feed_id": "01M7JZAHM6JAY813CHTS7ZV9XV",
+              "show_title": "Fixture Show",
+              "title": "Pricing",
+              "published_at": null,
+              "duration_ms": 120000,
+              "image_url": null,
+              "asset_id": "01M7JZAHM6AYTY08ECV83DZM7M",
+              "transcript_id": "01M7JZAHR90FWDR03GSQKKRS4E",
+              "has_summary": true,
+              "processing": {
+                "audio": "ready",
+                "transcript": "ready",
+                "text": "none",
+                "summary": "ready"
+              },
+              "resume": {
+                "position_ms": 95000,
+                "speed": 1.25,
+                "finished": false,
+                "device_name": "iPhone",
+                "updated_at": 1799999999000
+              },
+              "media_kind": "audio",
+              "youtube_id": null,
+              "video": {
+                "status": "none",
+                "error": null
+              }
+            },
+            "feed_id": "01M7JZAHM6JAY813CHTS7ZV9XV",
+            "followed": true,
+            "show": null,
+            "youtube_id": null
+          },
+          {
+            "podcast": "Hard Fork",
+            "title": "An episode not yet fetched",
+            "published": "2026-10-01",
+            "url": null,
+            "speaker": "The guest",
+            "quote": "Nobody upgraded for three months.",
+            "why": "Why a flat monthly fee failed.",
+            "start_ms": null,
+            "match": "show",
+            "episode": null,
+            "feed_id": "01M7JZAHS59D4GMAMJ6H9J07FM",
+            "followed": false,
+            "show": null,
+            "youtube_id": null
+          },
+          {
+            "podcast": "The Daily",
+            "title": "Pricing, explained",
+            "published": "2026-10-01",
+            "url": "https://example.com/the-daily/pricing",
+            "speaker": "The guest",
+            "quote": "Nobody upgraded for three months.",
+            "why": "Why a flat monthly fee failed.",
+            "start_ms": 600000,
+            "match": "new_show",
+            "episode": null,
+            "feed_id": null,
+            "followed": null,
+            "show": {
+              "title": "The Daily",
+              "author": "The New York Times",
+              "feed_url": "https://feeds.example.com/thedaily.xml",
+              "artwork_url": null
+            },
+            "youtube_id": null
+          },
+          {
+            "podcast": "A Channel",
+            "title": "Pricing on video",
+            "published": "2026-10-01",
+            "url": "https://www.youtube.com/watch?v=abcdefghijk",
+            "speaker": "The guest",
+            "quote": "Nobody upgraded for three months.",
+            "why": "Why a flat monthly fee failed.",
+            "start_ms": null,
+            "match": "video",
+            "episode": null,
+            "feed_id": null,
+            "followed": null,
+            "show": null,
+            "youtube_id": "abcdefghijk"
+          },
+          {
+            "podcast": "Unknown Show",
+            "title": "Mystery",
+            "published": null,
+            "url": null,
+            "speaker": null,
+            "quote": null,
+            "why": null,
+            "start_ms": null,
+            "match": "none",
+            "episode": null,
+            "feed_id": null,
+            "followed": null,
+            "show": null,
+            "youtube_id": null
+          }
+        ],
+        "cost_dollars": 0.04,
+        "created_at": 1800000000000,
+        "completed_at": 1800000006000
+      }
+    ]
+  }
+}

@@ -15,7 +15,7 @@ browser ──https──▶ Cloudflare ──tunnel "podcast-player"──▶ c
 | Tunnel | `cloudflared-podcast-player.service`, user `cloudflared-podcast` | `cloudflared/podcast-player.yml`, `systemd/cloudflared-podcast-player.service` | `/etc/cloudflared/`, `/etc/systemd/system/` |
 | DNS | proxied CNAME `snip.sch.xyz` → the tunnel | | Cloudflare |
 
-The tunnel's credentials are in `/etc/cloudflared/podcast-player.json` (mode 640, group `cloudflared-podcast`) and are never committed; `cloudflared/podcast-player.yml` is committed with the tunnel id left as a placeholder. The server reads its secrets, `PUBLIC_BASE_URL=https://snip.sch.xyz` and `SHARE_BY_NAME` from `.env.server.local` at the repository root.
+The tunnel's credentials are in `/etc/cloudflared/podcast-player.json` (mode 640, group `cloudflared-podcast`) and are never committed; `cloudflared/podcast-player.yml` is committed with the tunnel id left as a placeholder. The server reads its secrets, `PUBLIC_BASE_URL=https://snip.sch.xyz` and `SHARE_BY_NAME` from `.env.server.local` at the repository root. Optional service keys go there too, each off while unset: `READWISE_TOKEN`, and `EXA_API_KEY` for topic search (every new search bills an Exa run); add the line by hand and run `deploy/deploy.sh --restart`.
 
 ## Redeploy
 

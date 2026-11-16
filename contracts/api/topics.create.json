@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/v1/topic-searches",
+    "body": {
+      "query": "flat fee pricing",
+      "client_request_id": "01EXAMPLE0000000000000009"
+    }
+  },
+  "status": 201,
+  "body": {
+    "id": "01M7JZAHSDTRXY2WQEXK0CR93M",
+    "query": "flat fee pricing",
+    "status": "running",
+    "error": null,
+    "results": [],
+    "cost_dollars": null,
+    "created_at": 1800000000000,
+    "completed_at": null
+  }
+}

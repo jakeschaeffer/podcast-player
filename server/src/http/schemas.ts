@@ -235,3 +235,36 @@ export const EvalRunDetailSchema = Type.Object({
   run: EvalRunSchema,
   cases: Type.Array(Type.Object({ id: Type.String(), pass: Type.Boolean(), score: Nullable(Type.Integer()), expected: Type.String(), actual: Type.String(), note: Nullable(Type.String()) }), { description: "Failures first" }),
 });
+
+export const TopicResultSchema = Type.Object({
+  podcast: Type.String({ description: "The show's name, as the search found it" }),
+  title: Type.String({ description: "The episode's title, as the search found it" }),
+  published: Nullable(Type.String({ description: "Release date as the search gave it, usually YYYY-MM-DD" })),
+  url: Nullable(Type.String({ description: "A page or video link for the episode, when the search found one" })),
+  speaker: Nullable(Type.String({ description: "Who talks about the topic" })),
+  quote: Nullable(Type.String({ description: "A line they said about it, from the transcript" })),
+  why: Nullable(Type.String({ description: "One sentence on what the episode says about the topic" })),
+  start_ms: Nullable(Type.Integer({ minimum: 0, description: "Where in the episode the topic comes up, by the search's transcript; approximate against ours" })),
+  match: Type.Union([Type.Literal("episode"), Type.Literal("show"), Type.Literal("new_show"), Type.Literal("video"), Type.Literal("none")], {
+    description: "episode: one of ours, in `episode`; show: a show we have (feed_id) without this episode; new_show: a show from the directory, in `show` (open it with POST /v1/feeds, followed false); video: a YouTube video (POST /v1/links/episodes with `url`); none: nothing to open",
+  }),
+  episode: Nullable(EpisodeListItemSchema),
+  feed_id: Nullable(Id),
+  followed: Nullable(Type.Boolean({ description: "Whether feed_id's show is in the library" })),
+  show: Nullable(Type.Object({ title: Type.String(), author: Nullable(Type.String()), feed_url: Type.String(), artwork_url: Nullable(Type.String()) })),
+  youtube_id: Nullable(Type.String()),
+});
+export const TopicSearchSchema = Type.Object({
+  id: Id,
+  query: Type.String(),
+  status: Type.Union([Type.Literal("running"), Type.Literal("completed"), Type.Literal("failed")], { description: "running: ask again in a few seconds (a search takes about a minute); failed: see error" }),
+  error: Nullable(Type.String()),
+  results: Type.Array(TopicResultSchema, { description: "Empty until completed; at most 8" }),
+  cost_dollars: Nullable(Type.Number({ description: "What Exa billed for the search, once completed" })),
+  created_at: Type.Integer(),
+  completed_at: Nullable(Type.Integer()),
+});
+export const StartTopicSearchBody = Type.Object({
+  query: Type.String({ minLength: 2, maxLength: 200, description: "The topic, in plain words: \"sleep and memory\", \"the history of the Erie Canal\"" }),
+  client_request_id: Type.Optional(Type.String({ minLength: 1, maxLength: 64, description: "Idempotency key: the same id returns the same search" })),
+});
