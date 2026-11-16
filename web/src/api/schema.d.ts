@@ -3486,6 +3486,439 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/topic-searches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether topic search is on (the server has EXA_API_KEY), and the newest searches */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            enabled: boolean;
+                            items: {
+                                /** @description ULID */
+                                id: string;
+                                query: string;
+                                /** @description running: ask again in a few seconds (a search takes about a minute); failed: see error */
+                                status: "running" | "completed" | "failed";
+                                error: string | null;
+                                /** @description Empty until completed; at most 8 */
+                                results: {
+                                    /** @description The show's name, as the search found it */
+                                    podcast: string;
+                                    /** @description The episode's title, as the search found it */
+                                    title: string;
+                                    published: string | null;
+                                    url: string | null;
+                                    speaker: string | null;
+                                    quote: string | null;
+                                    why: string | null;
+                                    start_ms: number | null;
+                                    /** @description episode: one of ours, in `episode`; show: a show we have (feed_id) without this episode; new_show: a show from the directory, in `show` (open it with POST /v1/feeds, followed false); video: a YouTube video (POST /v1/links/episodes with `url`); none: nothing to open */
+                                    match: "episode" | "show" | "new_show" | "video" | "none";
+                                    episode: {
+                                        /** @description ULID */
+                                        id: string;
+                                        /** @description ULID */
+                                        feed_id: string;
+                                        show_title: string | null;
+                                        title: string;
+                                        published_at: number | null;
+                                        duration_ms: number | null;
+                                        image_url: string | null;
+                                        asset_id: string | null;
+                                        transcript_id: string | null;
+                                        has_summary: boolean;
+                                        processing: {
+                                            audio: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                            transcript: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                            text: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                            summary: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                        };
+                                        resume: {
+                                            /** @description milliseconds */
+                                            position_ms: number;
+                                            speed: number;
+                                            finished: boolean;
+                                            device_name: string;
+                                            /** @description When the position was observed: the reporting device's observed_at, else when the server received it */
+                                            updated_at: number;
+                                        } | null;
+                                        /** @description 'video' when the episode is a video (a channel's, or a feed's video enclosure) */
+                                        media_kind: "audio" | "video";
+                                        youtube_id: string | null;
+                                        video: {
+                                            /** @description none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error */
+                                            status: "none" | "available" | "requested" | "ready" | "failed";
+                                            error: string | null;
+                                        };
+                                    } | null;
+                                    feed_id: string | null;
+                                    followed: boolean | null;
+                                    show: {
+                                        title: string;
+                                        author: string | null;
+                                        feed_url: string;
+                                        artwork_url: string | null;
+                                    } | null;
+                                    youtube_id: string | null;
+                                }[];
+                                cost_dollars: number | null;
+                                created_at: number;
+                                completed_at: number | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Find episodes about a topic, in any show, through Exa's podcast search. Bills one Exa run (201), unless the same query ran within a day or client_request_id was seen (200, that search). Poll GET /v1/topic-searches/{id}. 409 when topic search is off */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description The topic, in plain words: "sleep and memory", "the history of the Erie Canal" */
+                        query: string;
+                        /** @description Idempotency key: the same id returns the same search */
+                        client_request_id?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description ULID */
+                            id: string;
+                            query: string;
+                            /** @description running: ask again in a few seconds (a search takes about a minute); failed: see error */
+                            status: "running" | "completed" | "failed";
+                            error: string | null;
+                            /** @description Empty until completed; at most 8 */
+                            results: {
+                                /** @description The show's name, as the search found it */
+                                podcast: string;
+                                /** @description The episode's title, as the search found it */
+                                title: string;
+                                published: string | null;
+                                url: string | null;
+                                speaker: string | null;
+                                quote: string | null;
+                                why: string | null;
+                                start_ms: number | null;
+                                /** @description episode: one of ours, in `episode`; show: a show we have (feed_id) without this episode; new_show: a show from the directory, in `show` (open it with POST /v1/feeds, followed false); video: a YouTube video (POST /v1/links/episodes with `url`); none: nothing to open */
+                                match: "episode" | "show" | "new_show" | "video" | "none";
+                                episode: {
+                                    /** @description ULID */
+                                    id: string;
+                                    /** @description ULID */
+                                    feed_id: string;
+                                    show_title: string | null;
+                                    title: string;
+                                    published_at: number | null;
+                                    duration_ms: number | null;
+                                    image_url: string | null;
+                                    asset_id: string | null;
+                                    transcript_id: string | null;
+                                    has_summary: boolean;
+                                    processing: {
+                                        audio: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                        transcript: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                        text: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                        summary: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                    };
+                                    resume: {
+                                        /** @description milliseconds */
+                                        position_ms: number;
+                                        speed: number;
+                                        finished: boolean;
+                                        device_name: string;
+                                        /** @description When the position was observed: the reporting device's observed_at, else when the server received it */
+                                        updated_at: number;
+                                    } | null;
+                                    /** @description 'video' when the episode is a video (a channel's, or a feed's video enclosure) */
+                                    media_kind: "audio" | "video";
+                                    youtube_id: string | null;
+                                    video: {
+                                        /** @description none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error */
+                                        status: "none" | "available" | "requested" | "ready" | "failed";
+                                        error: string | null;
+                                    };
+                                } | null;
+                                feed_id: string | null;
+                                followed: boolean | null;
+                                show: {
+                                    title: string;
+                                    author: string | null;
+                                    feed_url: string;
+                                    artwork_url: string | null;
+                                } | null;
+                                youtube_id: string | null;
+                            }[];
+                            cost_dollars: number | null;
+                            created_at: number;
+                            completed_at: number | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description ULID */
+                            id: string;
+                            query: string;
+                            /** @description running: ask again in a few seconds (a search takes about a minute); failed: see error */
+                            status: "running" | "completed" | "failed";
+                            error: string | null;
+                            /** @description Empty until completed; at most 8 */
+                            results: {
+                                /** @description The show's name, as the search found it */
+                                podcast: string;
+                                /** @description The episode's title, as the search found it */
+                                title: string;
+                                published: string | null;
+                                url: string | null;
+                                speaker: string | null;
+                                quote: string | null;
+                                why: string | null;
+                                start_ms: number | null;
+                                /** @description episode: one of ours, in `episode`; show: a show we have (feed_id) without this episode; new_show: a show from the directory, in `show` (open it with POST /v1/feeds, followed false); video: a YouTube video (POST /v1/links/episodes with `url`); none: nothing to open */
+                                match: "episode" | "show" | "new_show" | "video" | "none";
+                                episode: {
+                                    /** @description ULID */
+                                    id: string;
+                                    /** @description ULID */
+                                    feed_id: string;
+                                    show_title: string | null;
+                                    title: string;
+                                    published_at: number | null;
+                                    duration_ms: number | null;
+                                    image_url: string | null;
+                                    asset_id: string | null;
+                                    transcript_id: string | null;
+                                    has_summary: boolean;
+                                    processing: {
+                                        audio: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                        transcript: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                        text: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                        summary: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                    };
+                                    resume: {
+                                        /** @description milliseconds */
+                                        position_ms: number;
+                                        speed: number;
+                                        finished: boolean;
+                                        device_name: string;
+                                        /** @description When the position was observed: the reporting device's observed_at, else when the server received it */
+                                        updated_at: number;
+                                    } | null;
+                                    /** @description 'video' when the episode is a video (a channel's, or a feed's video enclosure) */
+                                    media_kind: "audio" | "video";
+                                    youtube_id: string | null;
+                                    video: {
+                                        /** @description none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error */
+                                        status: "none" | "available" | "requested" | "ready" | "failed";
+                                        error: string | null;
+                                    };
+                                } | null;
+                                feed_id: string | null;
+                                followed: boolean | null;
+                                show: {
+                                    title: string;
+                                    author: string | null;
+                                    feed_url: string;
+                                    artwork_url: string | null;
+                                } | null;
+                                youtube_id: string | null;
+                            }[];
+                            cost_dollars: number | null;
+                            created_at: number;
+                            completed_at: number | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: {
+                                code: string;
+                                message: string;
+                                /** @description On a 409 from POST /v1/feeds: the feed that already has this URL */
+                                feed_id?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: {
+                                code: string;
+                                message: string;
+                                /** @description On a 409 from POST /v1/feeds: the feed that already has this URL */
+                                feed_id?: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/topic-searches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One topic search; while running, asks Exa how it stands (free). Results are matched to our episodes and shows on every read */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description ULID */
+                            id: string;
+                            query: string;
+                            /** @description running: ask again in a few seconds (a search takes about a minute); failed: see error */
+                            status: "running" | "completed" | "failed";
+                            error: string | null;
+                            /** @description Empty until completed; at most 8 */
+                            results: {
+                                /** @description The show's name, as the search found it */
+                                podcast: string;
+                                /** @description The episode's title, as the search found it */
+                                title: string;
+                                published: string | null;
+                                url: string | null;
+                                speaker: string | null;
+                                quote: string | null;
+                                why: string | null;
+                                start_ms: number | null;
+                                /** @description episode: one of ours, in `episode`; show: a show we have (feed_id) without this episode; new_show: a show from the directory, in `show` (open it with POST /v1/feeds, followed false); video: a YouTube video (POST /v1/links/episodes with `url`); none: nothing to open */
+                                match: "episode" | "show" | "new_show" | "video" | "none";
+                                episode: {
+                                    /** @description ULID */
+                                    id: string;
+                                    /** @description ULID */
+                                    feed_id: string;
+                                    show_title: string | null;
+                                    title: string;
+                                    published_at: number | null;
+                                    duration_ms: number | null;
+                                    image_url: string | null;
+                                    asset_id: string | null;
+                                    transcript_id: string | null;
+                                    has_summary: boolean;
+                                    processing: {
+                                        audio: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                        transcript: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                        text: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                        summary: "none" | "queued" | "running" | "deferred" | "failed" | "ready";
+                                    };
+                                    resume: {
+                                        /** @description milliseconds */
+                                        position_ms: number;
+                                        speed: number;
+                                        finished: boolean;
+                                        device_name: string;
+                                        /** @description When the position was observed: the reporting device's observed_at, else when the server received it */
+                                        updated_at: number;
+                                    } | null;
+                                    /** @description 'video' when the episode is a video (a channel's, or a feed's video enclosure) */
+                                    media_kind: "audio" | "video";
+                                    youtube_id: string | null;
+                                    video: {
+                                        /** @description none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error */
+                                        status: "none" | "available" | "requested" | "ready" | "failed";
+                                        error: string | null;
+                                    };
+                                } | null;
+                                feed_id: string | null;
+                                followed: boolean | null;
+                                show: {
+                                    title: string;
+                                    author: string | null;
+                                    feed_url: string;
+                                    artwork_url: string | null;
+                                } | null;
+                                youtube_id: string | null;
+                            }[];
+                            cost_dollars: number | null;
+                            created_at: number;
+                            completed_at: number | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/playback/{asset_id}": {
         parameters: {
             query?: never;

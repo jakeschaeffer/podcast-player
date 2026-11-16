@@ -114,6 +114,12 @@ function requestPipeline(ctx: AppContext, ep: EpisodeRow, priority: number): voi
   if (asset.transcript_id && !asset.summary_id) ctx.queue.enqueue("summarize_episode", `summarize_episode:${assetId}`, { asset_id: assetId }, { priority });
 }
 
+/** One episode as lists show it. */
+export function episodeListItem(ctx: AppContext, ep: EpisodeRow): EpisodeListItem {
+  const feed = ctx.db.prepare("SELECT title FROM feed WHERE id = ?").get(ep.feed_id) as Pick<FeedRow, "title">;
+  return toListItem(ctx, ep, feed, ep.current_asset_id ? getAssetRow(ctx, ep.current_asset_id) : null);
+}
+
 function toListItem(ctx: AppContext, ep: EpisodeRow, feed: Pick<FeedRow, "title">, asset: AudioAssetRow | null): EpisodeListItem {
   return {
     id: ep.id,

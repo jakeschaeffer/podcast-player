@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { EXA_EFFORTS, type ExaEffort } from "../adapters/exa.js";
 
 export type TextModelKind = "none" | "codex-cli";
 
@@ -48,6 +49,10 @@ export type Config = {
   gitAutoPush: boolean;
   /** The owner's Readwise access token: every snip is sent there as a highlight (services/readwiseSync.ts). Empty disables. */
   readwiseToken: string | null;
+  /** Exa's API key: topic search over podcast transcripts (services/topicSearch.ts). Empty turns topic search off. */
+  exaApiKey: string | null;
+  /** The Exa Agent effort a topic search runs at; each is a fixed price a search (adapters/exa.ts). */
+  exaEffort: ExaEffort;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -58,6 +63,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const port = Number(env.PORT ?? 8080);
   const textModel = (env.TEXT_MODEL ?? "none") as TextModelKind;
   if (textModel !== "none" && textModel !== "codex-cli") throw new Error(`TEXT_MODEL must be none or codex-cli, got ${textModel}`);
+  const exaEffort = (env.EXA_EFFORT?.trim() || "low") as ExaEffort;
+  if (!EXA_EFFORTS.includes(exaEffort)) throw new Error(`EXA_EFFORT must be one of ${EXA_EFFORTS.join(", ")}, got ${exaEffort}`);
   return {
     dataDir: resolve(env.DATA_DIR ?? "./data"),
     host: env.HOST ?? "127.0.0.1",
@@ -84,5 +91,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     refreshIntervalMinutes: Number(env.REFRESH_INTERVAL_MINUTES ?? 30),
     gitAutoPush: env.GIT_AUTO_PUSH === "1",
     readwiseToken: env.READWISE_TOKEN?.trim() || null,
+    exaApiKey: env.EXA_API_KEY?.trim() || null,
+    exaEffort,
   };
 }

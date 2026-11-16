@@ -15829,6 +15829,2982 @@
         }
       }
     },
+    "/v1/topic-searches": {
+      "get": {
+        "summary": "Whether topic search is on (the server has EXA_API_KEY), and the newest searches",
+        "tags": [
+          "feeds"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "enabled",
+                    "items"
+                  ],
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "query",
+                          "status",
+                          "error",
+                          "results",
+                          "cost_dollars",
+                          "created_at",
+                          "completed_at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "minLength": 26,
+                            "maxLength": 26,
+                            "description": "ULID",
+                            "type": "string"
+                          },
+                          "query": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "description": "running: ask again in a few seconds (a search takes about a minute); failed: see error",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "running"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "completed"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "failed"
+                                ]
+                              }
+                            ]
+                          },
+                          "error": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "results": {
+                            "description": "Empty until completed; at most 8",
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "podcast",
+                                "title",
+                                "published",
+                                "url",
+                                "speaker",
+                                "quote",
+                                "why",
+                                "start_ms",
+                                "match",
+                                "episode",
+                                "feed_id",
+                                "followed",
+                                "show",
+                                "youtube_id"
+                              ],
+                              "properties": {
+                                "podcast": {
+                                  "description": "The show's name, as the search found it",
+                                  "type": "string"
+                                },
+                                "title": {
+                                  "description": "The episode's title, as the search found it",
+                                  "type": "string"
+                                },
+                                "published": {
+                                  "anyOf": [
+                                    {
+                                      "description": "Release date as the search gave it, usually YYYY-MM-DD",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "url": {
+                                  "anyOf": [
+                                    {
+                                      "description": "A page or video link for the episode, when the search found one",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "speaker": {
+                                  "anyOf": [
+                                    {
+                                      "description": "Who talks about the topic",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "quote": {
+                                  "anyOf": [
+                                    {
+                                      "description": "A line they said about it, from the transcript",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "why": {
+                                  "anyOf": [
+                                    {
+                                      "description": "One sentence on what the episode says about the topic",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "start_ms": {
+                                  "anyOf": [
+                                    {
+                                      "minimum": 0,
+                                      "description": "Where in the episode the topic comes up, by the search's transcript; approximate against ours",
+                                      "type": "integer"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "match": {
+                                  "description": "episode: one of ours, in `episode`; show: a show we have (feed_id) without this episode; new_show: a show from the directory, in `show` (open it with POST /v1/feeds, followed false); video: a YouTube video (POST /v1/links/episodes with `url`); none: nothing to open",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "episode"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "show"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "new_show"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "video"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "none"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "episode": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "id",
+                                        "feed_id",
+                                        "show_title",
+                                        "title",
+                                        "published_at",
+                                        "duration_ms",
+                                        "image_url",
+                                        "asset_id",
+                                        "transcript_id",
+                                        "has_summary",
+                                        "processing",
+                                        "resume",
+                                        "media_kind",
+                                        "youtube_id",
+                                        "video"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "minLength": 26,
+                                          "maxLength": 26,
+                                          "description": "ULID",
+                                          "type": "string"
+                                        },
+                                        "feed_id": {
+                                          "minLength": 26,
+                                          "maxLength": 26,
+                                          "description": "ULID",
+                                          "type": "string"
+                                        },
+                                        "show_title": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "title": {
+                                          "type": "string"
+                                        },
+                                        "published_at": {
+                                          "anyOf": [
+                                            {
+                                              "type": "integer"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "duration_ms": {
+                                          "anyOf": [
+                                            {
+                                              "type": "integer"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "image_url": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "asset_id": {
+                                          "anyOf": [
+                                            {
+                                              "minLength": 26,
+                                              "maxLength": 26,
+                                              "description": "ULID",
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "transcript_id": {
+                                          "anyOf": [
+                                            {
+                                              "minLength": 26,
+                                              "maxLength": 26,
+                                              "description": "ULID",
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "has_summary": {
+                                          "type": "boolean"
+                                        },
+                                        "processing": {
+                                          "type": "object",
+                                          "required": [
+                                            "audio",
+                                            "transcript",
+                                            "text",
+                                            "summary"
+                                          ],
+                                          "properties": {
+                                            "audio": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "none"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "queued"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "running"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "deferred"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "failed"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "ready"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "transcript": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "none"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "queued"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "running"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "deferred"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "failed"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "ready"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "text": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "none"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "queued"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "running"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "deferred"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "failed"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "ready"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "summary": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "none"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "queued"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "running"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "deferred"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "failed"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "ready"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "resume": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "required": [
+                                                "position_ms",
+                                                "speed",
+                                                "finished",
+                                                "device_name",
+                                                "updated_at"
+                                              ],
+                                              "properties": {
+                                                "position_ms": {
+                                                  "minimum": 0,
+                                                  "description": "milliseconds",
+                                                  "type": "integer"
+                                                },
+                                                "speed": {
+                                                  "type": "number"
+                                                },
+                                                "finished": {
+                                                  "type": "boolean"
+                                                },
+                                                "device_name": {
+                                                  "type": "string"
+                                                },
+                                                "updated_at": {
+                                                  "description": "When the position was observed: the reporting device's observed_at, else when the server received it",
+                                                  "type": "integer"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "media_kind": {
+                                          "description": "'video' when the episode is a video (a channel's, or a feed's video enclosure)",
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "audio"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "video"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "youtube_id": {
+                                          "anyOf": [
+                                            {
+                                              "description": "The YouTube video the episode is, or the one its show notes link",
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "video": {
+                                          "type": "object",
+                                          "required": [
+                                            "status",
+                                            "error"
+                                          ],
+                                          "properties": {
+                                            "status": {
+                                              "description": "none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error",
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "none"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "available"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "requested"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "ready"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "failed"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "error": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "feed_id": {
+                                  "anyOf": [
+                                    {
+                                      "minLength": 26,
+                                      "maxLength": 26,
+                                      "description": "ULID",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "followed": {
+                                  "anyOf": [
+                                    {
+                                      "description": "Whether feed_id's show is in the library",
+                                      "type": "boolean"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "show": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "title",
+                                        "author",
+                                        "feed_url",
+                                        "artwork_url"
+                                      ],
+                                      "properties": {
+                                        "title": {
+                                          "type": "string"
+                                        },
+                                        "author": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "feed_url": {
+                                          "type": "string"
+                                        },
+                                        "artwork_url": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "youtube_id": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "cost_dollars": {
+                            "anyOf": [
+                              {
+                                "description": "What Exa billed for the search, once completed",
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "created_at": {
+                            "type": "integer"
+                          },
+                          "completed_at": {
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Find episodes about a topic, in any show, through Exa's podcast search. Bills one Exa run (201), unless the same query ran within a day or client_request_id was seen (200, that search). Poll GET /v1/topic-searches/{id}. 409 when topic search is off",
+        "tags": [
+          "feeds"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "minLength": 2,
+                    "maxLength": 200,
+                    "description": "The topic, in plain words: \"sleep and memory\", \"the history of the Erie Canal\"",
+                    "type": "string"
+                  },
+                  "client_request_id": {
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "description": "Idempotency key: the same id returns the same search",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "query",
+                    "status",
+                    "error",
+                    "results",
+                    "cost_dollars",
+                    "created_at",
+                    "completed_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "minLength": 26,
+                      "maxLength": 26,
+                      "description": "ULID",
+                      "type": "string"
+                    },
+                    "query": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "description": "running: ask again in a few seconds (a search takes about a minute); failed: see error",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "running"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "completed"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "failed"
+                          ]
+                        }
+                      ]
+                    },
+                    "error": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "results": {
+                      "description": "Empty until completed; at most 8",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "podcast",
+                          "title",
+                          "published",
+                          "url",
+                          "speaker",
+                          "quote",
+                          "why",
+                          "start_ms",
+                          "match",
+                          "episode",
+                          "feed_id",
+                          "followed",
+                          "show",
+                          "youtube_id"
+                        ],
+                        "properties": {
+                          "podcast": {
+                            "description": "The show's name, as the search found it",
+                            "type": "string"
+                          },
+                          "title": {
+                            "description": "The episode's title, as the search found it",
+                            "type": "string"
+                          },
+                          "published": {
+                            "anyOf": [
+                              {
+                                "description": "Release date as the search gave it, usually YYYY-MM-DD",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "url": {
+                            "anyOf": [
+                              {
+                                "description": "A page or video link for the episode, when the search found one",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "speaker": {
+                            "anyOf": [
+                              {
+                                "description": "Who talks about the topic",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "quote": {
+                            "anyOf": [
+                              {
+                                "description": "A line they said about it, from the transcript",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "why": {
+                            "anyOf": [
+                              {
+                                "description": "One sentence on what the episode says about the topic",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "start_ms": {
+                            "anyOf": [
+                              {
+                                "minimum": 0,
+                                "description": "Where in the episode the topic comes up, by the search's transcript; approximate against ours",
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "match": {
+                            "description": "episode: one of ours, in `episode`; show: a show we have (feed_id) without this episode; new_show: a show from the directory, in `show` (open it with POST /v1/feeds, followed false); video: a YouTube video (POST /v1/links/episodes with `url`); none: nothing to open",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "episode"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "show"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "new_show"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "video"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "none"
+                                ]
+                              }
+                            ]
+                          },
+                          "episode": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "feed_id",
+                                  "show_title",
+                                  "title",
+                                  "published_at",
+                                  "duration_ms",
+                                  "image_url",
+                                  "asset_id",
+                                  "transcript_id",
+                                  "has_summary",
+                                  "processing",
+                                  "resume",
+                                  "media_kind",
+                                  "youtube_id",
+                                  "video"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "minLength": 26,
+                                    "maxLength": 26,
+                                    "description": "ULID",
+                                    "type": "string"
+                                  },
+                                  "feed_id": {
+                                    "minLength": 26,
+                                    "maxLength": 26,
+                                    "description": "ULID",
+                                    "type": "string"
+                                  },
+                                  "show_title": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "published_at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "duration_ms": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "image_url": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "asset_id": {
+                                    "anyOf": [
+                                      {
+                                        "minLength": 26,
+                                        "maxLength": 26,
+                                        "description": "ULID",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "transcript_id": {
+                                    "anyOf": [
+                                      {
+                                        "minLength": 26,
+                                        "maxLength": 26,
+                                        "description": "ULID",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "has_summary": {
+                                    "type": "boolean"
+                                  },
+                                  "processing": {
+                                    "type": "object",
+                                    "required": [
+                                      "audio",
+                                      "transcript",
+                                      "text",
+                                      "summary"
+                                    ],
+                                    "properties": {
+                                      "audio": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "transcript": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "text": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "summary": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "resume": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "position_ms",
+                                          "speed",
+                                          "finished",
+                                          "device_name",
+                                          "updated_at"
+                                        ],
+                                        "properties": {
+                                          "position_ms": {
+                                            "minimum": 0,
+                                            "description": "milliseconds",
+                                            "type": "integer"
+                                          },
+                                          "speed": {
+                                            "type": "number"
+                                          },
+                                          "finished": {
+                                            "type": "boolean"
+                                          },
+                                          "device_name": {
+                                            "type": "string"
+                                          },
+                                          "updated_at": {
+                                            "description": "When the position was observed: the reporting device's observed_at, else when the server received it",
+                                            "type": "integer"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "media_kind": {
+                                    "description": "'video' when the episode is a video (a channel's, or a feed's video enclosure)",
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "audio"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "video"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "youtube_id": {
+                                    "anyOf": [
+                                      {
+                                        "description": "The YouTube video the episode is, or the one its show notes link",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "video": {
+                                    "type": "object",
+                                    "required": [
+                                      "status",
+                                      "error"
+                                    ],
+                                    "properties": {
+                                      "status": {
+                                        "description": "none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error",
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "available"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "requested"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "error": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "feed_id": {
+                            "anyOf": [
+                              {
+                                "minLength": 26,
+                                "maxLength": 26,
+                                "description": "ULID",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "followed": {
+                            "anyOf": [
+                              {
+                                "description": "Whether feed_id's show is in the library",
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "show": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "title",
+                                  "author",
+                                  "feed_url",
+                                  "artwork_url"
+                                ],
+                                "properties": {
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "author": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "feed_url": {
+                                    "type": "string"
+                                  },
+                                  "artwork_url": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "youtube_id": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "cost_dollars": {
+                      "anyOf": [
+                        {
+                          "description": "What Exa billed for the search, once completed",
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "created_at": {
+                      "type": "integer"
+                    },
+                    "completed_at": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "query",
+                    "status",
+                    "error",
+                    "results",
+                    "cost_dollars",
+                    "created_at",
+                    "completed_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "minLength": 26,
+                      "maxLength": 26,
+                      "description": "ULID",
+                      "type": "string"
+                    },
+                    "query": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "description": "running: ask again in a few seconds (a search takes about a minute); failed: see error",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "running"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "completed"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "failed"
+                          ]
+                        }
+                      ]
+                    },
+                    "error": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "results": {
+                      "description": "Empty until completed; at most 8",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "podcast",
+                          "title",
+                          "published",
+                          "url",
+                          "speaker",
+                          "quote",
+                          "why",
+                          "start_ms",
+                          "match",
+                          "episode",
+                          "feed_id",
+                          "followed",
+                          "show",
+                          "youtube_id"
+                        ],
+                        "properties": {
+                          "podcast": {
+                            "description": "The show's name, as the search found it",
+                            "type": "string"
+                          },
+                          "title": {
+                            "description": "The episode's title, as the search found it",
+                            "type": "string"
+                          },
+                          "published": {
+                            "anyOf": [
+                              {
+                                "description": "Release date as the search gave it, usually YYYY-MM-DD",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "url": {
+                            "anyOf": [
+                              {
+                                "description": "A page or video link for the episode, when the search found one",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "speaker": {
+                            "anyOf": [
+                              {
+                                "description": "Who talks about the topic",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "quote": {
+                            "anyOf": [
+                              {
+                                "description": "A line they said about it, from the transcript",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "why": {
+                            "anyOf": [
+                              {
+                                "description": "One sentence on what the episode says about the topic",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "start_ms": {
+                            "anyOf": [
+                              {
+                                "minimum": 0,
+                                "description": "Where in the episode the topic comes up, by the search's transcript; approximate against ours",
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "match": {
+                            "description": "episode: one of ours, in `episode`; show: a show we have (feed_id) without this episode; new_show: a show from the directory, in `show` (open it with POST /v1/feeds, followed false); video: a YouTube video (POST /v1/links/episodes with `url`); none: nothing to open",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "episode"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "show"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "new_show"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "video"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "none"
+                                ]
+                              }
+                            ]
+                          },
+                          "episode": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "feed_id",
+                                  "show_title",
+                                  "title",
+                                  "published_at",
+                                  "duration_ms",
+                                  "image_url",
+                                  "asset_id",
+                                  "transcript_id",
+                                  "has_summary",
+                                  "processing",
+                                  "resume",
+                                  "media_kind",
+                                  "youtube_id",
+                                  "video"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "minLength": 26,
+                                    "maxLength": 26,
+                                    "description": "ULID",
+                                    "type": "string"
+                                  },
+                                  "feed_id": {
+                                    "minLength": 26,
+                                    "maxLength": 26,
+                                    "description": "ULID",
+                                    "type": "string"
+                                  },
+                                  "show_title": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "published_at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "duration_ms": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "image_url": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "asset_id": {
+                                    "anyOf": [
+                                      {
+                                        "minLength": 26,
+                                        "maxLength": 26,
+                                        "description": "ULID",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "transcript_id": {
+                                    "anyOf": [
+                                      {
+                                        "minLength": 26,
+                                        "maxLength": 26,
+                                        "description": "ULID",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "has_summary": {
+                                    "type": "boolean"
+                                  },
+                                  "processing": {
+                                    "type": "object",
+                                    "required": [
+                                      "audio",
+                                      "transcript",
+                                      "text",
+                                      "summary"
+                                    ],
+                                    "properties": {
+                                      "audio": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "transcript": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "text": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "summary": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "resume": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "position_ms",
+                                          "speed",
+                                          "finished",
+                                          "device_name",
+                                          "updated_at"
+                                        ],
+                                        "properties": {
+                                          "position_ms": {
+                                            "minimum": 0,
+                                            "description": "milliseconds",
+                                            "type": "integer"
+                                          },
+                                          "speed": {
+                                            "type": "number"
+                                          },
+                                          "finished": {
+                                            "type": "boolean"
+                                          },
+                                          "device_name": {
+                                            "type": "string"
+                                          },
+                                          "updated_at": {
+                                            "description": "When the position was observed: the reporting device's observed_at, else when the server received it",
+                                            "type": "integer"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "media_kind": {
+                                    "description": "'video' when the episode is a video (a channel's, or a feed's video enclosure)",
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "audio"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "video"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "youtube_id": {
+                                    "anyOf": [
+                                      {
+                                        "description": "The YouTube video the episode is, or the one its show notes link",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "video": {
+                                    "type": "object",
+                                    "required": [
+                                      "status",
+                                      "error"
+                                    ],
+                                    "properties": {
+                                      "status": {
+                                        "description": "none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error",
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "available"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "requested"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "error": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "feed_id": {
+                            "anyOf": [
+                              {
+                                "minLength": 26,
+                                "maxLength": 26,
+                                "description": "ULID",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "followed": {
+                            "anyOf": [
+                              {
+                                "description": "Whether feed_id's show is in the library",
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "show": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "title",
+                                  "author",
+                                  "feed_url",
+                                  "artwork_url"
+                                ],
+                                "properties": {
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "author": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "feed_url": {
+                                    "type": "string"
+                                  },
+                                  "artwork_url": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "youtube_id": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "cost_dollars": {
+                      "anyOf": [
+                        {
+                          "description": "What Exa billed for the search, once completed",
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "created_at": {
+                      "type": "integer"
+                    },
+                    "completed_at": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "feed_id": {
+                          "description": "On a 409 from POST /v1/feeds: the feed that already has this URL",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "feed_id": {
+                          "description": "On a 409 from POST /v1/feeds: the feed that already has this URL",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/topic-searches/{id}": {
+      "get": {
+        "summary": "One topic search; while running, asks Exa how it stands (free). Results are matched to our episodes and shows on every read",
+        "tags": [
+          "feeds"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "query",
+                    "status",
+                    "error",
+                    "results",
+                    "cost_dollars",
+                    "created_at",
+                    "completed_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "minLength": 26,
+                      "maxLength": 26,
+                      "description": "ULID",
+                      "type": "string"
+                    },
+                    "query": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "description": "running: ask again in a few seconds (a search takes about a minute); failed: see error",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "running"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "completed"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "failed"
+                          ]
+                        }
+                      ]
+                    },
+                    "error": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "results": {
+                      "description": "Empty until completed; at most 8",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "podcast",
+                          "title",
+                          "published",
+                          "url",
+                          "speaker",
+                          "quote",
+                          "why",
+                          "start_ms",
+                          "match",
+                          "episode",
+                          "feed_id",
+                          "followed",
+                          "show",
+                          "youtube_id"
+                        ],
+                        "properties": {
+                          "podcast": {
+                            "description": "The show's name, as the search found it",
+                            "type": "string"
+                          },
+                          "title": {
+                            "description": "The episode's title, as the search found it",
+                            "type": "string"
+                          },
+                          "published": {
+                            "anyOf": [
+                              {
+                                "description": "Release date as the search gave it, usually YYYY-MM-DD",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "url": {
+                            "anyOf": [
+                              {
+                                "description": "A page or video link for the episode, when the search found one",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "speaker": {
+                            "anyOf": [
+                              {
+                                "description": "Who talks about the topic",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "quote": {
+                            "anyOf": [
+                              {
+                                "description": "A line they said about it, from the transcript",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "why": {
+                            "anyOf": [
+                              {
+                                "description": "One sentence on what the episode says about the topic",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "start_ms": {
+                            "anyOf": [
+                              {
+                                "minimum": 0,
+                                "description": "Where in the episode the topic comes up, by the search's transcript; approximate against ours",
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "match": {
+                            "description": "episode: one of ours, in `episode`; show: a show we have (feed_id) without this episode; new_show: a show from the directory, in `show` (open it with POST /v1/feeds, followed false); video: a YouTube video (POST /v1/links/episodes with `url`); none: nothing to open",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "episode"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "show"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "new_show"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "video"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "none"
+                                ]
+                              }
+                            ]
+                          },
+                          "episode": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "feed_id",
+                                  "show_title",
+                                  "title",
+                                  "published_at",
+                                  "duration_ms",
+                                  "image_url",
+                                  "asset_id",
+                                  "transcript_id",
+                                  "has_summary",
+                                  "processing",
+                                  "resume",
+                                  "media_kind",
+                                  "youtube_id",
+                                  "video"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "minLength": 26,
+                                    "maxLength": 26,
+                                    "description": "ULID",
+                                    "type": "string"
+                                  },
+                                  "feed_id": {
+                                    "minLength": 26,
+                                    "maxLength": 26,
+                                    "description": "ULID",
+                                    "type": "string"
+                                  },
+                                  "show_title": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "published_at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "duration_ms": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "image_url": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "asset_id": {
+                                    "anyOf": [
+                                      {
+                                        "minLength": 26,
+                                        "maxLength": 26,
+                                        "description": "ULID",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "transcript_id": {
+                                    "anyOf": [
+                                      {
+                                        "minLength": 26,
+                                        "maxLength": 26,
+                                        "description": "ULID",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "has_summary": {
+                                    "type": "boolean"
+                                  },
+                                  "processing": {
+                                    "type": "object",
+                                    "required": [
+                                      "audio",
+                                      "transcript",
+                                      "text",
+                                      "summary"
+                                    ],
+                                    "properties": {
+                                      "audio": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "transcript": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "text": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "summary": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "queued"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "running"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "deferred"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "resume": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "position_ms",
+                                          "speed",
+                                          "finished",
+                                          "device_name",
+                                          "updated_at"
+                                        ],
+                                        "properties": {
+                                          "position_ms": {
+                                            "minimum": 0,
+                                            "description": "milliseconds",
+                                            "type": "integer"
+                                          },
+                                          "speed": {
+                                            "type": "number"
+                                          },
+                                          "finished": {
+                                            "type": "boolean"
+                                          },
+                                          "device_name": {
+                                            "type": "string"
+                                          },
+                                          "updated_at": {
+                                            "description": "When the position was observed: the reporting device's observed_at, else when the server received it",
+                                            "type": "integer"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "media_kind": {
+                                    "description": "'video' when the episode is a video (a channel's, or a feed's video enclosure)",
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "audio"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "video"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "youtube_id": {
+                                    "anyOf": [
+                                      {
+                                        "description": "The YouTube video the episode is, or the one its show notes link",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "video": {
+                                    "type": "object",
+                                    "required": [
+                                      "status",
+                                      "error"
+                                    ],
+                                    "properties": {
+                                      "status": {
+                                        "description": "none: no video exists; available: one can be fetched (POST /v1/episodes/{id}/video); requested: on its way; ready: the recording has a video file; failed: see error",
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "available"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "requested"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ready"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "error": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "feed_id": {
+                            "anyOf": [
+                              {
+                                "minLength": 26,
+                                "maxLength": 26,
+                                "description": "ULID",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "followed": {
+                            "anyOf": [
+                              {
+                                "description": "Whether feed_id's show is in the library",
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "show": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "title",
+                                  "author",
+                                  "feed_url",
+                                  "artwork_url"
+                                ],
+                                "properties": {
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "author": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "feed_url": {
+                                    "type": "string"
+                                  },
+                                  "artwork_url": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "youtube_id": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "cost_dollars": {
+                      "anyOf": [
+                        {
+                          "description": "What Exa billed for the search, once completed",
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "created_at": {
+                      "type": "integer"
+                    },
+                    "completed_at": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/playback/{asset_id}": {
       "put": {
         "summary": "Report this device's position for a recording; a stale seq is ignored",

@@ -23,7 +23,7 @@ import { drain } from "../src/jobs/worker.js";
 import { newId } from "../src/lib/ids.js";
 import { storeTranscript } from "../src/services/transcripts.js";
 import { storeAdBreaks } from "../src/services/adBreaks.js";
-import { FixedShowSearch } from "./helpers/context.js";
+import { FakePodcastSearch, FixedShowSearch } from "./helpers/context.js";
 import { DURATION_MS, makeTone, PRICING, recordingFixture, transcriptAbout } from "./helpers/fixture.js";
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "contracts", "api");
@@ -117,6 +117,25 @@ beforeAll(async () => {
   await record("feeds.create", { method: "POST", url: "/v1/feeds", body: { url: "https://feeds.example.com/hardfork.xml", auto_process: false, backfill: 0, followed: false } });
   await record("search.shows", { method: "GET", url: "/v1/search/shows?q=hard%20fork&limit=20" });
   await record("errors.conflict.feed", { method: "POST", url: "/v1/feeds", body: { url: "https://feeds.example.com/hardfork.xml" } });
+
+  // A topic search (Exa, faked): started, still running, then done with one row of each kind the app draws.
+  const ours = ctx.db.prepare("SELECT e.title, f.title AS show FROM episode e JOIN feed f ON f.id = e.feed_id WHERE e.id = ?").get(episodeId) as { title: string; show: string };
+  const why = { speaker: "The guest", quote: "Nobody upgraded for three months.", why: "Why a flat monthly fee failed.", published: "2026-10-01" };
+  ctx.podcastSearch = new FakePodcastSearch([
+    { podcast: ours.show, episode: ours.title, url: null, start_seconds: 95, ...why },
+    { podcast: "Hard Fork", episode: "An episode not yet fetched", url: null, start_seconds: null, ...why },
+    { podcast: "The Daily", episode: "Pricing, explained", url: "https://example.com/the-daily/pricing", start_seconds: 600, ...why },
+    { podcast: "A Channel", episode: "Pricing on video", url: "https://www.youtube.com/watch?v=abcdefghijk", start_seconds: null, ...why },
+    { podcast: "Unknown Show", episode: "Mystery", url: null, start_seconds: null, speaker: null, quote: null, why: null, published: null },
+  ]);
+  const topic = await record("topics.create", { method: "POST", url: "/v1/topic-searches", body: { query: "flat fee pricing", client_request_id: "01EXAMPLE0000000000000009" } });
+  const topicId = (topic.body as { id: string }).id;
+  clock.now += 3_000;
+  await record("topics.get.running", { method: "GET", url: `/v1/topic-searches/${topicId}` });
+  clock.now += 3_000;
+  await record("topics.get.completed", { method: "GET", url: `/v1/topic-searches/${topicId}` });
+  await record("topics.list", { method: "GET", url: "/v1/topic-searches?limit=20" });
+  ctx.podcastSearch = null;
   await record("episodes.list", { method: "GET", url: "/v1/episodes?limit=30" });
   await record("episodes.get", { method: "GET", url: `/v1/episodes/${episodeId}` });
   await record("transcripts.get", { method: "GET", url: `/v1/transcripts/${transcript.id}` });
@@ -211,6 +230,11 @@ describe("recorded API responses for the native app", () => {
     expect(version.previous).not.toBeNull();
     expect(version.runs.map((r) => r.status)).toEqual(["queued", "done"]);
     expect(recorded.get("evals.runs.create")!.status).toBe(202);
+    expect(recorded.get("topics.create")!.status).toBe(201);
+    expect((recorded.get("topics.get.running")!.body as { status: string }).status).toBe("running");
+    const topic = recorded.get("topics.get.completed")!.body as { status: string; results: { match: string }[] };
+    expect(topic.status).toBe("completed");
+    expect(topic.results.map((r) => r.match)).toEqual(["episode", "show", "new_show", "video", "none"]);
   });
 
   it("matches the committed files in shape", () => {

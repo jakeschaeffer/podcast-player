@@ -38,6 +38,8 @@ In production the server runs as a systemd service behind nginx (`../deploy/READ
 | `TRANSCRIPTION_CENTS_PER_HOUR` | Rate used for the cost ledger | `22` |
 | `MEDIA_URL_TTL_SECONDS` | Lifetime of signed audio URLs | `86400` |
 | `READWISE_TOKEN` | The owner's Readwise access token (readwise.io/access_token). Every ready snip is sent there as a podcast highlight, kept up to date on edits and deleted with the snip; the first run sends every snip already made. Empty sends nothing | – |
+| `EXA_API_KEY` | Exa's API key (dashboard.exa.ai). Turns on topic search, `POST /v1/topic-searches`: episodes about a topic in any show, from Exa's Agent API with Particle's podcast transcripts. Every new search bills one Exa run; the same query within a day reuses the last one. Empty turns topic search off | – |
+| `EXA_EFFORT` | The Exa Agent effort a topic search runs at, a fixed price each: `minimal` ($0.012), `low` ($0.025), `medium` ($0.10), `high`, `xhigh`, plus $0.015 a Particle call | `low` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | A Desktop OAuth client from the Google Cloud console, for read-only Gmail access to the mailbox that receives publisher emails | – |
 | `GOOGLE_REFRESH_TOKEN` | Written by `pnpm gmail:auth`; scope `gmail.readonly` only | – |
 | `EMAIL_SOURCE_QUERY` | Gmail search for newsletters that carry episode text; empty disables the email source (text feeds are the default path) | empty |

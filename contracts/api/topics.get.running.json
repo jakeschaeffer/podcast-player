@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1/topic-searches/01M7JZAHSDTRXY2WQEXK0CR93M"
+  },
+  "status": 200,
+  "body": {
+    "id": "01M7JZAHSDTRXY2WQEXK0CR93M",
+    "query": "flat fee pricing",
+    "status": "running",
+    "error": null,
+    "results": [],
+    "cost_dollars": null,
+    "created_at": 1800000000000,
+    "completed_at": null
+  }
+}
