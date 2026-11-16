@@ -8,7 +8,7 @@
     "enabled": true,
     "items": [
       {
-        "id": "01M7JZAHSDTRXY2WQEXK0CR93M",
+        "id": "01M7K1HQECE7P0BXECN1SDGXZQ",
         "query": "flat fee pricing",
         "status": "completed",
         "error": null,
@@ -24,15 +24,15 @@
             "start_ms": 95000,
             "match": "episode",
             "episode": {
-              "id": "01M7JZAHM6YF0F1N6KVK9AVA7N",
-              "feed_id": "01M7JZAHM6JAY813CHTS7ZV9XV",
+              "id": "01M7K1HQ9AK958F0FV97JNEDRP",
+              "feed_id": "01M7K1HQ997B6M2346SVY3N0YB",
               "show_title": "Fixture Show",
               "title": "Pricing",
               "published_at": null,
               "duration_ms": 120000,
               "image_url": null,
-              "asset_id": "01M7JZAHM6AYTY08ECV83DZM7M",
-              "transcript_id": "01M7JZAHR90FWDR03GSQKKRS4E",
+              "asset_id": "01M7K1HQ9ADQ4BC7PK6Y56GG9X",
+              "transcript_id": "01M7K1HQD6VV5CHH7X51RZK543",
               "has_summary": true,
               "processing": {
                 "audio": "ready",
@@ -54,7 +54,7 @@
                 "error": null
               }
             },
-            "feed_id": "01M7JZAHM6JAY813CHTS7ZV9XV",
+            "feed_id": "01M7K1HQ997B6M2346SVY3N0YB",
             "followed": true,
             "show": null,
             "youtube_id": null
@@ -70,7 +70,7 @@
             "start_ms": null,
             "match": "show",
             "episode": null,
-            "feed_id": "01M7JZAHS59D4GMAMJ6H9J07FM",
+            "feed_id": "01M7K1HQE3R9RBVKA56MX9MX5N",
             "followed": false,
             "show": null,
             "youtube_id": null
@@ -130,6 +130,7 @@
           }
         ],
         "cost_dollars": 0.04,
+        "podcast_index_calls": 2,
         "created_at": 1800000000000,
         "completed_at": 1800000006000
       }

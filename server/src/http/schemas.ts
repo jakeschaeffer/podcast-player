@@ -273,6 +273,7 @@ export const TopicSearchSchema = Type.Object({
   error: Nullable(Type.String()),
   results: Type.Array(TopicResultSchema, { description: "Empty until completed; at most 8" }),
   cost_dollars: Nullable(Type.Number({ description: "What Exa billed for the search, once completed" })),
+  podcast_index_calls: Nullable(Type.Integer({ minimum: 0, description: "How many times the run searched Particle's podcast transcripts; 0 means it answered from web search alone. Null while running, and for searches from before it was recorded" })),
   created_at: Type.Integer(),
   completed_at: Nullable(Type.Integer()),
 });

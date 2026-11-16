@@ -9,12 +9,13 @@
   },
   "status": 201,
   "body": {
-    "id": "01M7JZAHSDTRXY2WQEXK0CR93M",
+    "id": "01M7K1HQECE7P0BXECN1SDGXZQ",
     "query": "flat fee pricing",
     "status": "running",
     "error": null,
     "results": [],
     "cost_dollars": null,
+    "podcast_index_calls": null,
     "created_at": 1800000000000,
     "completed_at": null
   }

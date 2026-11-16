@@ -15873,6 +15873,7 @@
                           "error",
                           "results",
                           "cost_dollars",
+                          "podcast_index_calls",
                           "created_at",
                           "completed_at"
                         ],
@@ -16546,6 +16547,18 @@
                               }
                             ]
                           },
+                          "podcast_index_calls": {
+                            "anyOf": [
+                              {
+                                "minimum": 0,
+                                "description": "How many times the run searched Particle's podcast transcripts; 0 means it answered from web search alone. Null while running, and for searches from before it was recorded",
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
                           "created_at": {
                             "type": "integer"
                           },
@@ -16615,6 +16628,7 @@
                     "error",
                     "results",
                     "cost_dollars",
+                    "podcast_index_calls",
                     "created_at",
                     "completed_at"
                   ],
@@ -17282,6 +17296,18 @@
                         {
                           "description": "What Exa billed for the search, once completed",
                           "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "podcast_index_calls": {
+                      "anyOf": [
+                        {
+                          "minimum": 0,
+                          "description": "How many times the run searched Particle's podcast transcripts; 0 means it answered from web search alone. Null while running, and for searches from before it was recorded",
+                          "type": "integer"
                         },
                         {
                           "type": "null"
@@ -17319,6 +17345,7 @@
                     "error",
                     "results",
                     "cost_dollars",
+                    "podcast_index_calls",
                     "created_at",
                     "completed_at"
                   ],
@@ -17986,6 +18013,18 @@
                         {
                           "description": "What Exa billed for the search, once completed",
                           "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "podcast_index_calls": {
+                      "anyOf": [
+                        {
+                          "minimum": 0,
+                          "description": "How many times the run searched Particle's podcast transcripts; 0 means it answered from web search alone. Null while running, and for searches from before it was recorded",
+                          "type": "integer"
                         },
                         {
                           "type": "null"
@@ -18111,6 +18150,7 @@
                     "error",
                     "results",
                     "cost_dollars",
+                    "podcast_index_calls",
                     "created_at",
                     "completed_at"
                   ],
@@ -18778,6 +18818,18 @@
                         {
                           "description": "What Exa billed for the search, once completed",
                           "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "podcast_index_calls": {
+                      "anyOf": [
+                        {
+                          "minimum": 0,
+                          "description": "How many times the run searched Particle's podcast transcripts; 0 means it answered from web search alone. Null while running, and for searches from before it was recorded",
+                          "type": "integer"
                         },
                         {
                           "type": "null"
