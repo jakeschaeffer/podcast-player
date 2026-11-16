@@ -63,8 +63,7 @@ struct TopicSearchView: View {
         Text(error).font(.title3).foregroundStyle(.red)
       }
       if enabled == false {
-        Text("Topic search isn’t set up on the server. It needs an Exa API key (EXA_API_KEY).")
-          .font(.title3)
+        Text("Not set up").font(.title2.bold()).accessibilityHint("The server needs an Exa API key")
       } else if let search {
         searchSection(search)
       } else if enabled == true {
@@ -72,7 +71,7 @@ struct TopicSearchView: View {
       }
     }
     .unfoldedReadableWidth()
-    .navigationTitle("Episodes about…")
+    .navigationTitle("Topics")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
     .navigationDestination(item: $opened) { feed in
@@ -118,7 +117,7 @@ struct TopicSearchView: View {
       Image(systemName: "text.magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
       // Wraps rather than cutting the topic short at large text sizes. A multi-line field takes Return as a new line,
       // so a new line is taken out and starts the search instead, as Find episodes does.
-      TextField("A topic: sleep and memory", text: $query, axis: .vertical)
+      TextField("Topic", text: $query, axis: .vertical)
         .lineLimit(1...4)
         .focused($focused)
         .submitLabel(.search)
@@ -143,10 +142,7 @@ struct TopicSearchView: View {
   }
 
   @ViewBuilder private var idle: some View {
-    if recent.isEmpty {
-      Text("Name a topic and Find episodes looks through podcast transcripts, in shows you follow and shows you don’t. It takes about a minute, and costs a few cents of Exa each time; the same topic again within a day is free.")
-        .font(.title3)
-    } else {
+    if !recent.isEmpty {
       Section {
         ForEach(recent) { s in
           Button {
@@ -160,7 +156,7 @@ struct TopicSearchView: View {
           .buttonStyle(.plain)
         }
       } header: {
-        Text("Recent searches").font(.title3.bold()).textCase(nil).foregroundStyle(.primary)
+        Text("Recent").font(.title3.bold()).textCase(nil).foregroundStyle(.primary)
       }
     }
   }
@@ -168,26 +164,18 @@ struct TopicSearchView: View {
   @ViewBuilder private func searchSection(_ s: TopicSearch) -> some View {
     switch s.status {
     case "running":
-      HStack(alignment: .top, spacing: 16) {
+      HStack(spacing: 16) {
         ProgressView().controlSize(.large)
-        VStack(alignment: .leading, spacing: 6) {
-          Text("Looking for episodes about “\(s.query)”").font(.title2.bold()).fixedSize(horizontal: false, vertical: true)
-          Text("This takes about a minute. You can leave this page; the search keeps going.")
-            .font(.title3).fixedSize(horizontal: false, vertical: true)
-        }
+        Text("Searching").font(.title2.bold())
       }
       .padding(.vertical, 8)
+      .accessibilityElement(children: .combine)
     case "failed":
-      VStack(alignment: .leading, spacing: 12) {
-        Text("The search for “\(s.query)” didn’t finish").font(.title2.bold()).fixedSize(horizontal: false, vertical: true)
-        if let reason = s.error { Text(reason).font(.title3) }
-        Text("Find episodes tries again.").font(.title3)
-      }
-      .padding(.vertical, 8)
+      // Exa's reason goes to VoiceOver only: it is a sentence, and Find episodes is the way on either way.
+      Text("Search failed").font(.title2.bold()).padding(.vertical, 8).accessibilityHint(s.error ?? "")
     default:
       if s.results.isEmpty {
-        Text("No episodes found about “\(s.query)”. Try other words for it.")
-          .font(.title3)
+        Text("No episodes").font(.title2.bold()).padding(.vertical, 8)
       } else {
         Section {
           ForEach(Array(s.results.enumerated()), id: \.offset) { index, result in
@@ -207,7 +195,7 @@ struct TopicSearchView: View {
         } header: {
           // The field above says the topic already, unless it has been edited since.
           if s.query != trimmed {
-            Text("Episodes about “\(s.query)”").font(.title3.bold()).textCase(nil).foregroundStyle(.primary)
+            Text(s.query).font(.title3.bold()).textCase(nil).foregroundStyle(.primary)
           }
         }
       }
@@ -354,11 +342,11 @@ private struct TopicResultRow: View {
   private var label: String {
     switch result.match {
     case "episode":
-      if let ms = result.startMs, ms > 0 { "Play from \(clock(ms))" } else { "Open the episode" }
-    case "show": "Open the show; this episode isn’t in the app yet"
-    case "new_show": "A show new to you: open it"
-    case "video": "Add this video"
-    default: "Not found in the podcast directory"
+      if let ms = result.startMs, ms > 0 { "Play from \(clock(ms))" } else { "Play" }
+    case "show": "Open show"
+    case "new_show": "New show"
+    case "video": "Add video"
+    default: "Not found"
     }
   }
 
@@ -368,27 +356,18 @@ private struct TopicResultRow: View {
   }
 }
 
-/// A search run before: the topic in large type, and how many episodes it found or that it is still running.
+/// A search run before: its topic, in large type.
 private struct RecentRow: View {
   let search: TopicSearch
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(search.query)
-        .font(.title2.bold())
-        .lineLimit(3)
-        .fixedSize(horizontal: false, vertical: true)
-      Text(detail).font(.title3).foregroundStyle(.secondary)
-    }
+    Text(search.query)
+      .font(.title2.bold())
+      .lineLimit(3)
+      .fixedSize(horizontal: false, vertical: true)
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(.vertical, 8)
     .contentShape(.rect)
     .accessibilityElement(children: .combine)
-  }
-
-  private var detail: String {
-    if search.status == "running" { return "Still searching" }
-    let n = search.results.count
-    return n == 0 ? "No episodes found" : n == 1 ? "1 episode" : "\(n) episodes"
   }
 }
