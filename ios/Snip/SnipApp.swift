@@ -133,7 +133,7 @@ struct RootView: View {
       // `-openEpisode <id>` opens the player on that episode at launch, for scripted simulator checks.
       // `-searchShows <text>` and `-openFeed <id>` open the Library on show search or on a show (LibraryView).
       // `-openSnip <id>` opens the Snips tab on that snip's page, and `-openSnipsEpisode <id>` on that episode's snips,
-      // with `-chooseSnipsShow 1` the list of shows over it (SnipsView). `-openUpNext 1` opens Up Next from Today's
+      // with `-chooseSnipsShow 1` the list of shows over it, and `-searchSnips <text>` searches them (SnipsView). `-openUpNext 1` opens Up Next from Today's
       // queue button (`-editUpNext 1` in edit mode). After `-openEpisode`, `-seekTo <ms>` starts there (say, in an ad break), and
       // `-autoSnipAfter <s>` snips that many seconds later, as a tap on Snip would, to follow a snip on the Live Activity;
       // `-renameAfter <s>` then opens its rename link, as a tap on the activity's title does. `-openURL <link>` opens a
