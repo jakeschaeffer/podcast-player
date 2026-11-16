@@ -26,6 +26,9 @@ struct SnipsView: View {
   @State private var show: SnipShow?
   @State private var shows: [SnipShow] = []
   @State private var choosingShow = false
+  /// Search pushed over the list, with the words it starts from (a launch link's).
+  @State private var searching = false
+  @State private var searchText = ""
   /// An episode's snips pushed over the list.
   @State private var opened: SnipsEpisode?
   /// A snip's page over the list: opened from the episode beside it, or by a launch link.
@@ -83,6 +86,18 @@ struct SnipsView: View {
       Color.clear.ignoresSafeArea(.keyboard).onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
     }
     .navigationTitle("Snips")
+    .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        Button {
+          searchText = ""
+          searching = true
+        } label: {
+          Image(systemName: "magnifyingglass")
+        }
+        .accessibilityLabel("Search snips")
+      }
+    }
+    .navigationDestination(isPresented: $searching) { SnipSearchView(query: searchText) }
     .task { if !loaded { await load() } }
     // A waiting tap was sent: it is a snip now, on its episode's row.
     .onChange(of: model.waitingSnips.count) { old, new in
@@ -109,7 +124,8 @@ struct SnipsView: View {
     .sheet(isPresented: $choosingShow) { showPicker }
     #if DEBUG
       // `-openSnip <id>` opens that snip's page at launch; `-openSnipsEpisode <id>` that episode's snips (chosen,
-      // beside the list, when they share the screen). For scripted simulator checks.
+      // beside the list, when they share the screen); `-searchSnips <text>` search with those words. For scripted
+      // simulator checks.
       .task {
         // Once per launch: the list appears again each time a page pushed over it is closed.
         guard !Self.launchArgumentsUsed else { return }
@@ -117,6 +133,9 @@ struct SnipsView: View {
         let defaults = UserDefaults.standard
         if let id = defaults.string(forKey: "openSnip") {
           openedSnip = SnipRoute(id: id)
+        } else if let text = defaults.string(forKey: "searchSnips") {
+          searchText = text
+          searching = true
         } else if let id = defaults.string(forKey: "openSnipsEpisode") {
           // The first layout says whether the list and an episode share the screen.
           while size == .zero || !loaded { try? await Task.sleep(for: .milliseconds(20)) }

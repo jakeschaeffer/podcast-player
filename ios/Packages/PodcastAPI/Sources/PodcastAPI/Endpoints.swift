@@ -212,12 +212,15 @@ extension APIClient {
     try await sendIgnoringBody("DELETE", "/v1/snips/\(id)")
   }
 
-  public func snips(episodeID: ULID? = nil, limit: Int = 30, after: String? = nil) async throws -> Page<Snip> {
+  /// `search` matches a snip's title, summary, words and note.
+  public func snips(episodeID: ULID? = nil, search: String? = nil, limit: Int = 30, after: String? = nil) async throws -> Page<Snip> {
     var query = [URLQueryItem(name: "limit", value: String(limit))]
     if let episodeID { query.append(URLQueryItem(name: "episode_id", value: episodeID)) }
+    if let search { query.append(URLQueryItem(name: "q", value: search)) }
     if let after { query.append(URLQueryItem(name: "after", value: after)) }
-    // The first page of every snip, and each episode's snips (the episode page, offline too), are remembered.
-    return try await send("GET", "/v1/snips", query: query, remember: after == nil)
+    // The first page of every snip, and each episode's snips (the episode page, offline too), are remembered; a search
+    // is not.
+    return try await send("GET", "/v1/snips", query: query, remember: after == nil && search == nil)
   }
 
   /// The episodes snipped from, the most recently snipped first; `feedID` keeps one show's.
