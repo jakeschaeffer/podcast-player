@@ -26,6 +26,9 @@ struct TopicSearchView: View {
   @State private var opening: Int?
   @State private var opened: Feed?
   @FocusState private var focused: Bool
+  @Environment(\.horizontalSizeClass) private var horizontal
+  @Environment(\.verticalSizeClass) private var vertical
+  @State private var size = CGSize.zero
 
   init(showPlayer: Binding<Bool>, query: String = "", start: Bool = false, search: TopicSearch? = nil) {
     _showPlayer = showPlayer
@@ -39,38 +42,40 @@ struct TopicSearchView: View {
   private var canStart: Bool { enabled == true && trimmed.count >= 2 && !starting && !running }
   /// The button goes while the search on screen is the field's own (running or answered), so the results start
   /// higher; editing the topic brings it back.
-  private var showsButton: Bool { search.map { $0.query != trimmed || $0.status == "failed" } ?? true }
+  private var showsButton: Bool { spread || (search.map { $0.query != trimmed || $0.status == "failed" } ?? true) }
+  /// The iPhone Duo open and held wide: the topic, Find episodes and the recent searches on the left page, the
+  /// search on screen on the right, so no title runs across the fold.
+  private var spread: Bool { UnfoldedDisplay.isSpread(horizontal: horizontal, vertical: vertical, size: size) }
 
   var body: some View {
-    List {
-      Section {
-        field
-        if showsButton {
-          Button(action: start) {
-            HStack(spacing: 10) {
-              if starting { ProgressView().tint(.white) }
-              Text("Find episodes")
-            }
-            .font(.title3.bold())
-            .frame(maxWidth: .infinity, minHeight: 44)
+    Group {
+      if spread {
+        HingeSplit(gapFill: Color(.systemGroupedBackground)) {
+          List {
+            ask
+            if enabled == true { idle }
           }
-          .buttonStyle(.borderedProminent)
-          .disabled(!canStart)
-          .listRowSeparator(.hidden)
+        } trailing: {
+          List {
+            if enabled == false { notSetUp } else if let search { searchSection(search) }
+          }
         }
-      }
-      if let error {
-        Text(error).font(.title3).foregroundStyle(.red)
-      }
-      if enabled == false {
-        Text("Not set up").font(.title2.bold()).accessibilityHint("The server needs an Exa API key")
-      } else if let search {
-        searchSection(search)
-      } else if enabled == true {
-        idle
+        .background(Color(.systemGroupedBackground))
+      } else {
+        List {
+          ask
+          if enabled == false {
+            notSetUp
+          } else if let search {
+            searchSection(search)
+          } else if enabled == true {
+            idle
+          }
+        }
+        .unfoldedReadableWidth()
       }
     }
-    .unfoldedReadableWidth()
+    .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
     .navigationTitle("Topics")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
@@ -111,6 +116,33 @@ struct TopicSearchView: View {
     }
   }
 
+  private var notSetUp: some View {
+    Text("Not set up").font(.title2.bold()).accessibilityHint("The server needs an Exa API key")
+  }
+
+  /// The topic, Find episodes, and what went wrong reaching the server.
+  @ViewBuilder private var ask: some View {
+    Section {
+      field
+      if showsButton {
+        Button(action: start) {
+          HStack(spacing: 10) {
+            if starting { ProgressView().tint(.white) }
+            Text("Find episodes")
+          }
+          .font(.title3.bold())
+          .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(!canStart)
+        .listRowSeparator(.hidden)
+      }
+    }
+    if let error {
+      Text(error).font(.title3).foregroundStyle(.red)
+    }
+  }
+
   /// The topic, in large type; Return starts the search, as Find episodes does.
   private var field: some View {
     HStack(spacing: 10) {
@@ -144,7 +176,8 @@ struct TopicSearchView: View {
   @ViewBuilder private var idle: some View {
     if !recent.isEmpty {
       Section {
-        ForEach(recent) { s in
+        // Two or three rows, not a long list: the newest searches are the ones come back to.
+        ForEach(recent.prefix(3)) { s in
           Button {
             focused = false
             query = s.query
