@@ -12,6 +12,9 @@ export type CodexCliOptions = {
   model?: string;
   /** `low`, `medium`, or `high`; empty uses the CLI default. Boundary picking needs little reasoning. */
   reasoningEffort?: string;
+  /** Codex's service tier: `priority` is the one its menus call Fast (more speed, more of the plan's usage). Empty
+   * uses the standard tier. */
+  serviceTier?: string;
   defaultTimeoutMs?: number;
 };
 
@@ -26,12 +29,14 @@ export class CodexCliTextModel implements TextModel {
   private readonly bin: string;
   private readonly model: string;
   private readonly reasoningEffort: string;
+  private readonly serviceTier: string;
   private readonly defaultTimeoutMs: number;
 
   constructor(options: CodexCliOptions = {}) {
     this.bin = options.bin ?? "codex";
     this.model = options.model ?? "";
     this.reasoningEffort = options.reasoningEffort ?? "";
+    this.serviceTier = options.serviceTier ?? "";
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? 180_000;
   }
 
@@ -56,6 +61,7 @@ export class CodexCliTextModel implements TextModel {
       ];
       if (this.model) args.push("-m", this.model);
       if (this.reasoningEffort) args.push("-c", `model_reasoning_effort="${this.reasoningEffort}"`);
+      if (this.serviceTier) args.push("-c", `service_tier="${this.serviceTier}"`);
       args.push("-");
       const prompt = `${req.system.trim()}\n\n${req.user.trim()}\n`;
       const { stdout, stderr, code } = await run(this.bin, args, prompt, req.timeout_ms ?? this.defaultTimeoutMs);
@@ -67,7 +73,7 @@ export class CodexCliTextModel implements TextModel {
       if (!raw.trim()) throw new Error(`codex exec produced no final message: ${stderr.trim().slice(-500)}`);
       const data = parseAgainstSchema(req.schema, raw);
       const usage = usageFromEvents(stdout);
-      return { data, model: usage.model ?? (this.model || `codex-default${this.reasoningEffort ? `/${this.reasoningEffort}` : ""}`), ...usage.tokens, elapsed_ms: Date.now() - started };
+      return { data, model: usage.model ?? (this.model || `codex-default${this.reasoningEffort ? `/${this.reasoningEffort}` : ""}${this.serviceTier ? `/${this.serviceTier}` : ""}`), ...usage.tokens, elapsed_ms: Date.now() - started };
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

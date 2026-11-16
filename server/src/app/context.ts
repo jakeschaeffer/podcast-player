@@ -25,6 +25,9 @@ export type AppContext = {
   transcriber: Transcriber | null;
   aligner: ForcedAligner | null;
   textModel: TextModel | null;
+  /** The text model for the snip calls (episode map, span picker, snip summary): the same Codex with the snip
+   * settings (CODEX_SNIP_*). Null exactly when textModel is. */
+  snipTextModel: TextModel | null;
   /** Finds public shows to subscribe to (iTunes Search, or Podcast Index when its keys are set). */
   showSearch: ShowSearch;
   /** The owner's Readwise, when READWISE_TOKEN is set; every snip goes there as a highlight. */
@@ -35,7 +38,7 @@ export type AppContext = {
   log: (msg: string, extra?: Record<string, unknown>) => void;
 };
 
-export type ContextOverrides = Partial<Pick<AppContext, "transcriber" | "aligner" | "textModel" | "showSearch" | "readwise" | "podcastSearch" | "now" | "log">> & { dbPath?: string };
+export type ContextOverrides = Partial<Pick<AppContext, "transcriber" | "aligner" | "textModel" | "snipTextModel" | "showSearch" | "readwise" | "podcastSearch" | "now" | "log">> & { dbPath?: string };
 
 export function createContext(config: Config, overrides: ContextOverrides = {}): AppContext {
   const paths = pathsFor(config.dataDir);
@@ -55,6 +58,14 @@ export function createContext(config: Config, overrides: ContextOverrides = {}):
         : null;
   const textModel =
     overrides.textModel !== undefined ? overrides.textModel : config.textModel === "codex-cli" ? new CodexCliTextModel({ model: config.codexModel, reasoningEffort: config.codexReasoningEffort }) : null;
+  const snipTextModel =
+    overrides.snipTextModel !== undefined
+      ? overrides.snipTextModel
+      : overrides.textModel !== undefined
+        ? overrides.textModel
+        : config.textModel === "codex-cli"
+          ? new CodexCliTextModel({ model: config.codexModel, reasoningEffort: config.snipCodexReasoningEffort, serviceTier: config.snipCodexServiceTier })
+          : null;
   const now = overrides.now ?? Date.now;
   return {
     config,
@@ -65,6 +76,7 @@ export function createContext(config: Config, overrides: ContextOverrides = {}):
     transcriber,
     aligner,
     textModel,
+    snipTextModel,
     showSearch: overrides.showSearch ?? showSearchFromEnv(),
     readwise: overrides.readwise !== undefined ? overrides.readwise : config.readwiseToken ? new ReadwiseApi({ token: config.readwiseToken }) : null,
     podcastSearch: overrides.podcastSearch !== undefined ? overrides.podcastSearch : config.exaApiKey ? new ExaPodcastSearch({ apiKey: config.exaApiKey, effort: config.exaEffort }) : null,

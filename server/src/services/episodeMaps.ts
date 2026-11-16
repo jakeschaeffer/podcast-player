@@ -68,7 +68,7 @@ export function loadEpisodeMap(ctx: AppContext, transcriptId: string): { map: Ep
  * call this every few seconds, and a map that failed is not worth retrying on each of them.
  */
 export function queueEpisodeMap(ctx: AppContext, transcriptId: string, priority: number = PRIORITY.play): void {
-  if (!ctx.textModel || !ctx.config.episodeMaps) return;
+  if (!ctx.snipTextModel || !ctx.config.episodeMaps) return;
   const version = readRegistry()["episode-map"].active;
   const key = `map_episode:${transcriptId}:${version}`;
   if (ctx.db.prepare("SELECT 1 FROM episode_map WHERE transcript_id = ? AND prompt_version = ?").get(transcriptId, version)) return;
@@ -78,12 +78,12 @@ export function queueEpisodeMap(ctx: AppContext, transcriptId: string, priority:
 
 /** Job body: make and keep the map. */
 export async function mapEpisodeJob(ctx: AppContext, job: Job<{ transcript_id: string; version: string }>): Promise<void> {
-  if (!ctx.textModel) return;
+  if (!ctx.snipTextModel) return;
   const { transcript_id, version } = job.payload;
   if (ctx.db.prepare("SELECT 1 FROM episode_map WHERE transcript_id = ? AND prompt_version = ?").get(transcript_id, version)) return;
   const t = loadTranscript(ctx, transcript_id);
   if (!t) return;
-  const built = await buildEpisodeMap(ctx.textModel, resolvePrompt("episode-map", version), t);
+  const built = await buildEpisodeMap(ctx.snipTextModel, resolvePrompt("episode-map", version), t);
   ctx.db
     .prepare("INSERT OR REPLACE INTO episode_map (transcript_id, prompt_version, model, starts, elapsed_ms, created_at) VALUES (?, ?, ?, ?, ?, ?)")
     .run(transcript_id, version, built.model, JSON.stringify(built.map.starts), Math.round(built.elapsed_ms), ctx.now());

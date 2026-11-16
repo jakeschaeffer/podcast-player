@@ -30,6 +30,11 @@ export type Config = {
   codexModel: string;
   /** Codex reasoning effort (low, medium, high). Empty uses the CLI default. */
   codexReasoningEffort: string;
+  /** The snip calls (the episode map that places a snip's start, the span picker, the snip's title, quote and
+   * summary), which someone is waiting on: their own reasoning effort and service tier. Empty falls back to
+   * codexReasoningEffort and the standard tier. */
+  snipCodexReasoningEffort: string;
+  snipCodexServiceTier: string;
   /** Whether the text model may adjust snip starts. Off by default: it scored below the deterministic snap on the owner's snips. */
   selectionModel: boolean;
   /** Whether played episodes get an episode map and snips start where its passages do (services/episodeMaps.ts). On unless EPISODE_MAPS=off; needs a text model. */
@@ -81,6 +86,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     textModel,
     codexModel: env.CODEX_MODEL ?? "",
     codexReasoningEffort: env.CODEX_REASONING_EFFORT ?? "",
+    snipCodexReasoningEffort: env.CODEX_SNIP_REASONING_EFFORT?.trim() || env.CODEX_REASONING_EFFORT || "",
+    snipCodexServiceTier: env.CODEX_SNIP_SERVICE_TIER?.trim() ?? "",
     selectionModel: env.SELECTION_MODEL === "on",
     episodeMaps: env.EPISODE_MAPS !== "off",
     emailSourceQuery: env.EMAIL_SOURCE_QUERY ?? "",

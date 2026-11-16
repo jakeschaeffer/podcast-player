@@ -27,6 +27,8 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     textModel: "none",
     codexModel: "",
     codexReasoningEffort: "",
+    snipCodexReasoningEffort: "",
+    snipCodexServiceTier: "",
     selectionModel: false,
     // Off unless a test is about maps: with a fake text model on, every snip would otherwise queue one.
     episodeMaps: false,
