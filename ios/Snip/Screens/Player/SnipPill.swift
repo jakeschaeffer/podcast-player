@@ -118,6 +118,8 @@ struct SnipPill: View {
   let onOpen: (ULID) -> Void
   let onCancel: () -> Void
   let onClose: () -> Void
+  /// Docked at the foot of a page (a flat band), or floating over the sideways player's black (a capsule).
+  var docked = true
 
   /// How long a finished snip's bar stays.
   static let readyFor = Duration.seconds(15)
@@ -212,8 +214,11 @@ struct SnipPill: View {
     .padding(.trailing, 10)
     .padding(.vertical, 6)
     .frame(minHeight: 68)
-    // A capsule at one line; a rounded box when the title being typed wraps.
-    .background(Color(.systemGray5), in: .rect(cornerRadius: 34, style: .continuous))
+    // Docked at the foot of the reading (PlayerView), part of the page rather than a card over it: a flat band
+    // across the page with a rule above it. Over the sideways player, a capsule (a rounded box when a typed title wraps).
+    .frame(maxWidth: docked ? .infinity : nil)
+    .background(Color(.systemGray5), in: .rect(cornerRadius: docked ? 0 : 34, style: .continuous))
+    .overlay(alignment: .top) { if docked { Divider() } }
     .simultaneousGesture(
       DragGesture(minimumDistance: 0).onChanged { _ in touched = true }.onEnded { _ in touched = false }
     )
