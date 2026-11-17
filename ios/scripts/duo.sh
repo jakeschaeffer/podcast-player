@@ -9,14 +9,27 @@
 #   ios/scripts/duo.sh state                      the orientation and the active display
 #   SNIP_SIM="iPhone Duo (mine)" ios/scripts/duo.sh ...   another device (default "iPhone Duo")
 # `xcrun devicectl device orientation set` is ignored on the Duo, hence Rotate Right.
+#
+# DeviceHub's buttons act on whichever device its window shows, and other sessions (this app's and
+# the audiobook app's, jakeschaeffer/audiobooth-fork scripts/duo/hub.sh) fold Duo simulators of their
+# own, so every press runs under one lockf lock shared by every script on this Mac that folds a Duo:
+# select the device, press, wait out the fold, then let the next caller in. The lock file is
+# $DUO_HUB_LOCK, default ~/Library/Caches/duo-devicehub.lock; keep that default identical in both repos.
 set -euo pipefail
+
+LOCK="${DUO_HUB_LOCK:-$HOME/Library/Caches/duo-devicehub.lock}"
 
 DEVICE="${SNIP_SIM:-iPhone Duo}"
 UDID=$(xcrun simctl list devices available | grep -F "$DEVICE (" | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
 [ -n "$UDID" ] || { echo "error: no available simulator named '$DEVICE'" >&2; exit 1; }
 
+# Press one of DeviceHub's buttons for this device, then wait `settle` seconds for the fold, all under the
+# shared lock (the script re-runs itself as `_press` inside lockf).
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+press() { /usr/bin/lockf -k -t 900 "$LOCK" "$SELF" _press "$1" "${2:-0}"; }
+
 # Show the device in DeviceHub's window (its sidebar row holds the device's name), then press one of its buttons.
-press() {
+press_unlocked() {
   open -g "$(xcode-select -p)/../Applications/DeviceHub.app"
   osascript - "$DEVICE" "$1" <<'OSA'
 on run argv
@@ -41,6 +54,8 @@ on run argv
           end if
         end try
       end repeat
+      -- Selecting a device renames the window, which invalidates the reference above: look it up again.
+      set split to splitter group 1 of group 1 of splitter group 1 of group 1 of window 1
       repeat with b in (buttons of group 3 of split)
         try
           if (value of attribute "AXHelp" of b) is label then
@@ -64,22 +79,25 @@ active_display() {
 }
 
 case "${1:-}" in
+  _press)
+    # Inside the lock (see press).
+    press_unlocked "$2"
+    sleep "$3"
+    ;;
   pose)
     case "${2:-}" in
-      closed) press "Closed" ;;
-      half) press "Partially Open" ;;
-      open) press "Open" ;;
+      closed) press "Closed" 3 ;;
+      half) press "Partially Open" 3 ;;
+      open) press "Open" 3 ;;
       *) echo "usage: $0 pose closed|half|open" >&2; exit 2 ;;
     esac
-    sleep 3
     ;;
   turn)
     want="${2:-}"
     [ "$want" = landscape ] && want=landscapeRight
     for _ in 1 2 3 4 5; do
       [ "$(orientation)" = "$want" ] && exit 0
-      press "Rotate Right" >/dev/null
-      sleep 2.5
+      press "Rotate Right" 2.5 >/dev/null
     done
     echo "error: the device stayed $(orientation)" >&2
     exit 1

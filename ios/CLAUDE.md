@@ -61,7 +61,10 @@ bundle id are in ../CLAUDE.local.md and the gitignored `Config/Local.xcconfig` a
   column down the trailing edge); open, on the inner one (`LCD-1`, 951 × 669 pt held wide with the fold down the
   middle, 669 × 951 turned tall). DeviceHub draws it and owns the hinge: `ios/scripts/duo.sh pose closed|half|open`,
   `turn portrait|landscape` and `shot <file>` press its buttons and screenshot whichever display is active
-  (`xcrun simctl io <udid> screenshot --display=LCD-1` by hand). `-openTab library|snips` and `-openWaitingSnip 1`
+  (`xcrun simctl io <udid> screenshot --display=LCD-1` by hand). Its presses run under one `lockf` lock
+  (`DUO_HUB_LOCK`, default `~/Library/Caches/duo-devicehub.lock`) shared with the audiobook repo's
+  `scripts/duo/hub.sh`, because DeviceHub's buttons act on whichever device it shows: any other script that folds a
+  Duo on this Mac must take the same lock. `-openTab library|snips` and `-openWaitingSnip 1`
   (DEBUG) reach the pages no other launch argument opens, so every page can be captured in every state.
 - **Share sheet** is a third target, `SnipShare/` (bundle `$(ORG_IDENTIFIER).Snip.Share`, a share extension embedded
   in the app). It runs in its own process with none of the app's state and no DEBUG dev-auth, so it reads the server
