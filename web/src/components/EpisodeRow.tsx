@@ -18,7 +18,7 @@ export function EpisodeRow({ episode, artwork, showTitle }: { episode: EpisodeLi
   const add = async () => {
     try {
       await addToQueue(episode.id);
-      toast("Added to Up next");
+      toast("Added to the top of Up next");
     } catch (e) {
       toast(describeError(e));
     }

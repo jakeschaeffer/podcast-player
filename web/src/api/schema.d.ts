@@ -958,10 +958,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Add an episode to the end of Up next, even one finished or removed, and fetch, transcribe and summarize it now at owner priority (ignores the monthly budget). Returns the new Up next */
+        /** Add an episode to Up next, even one finished or removed: `at=start` to play it next (first, above the ones heard partway), `at=end` (the default) after the last. Fetches, transcribes and summarizes it now at owner priority (ignores the monthly budget). Returns the new Up next */
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    at?: "start" | "end";
+                };
                 header?: never;
                 path: {
                     id: string;

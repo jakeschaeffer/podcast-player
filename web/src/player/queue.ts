@@ -16,9 +16,12 @@ export async function reorderQueue(episodeIds: string[]): Promise<EpisodeListIte
   return (await unwrap(api.PUT("/v1/queue", { body: { episode_ids: episodeIds } }))).items;
 }
 
-/** Add an episode to the end of Up next; its recording is fetched now, so it can start the moment one ends. */
-export async function addToQueue(episodeId: string): Promise<EpisodeListItem[]> {
-  const items = (await unwrap(api.POST("/v1/queue/{id}", { params: { path: { id: episodeId } } }))).items;
+/**
+ * Add an episode to Up next, at the top to play next (the default) or at the end; its recording is fetched now, so it
+ * can start the moment one ends.
+ */
+export async function addToQueue(episodeId: string, at: "start" | "end" = "start"): Promise<EpisodeListItem[]> {
+  const items = (await unwrap(api.POST("/v1/queue/{id}", { params: { path: { id: episodeId }, query: { at } } }))).items;
   invalidate(QUEUE_KEY);
   return items;
 }

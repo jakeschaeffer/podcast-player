@@ -99,6 +99,21 @@ describe("the queue", () => {
     expect(titles()).not.toContain("D");
   });
 
+  it("adds an episode to the top, to play next, above the ones heard partway", () => {
+    ctx.now = () => 20_000;
+    addToQueue(ctx, ids.get("D")!, "start");
+    expect(titles()[0]).toBe("D");
+    expect(titles()).toEqual(["D", "A", "B", "Never played"]);
+    ctx.now = () => 21_000;
+    addToQueue(ctx, ids.get("Never played")!, "start"); // the newest added goes above the last
+    expect(titles()).toEqual(["Never played", "D", "A", "B"]);
+    play(a, 22_000, 99_000); // one left for another later still goes above them, as before
+    expect(titles()).toEqual(["A", "Never played", "D", "B"]);
+    ctx.now = () => 23_000;
+    addToQueue(ctx, ids.get("D")!, "end"); // and the end is still the end
+    expect(titles()).toEqual(["A", "Never played", "B", "D"]);
+  });
+
   it("fetches and transcribes an added episode at the owner's priority", () => {
     const id = newId();
     ctx.db.prepare("INSERT INTO episode (id, feed_id, guid, title, first_seen_at, enclosure_url_enc) VALUES (?, ?, ?, 'No audio yet', 0, ?)").run(id, feedId, id, Buffer.from("x"));
