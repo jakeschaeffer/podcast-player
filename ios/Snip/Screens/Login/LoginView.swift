@@ -27,10 +27,18 @@ struct LoginView: View {
           Section { Text(error).foregroundStyle(.red) }
         }
         Section {
+          // A real button, not a row that reads like another field.
           Button(action: signIn) {
-            if busy { ProgressView() } else { Text("Sign in") }
+            Group {
+              if busy { ProgressView() } else { Text("Sign in").font(.title3.weight(.bold)) }
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
           }
+          .buttonStyle(.borderedProminent)
+          .buttonBorderShape(.capsule)
           .disabled(busy || password.isEmpty || URL(string: server)?.host() == nil)
+          .listRowBackground(Color.clear)
+          .listRowInsets(EdgeInsets())
         }
       }
       .unfoldedReadableWidth()

@@ -113,7 +113,9 @@ struct SnipPage: View {
     .navigationBarBackButtonHidden(mode != .reading || typing)
     // Nor by swiping the player's sheet down (the iPhone or the Duo closed), which would close the page with it.
     .interactiveDismissDisabled(mode != .reading || typing)
-    .toolbar(sideways ? .hidden : .visible, for: .navigationBar, .tabBar)
+    .toolbar(sideways ? .hidden : .visible, for: .navigationBar)
+    // Adjusting or writing fills the page: the tabs, which can't be used mid-edit anyway, step aside.
+    .toolbar(sideways || mode != .reading ? .hidden : .visible, for: .tabBar)
     .persistentSystemOverlays(sideways ? .hidden : .automatic)
     .background(VerticalBar(present: $verticalBar))
     .toolbar { toolbar }

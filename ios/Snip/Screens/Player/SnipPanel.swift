@@ -63,13 +63,13 @@ struct SnipPanel: View {
 
   private var subtitle: String {
     if card.onPhone, case .waiting(let pending) = card.phase {
-      return "Not sent yet · \(Format.duration(pending.endMs - pending.startMs))"
+      return "Not sent"
     }
     if card.cancellable { return "Choosing the moment…" }
     guard let snip = card.snip, let rev = snip.revision else { return "" }
     if rev.status == .failed { return rev.error ?? "Snipped at \(Format.clock(anchorMs))" }
     if rev.status != .ready { return rev.clipUrl == nil ? "Preparing the clip" : "Clip ready · naming it…" }
-    return "Snip saved · \(Format.duration(rev.endMs - rev.startMs))"
+    return "Snip saved"
   }
 
   private var anchorMs: Int {
