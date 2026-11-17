@@ -158,7 +158,7 @@ struct EpisodeSnipsPage: View {
 
   private func row(_ snip: Snip) -> some View {
     VStack(alignment: .leading, spacing: 6) {
-      Text(title(snip)).font(.title.weight(.bold)).lineLimit(4).multilineTextAlignment(.leading)
+      Text(title(snip)).font(.title2.weight(.bold)).lineLimit(4).multilineTextAlignment(.leading)
       Text(meta(snip)).font(.body).monospacedDigit().foregroundStyle(.secondary).lineLimit(1)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -169,7 +169,7 @@ struct EpisodeSnipsPage: View {
   private func waitingRow(_ pending: SnipOutbox.Pending) -> some View {
     VStack(alignment: .leading, spacing: 6) {
       Text(pending.body.owner?.title ?? "Snipped at \(Format.clock(pending.body.anchorMs))")
-        .font(.title.weight(.bold)).lineLimit(4).multilineTextAlignment(.leading)
+        .font(.title2.weight(.bold)).lineLimit(4).multilineTextAlignment(.leading)
       Label("Not sent yet", systemImage: "clock")
         .font(.body.weight(.semibold)).foregroundStyle(Color.accentColor)
     }

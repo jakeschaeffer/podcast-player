@@ -36,7 +36,7 @@ struct SnipsView: View {
   /// The episode on the right page when the list and an episode share the screen; nil chooses the newest.
   @State private var chosen: ULID?
   @State private var size = CGSize.zero
-  @ScaledMetric(relativeTo: .title) private var coverSize: CGFloat = 80
+  @ScaledMetric(relativeTo: .title2) private var coverSize: CGFloat = 80
 
   /// The iPhone Duo open and held wide: the episodes beside the chosen one's snips.
   private var spread: Bool {
@@ -208,7 +208,7 @@ struct SnipsView: View {
       Artwork(url: row.episode.imageUrl, size: coverSize)
       VStack(alignment: .leading, spacing: 6) {
         Text(row.episode.title)
-          .font(.title.weight(.bold))
+          .font(.title2.weight(.bold))
           .lineLimit(3).multilineTextAlignment(.leading)
         // The show gives way first: the count and anything not sent always show whole.
         HStack(spacing: 0) {
