@@ -234,7 +234,8 @@ public final class PlayerEngine {
     }
     loadError = nil
     player.replaceCurrentItem(with: item)
-    if ms > 0 { player.seek(to: Self.time(ms), toleranceBefore: .zero, toleranceAfter: .zero) }
+    seekingToMs = nil
+    if ms > 0 { seekPlayer(to: ms) }
     installTimeObserver()
   }
 
@@ -336,7 +337,7 @@ public final class PlayerEngine {
     positionMs = to
     heardFromMs = heard.heardFrom(to)
     finished = false
-    player.seek(to: Self.time(to), toleranceBefore: .zero, toleranceAfter: .zero)
+    seekPlayer(to: to)
     report(force: true)
     NowPlaying.update(for: self)
   }
@@ -382,6 +383,26 @@ public final class PlayerEngine {
     }
   }
 
+  /// The position a seek is on its way to. Until the player lands there its clock still reads the old time, and the
+  /// time observer would put the playhead back where it was for a moment (the scrub bar's thumb jumped back on release,
+  /// then forward: TestFlight feedback, November 16, 2026), so ticks leave the position alone meanwhile.
+  private var seekingToMs: Int?
+  private var seekGeneration = 0
+
+  private func seekPlayer(to ms: Int) {
+    seekGeneration += 1
+    let generation = seekGeneration
+    seekingToMs = ms
+    player.seek(to: Self.time(ms), toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+      // A seek overtaken by a newer one answers too (not finished); only the latest one ends the wait. One that
+      // failed or was cut short by a new item ends it as well, so the clock is never ignored for good.
+      Task { @MainActor in
+        guard let self, self.seekGeneration == generation else { return }
+        self.seekingToMs = nil
+      }
+    }
+  }
+
   private func installTimeObserver() {
     if let timeObserver { player.removeTimeObserver(timeObserver) }
     // 4 Hz like the web's timeupdate; the transcript view will want 1/30 s off the player's own clock (plan §2.5).
@@ -392,7 +413,7 @@ public final class PlayerEngine {
   }
 
   private func tick(_ time: CMTime) {
-    guard status == .ready, time.isNumeric else { return }
+    guard status == .ready, time.isNumeric, seekingToMs == nil else { return }
     let ms = Int((time.seconds * 1000).rounded())
     heard.tick(posMs: ms, playing: playing, speed: speed, wallMs: Int(Date.now.timeIntervalSince1970 * 1000))
     positionMs = ms

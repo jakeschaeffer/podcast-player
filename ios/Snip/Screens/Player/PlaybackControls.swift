@@ -1,9 +1,11 @@
 import PlayerKit
 import SwiftUI
 
-/// The seek bar with the elapsed and remaining time under it. Dragging shows the position under the thumb; the seek
-/// happens when the drag ends, or once the thumb has rested a moment. `onInteraction` is told of any touch, for a screen
-/// that hides its controls by itself.
+/// The seek bar with the elapsed and remaining time under it, made to feel like the system players': a finger anywhere
+/// on the bar takes hold (not only on the thumb, which a quick drag used to miss), the thumb follows the finger's
+/// movement from where it was rather than jumping under it, the bar thickens while held, and the seek happens when the
+/// finger lifts. A drag the system takes over (a sheet, an edge swipe) ends the same way, with a seek to where the thumb
+/// was. `onInteraction` is told of any touch, for a screen that hides its controls by itself.
 struct Scrubber: View {
   @Environment(PlayerEngine.self) private var engine
   var onInteraction: () -> Void = {}
@@ -11,25 +13,19 @@ struct Scrubber: View {
   var onVideo = false
   /// The times in large type (the iPhone Duo standing half open, where the controls fill a half of the screen).
   var large = false
+  /// Where the thumb is while a finger holds the bar; nil when the bar follows the playhead.
   @State private var scrubbing: Double?
-  /// Seeks to where the thumb rests once it has been still a moment. The slider's end-of-drag call doesn't always come:
-  /// on a phone a drag the system takes over (the sheet, an edge swipe) can end without it, and the bar then showed the
-  /// dragged time while the playhead never moved (TestFlight feedback, November 16, 2026).
-  @State private var settle: Task<Void, Never>?
-
-  /// How long the thumb rests before the seek happens without the end of the drag.
-  static let settleAfter: Duration = .milliseconds(600)
+  /// The position when the finger came down: the drag moves the thumb from here.
+  @State private var dragFrom: Double?
+  /// A finger is on the bar. It resets by itself when the drag ends or is cancelled, which is how a drag the system
+  /// took over still seeks.
+  @GestureState private var held = false
 
   var body: some View {
     let duration = Double(max(engine.durationMs, 1))
-    let shown = scrubbing ?? Double(engine.positionMs)
+    let shown = min(max(scrubbing ?? Double(engine.positionMs), 0), duration)
     VStack(spacing: 2) {
-      Slider(
-        value: Binding(get: { shown }, set: { moved(to: $0) }), in: 0...duration,
-        onEditingChanged: { editing in
-          onInteraction()
-          if !editing { commit() }
-        })
+      bar(fraction: shown / duration, duration: duration)
       HStack {
         Text(Format.clock(Int(shown)))
         Spacer()
@@ -39,25 +35,57 @@ struct Scrubber: View {
       .foregroundStyle(onVideo ? AnyShapeStyle(.white.opacity(0.9)) : AnyShapeStyle(.secondary))
       .shadow(color: .black.opacity(onVideo ? 0.7 : 0), radius: 3)
     }
+    .onChange(of: held) { _, now in if !now { commit() } }
     .onDisappear { commit() }
   }
 
-  private func moved(to value: Double) {
-    scrubbing = value
-    onInteraction()
-    settle?.cancel()
-    settle = Task {
-      try? await Task.sleep(for: Self.settleAfter)
-      if !Task.isCancelled, scrubbing == value { commit() }
+  private func bar(fraction: Double, duration: Double) -> some View {
+    let active = held
+    let track: CGFloat = active ? 12 : 6
+    let thumb: CGFloat = active ? 30 : 22
+    return GeometryReader { geo in
+      let width = max(geo.size.width, 1)
+      ZStack(alignment: .leading) {
+        Capsule().fill(onVideo ? AnyShapeStyle(.white.opacity(0.35)) : AnyShapeStyle(.quaternary))
+          .frame(height: track)
+        Capsule().fill(onVideo ? AnyShapeStyle(.white) : AnyShapeStyle(.tint))
+          .frame(width: max(track, width * fraction), height: track)
+        Circle().fill(onVideo ? AnyShapeStyle(.white) : AnyShapeStyle(.tint))
+          .frame(width: thumb, height: thumb)
+          .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+          .offset(x: min(max(width * fraction - thumb / 2, 0), width - thumb))
+      }
+      .frame(width: width, height: geo.size.height)
+      .contentShape(Rectangle())
+      .highPriorityGesture(
+        DragGesture(minimumDistance: 0)
+          .updating($held) { _, state, _ in state = true }
+          .onChanged { drag in
+            onInteraction()
+            let from = dragFrom ?? scrubbing ?? Double(engine.positionMs)
+            if dragFrom == nil { dragFrom = from }
+            scrubbing = min(max(from + Double(drag.translation.width / width) * duration, 0), duration)
+          }
+          .onEnded { _ in commit() }
+      )
+      .animation(.easeOut(duration: 0.15), value: active)
+    }
+    .frame(height: 44)
+    .accessibilityRepresentation {
+      Slider(value: Binding(get: { Double(engine.positionMs) }, set: { engine.seek(to: Int($0)) }), in: 0...duration) {
+        Text("Position")
+      }
     }
   }
 
   private func commit() {
-    settle?.cancel()
-    settle = nil
+    let from = dragFrom
+    dragFrom = nil
     guard let to = scrubbing else { return }
-    engine.seek(to: Int(to))
     scrubbing = nil
+    // A touch that didn't move the thumb is not a seek: a seek to the same spot would stutter the audio.
+    if let from, abs(to - from) < 250 { return }
+    engine.seek(to: Int(to))
   }
 }
 
