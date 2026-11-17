@@ -9,6 +9,8 @@ import SyncKit
 struct WaitingSnipSheet: View {
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  @Environment(\.verticalSizeClass) private var verticalSizeClass
   let pending: SnipOutbox.Pending
 
   @State private var title = ""
@@ -39,48 +41,82 @@ struct WaitingSnipSheet: View {
     .frame(minHeight: oneLine ? nil : 52, alignment: .topLeading)
   }
 
-  var body: some View {
-    NavigationStack {
-      Form {
-        Section {
-          box("Title", text: $title, oneLine: true)
-            .accessibilityHint("Left empty, the title is written when the snip is sent")
-        }
-        Section {
-          Stepper(value: Binding(get: { lengthMs }, set: { lengthMs = $0; lengthSet = true }), in: min(Self.stepMs, mostMs)...mostMs, step: Self.stepMs) {
-            VStack(alignment: .leading, spacing: 2) {
-              Text(Format.duration(lengthMs)).font(.body.weight(.medium)).monospacedDigit()
-              Text("\(Format.clock(pending.body.anchorMs - lengthMs)) to \(Format.clock(pending.body.anchorMs))")
-                .font(.subheadline).foregroundStyle(.secondary).monospacedDigit()
-            }
-          }
-          .accessibilityHint(lengthSet ? "Kept; the ends are fitted to whole words when the snip is sent" : "The start is chosen from the transcript when the snip is sent")
-        } header: {
-          Text("Length")
-        } footer: {
-          Text(lengthSet ? "Yours" : "Automatic")
-        }
-        Section("Note") {
-          box("Why you kept it", text: $note)
-        }
-        Section {
-          box("One point a line", text: $summary)
-            .accessibilityHint("Left empty, the summary is written when the snip is sent")
-        } header: {
-          Text("Summary")
-        }
-        Section {
-          Button("Delete snip", role: .destructive) {
-            Task {
-              await model.deleteWaiting(pending.id)
-              dismiss()
-            }
-          }
-        } footer: {
-          Text("Not sent · \(Date(timeIntervalSince1970: Double(pending.body.capturedAt) / 1000).formatted(date: .omitted, time: .shortened))")
-            .accessibilityHint("Kept on this phone; it is sent when the server can be reached")
+  @ViewBuilder private var titleSection: some View {
+    Section {
+      box("Title", text: $title, oneLine: true)
+        .accessibilityHint("Left empty, the title is written when the snip is sent")
+    }
+  }
+
+  @ViewBuilder private var lengthSection: some View {
+    Section {
+      Stepper(value: Binding(get: { lengthMs }, set: { lengthMs = $0; lengthSet = true }), in: min(Self.stepMs, mostMs)...mostMs, step: Self.stepMs) {
+        VStack(alignment: .leading, spacing: 2) {
+          Text(Format.duration(lengthMs)).font(.body.weight(.medium)).monospacedDigit()
+          Text("\(Format.clock(pending.body.anchorMs - lengthMs)) to \(Format.clock(pending.body.anchorMs))")
+            .font(.subheadline).foregroundStyle(.secondary).monospacedDigit()
         }
       }
+      .accessibilityHint(lengthSet ? "Kept; the ends are fitted to whole words when the snip is sent" : "The start is chosen from the transcript when the snip is sent")
+    } header: {
+      Text("Length")
+    } footer: {
+      Text(lengthSet ? "Yours" : "Automatic")
+    }
+  }
+
+  @ViewBuilder private var noteSection: some View {
+    Section("Note") {
+      box("Why you kept it", text: $note)
+    }
+  }
+
+  @ViewBuilder private var summarySection: some View {
+    Section {
+      box("One point a line", text: $summary)
+        .accessibilityHint("Left empty, the summary is written when the snip is sent")
+    } header: {
+      Text("Summary")
+    }
+  }
+
+  @ViewBuilder private var deleteSection: some View {
+    Section {
+      Button("Delete snip", role: .destructive) {
+        Task {
+          await model.deleteWaiting(pending.id)
+          dismiss()
+        }
+      }
+    } footer: {
+      Text("Not sent · \(Date(timeIntervalSince1970: Double(pending.body.capturedAt) / 1000).formatted(date: .omitted, time: .shortened))")
+        .accessibilityHint("Kept on this phone; it is sent when the server can be reached")
+    }
+  }
+
+  var body: some View {
+    NavigationStack {
+      GeometryReader { geo in
+        // Open and held wide: the snip's two halves on the two pages, the fold between them, on one full screen.
+        HingeSplit(split: UnfoldedDisplay.isSpread(horizontal: horizontalSizeClass, vertical: verticalSizeClass, size: geo.size),
+                   gapFill: Color(.systemGroupedBackground)) {
+          Form {
+            titleSection
+            lengthSection
+            if !UnfoldedDisplay.isSpread(horizontal: horizontalSizeClass, vertical: verticalSizeClass, size: geo.size) {
+              noteSection
+              summarySection
+            }
+            deleteSection
+          }
+        } trailing: {
+          Form {
+            noteSection
+            summarySection
+          }
+        }
+      }
+      .background(Color(.systemGroupedBackground))
       .navigationTitle(pending.episodeTitle ?? "Snip")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {

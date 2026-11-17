@@ -1,5 +1,6 @@
 import SnipActivity
 import SwiftUI
+import SyncKit
 
 @main
 struct SnipApp: App {
@@ -118,9 +119,7 @@ struct RootView: View {
       player(fullScreen: true).unfoldedTypeScale()
     }
     // The same, opened from the Snips tab with the player down.
-    .sheet(item: Binding(get: { showPlayer ? nil : model.editingWaiting }, set: { model.editingWaiting = $0 })) {
-      WaitingSnipSheet(pending: $0)
-    }
+    .modifier(WaitingSnipPresenter(active: !showPlayer, coversScreen: coversScreen))
     // The player closed (not just moved by a fold): the snip page pushed in it goes with it, as it did when the page
     // lived in the player's own state.
     .onChange(of: showPlayer) { _, shown in if !shown, !reopening { model.playerSnip = nil } }
@@ -184,7 +183,30 @@ struct RootView: View {
   private func player(fullScreen: Bool) -> some View {
     PlayerView(fullScreen: fullScreen)
       // A waiting snip opened from the snip bar; over the player, which is itself presented.
-      .sheet(item: Bindable(model).editingWaiting) { WaitingSnipSheet(pending: $0).environment(model) }
+      .modifier(WaitingSnipPresenter(active: true, coversScreen: fullScreen))
+  }
+}
+
+/// A snip waiting on the phone, opened to write on: a sheet on the phone, the whole screen on the open Duo, where a
+/// sheet would float as a small card over everything. Folding or opening hands it from one to the other.
+private struct WaitingSnipPresenter: ViewModifier {
+  @Environment(AppModel.self) private var model
+  let active: Bool
+  let coversScreen: Bool
+
+  private func binding(full: Bool) -> Binding<SnipOutbox.Pending?> {
+    Binding(
+      get: { active && coversScreen == full ? model.editingWaiting : nil },
+      // Only a dismissal of the presentation that is showing ends the edit; one taken down by a fold leaves it for
+      // the other.
+      set: { new in if new != nil || coversScreen == full { model.editingWaiting = new } }
+    )
+  }
+
+  func body(content: Content) -> some View {
+    content
+      .sheet(item: binding(full: false)) { WaitingSnipSheet(pending: $0).environment(model) }
+      .fullScreenCover(item: binding(full: true)) { WaitingSnipSheet(pending: $0).environment(model).unfoldedTypeScale() }
   }
 }
 
