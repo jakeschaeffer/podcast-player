@@ -42,7 +42,7 @@ struct FeedEpisodesView: View {
           Text(error).foregroundStyle(.secondary)
         }
         if let lastError = feed.lastError {
-          Text("Couldn’t read this feed: \(lastError)").foregroundStyle(.red)
+          Text("Feed error").foregroundStyle(.red).accessibilityHint(lastError)
         }
         if fetching && episodes.isEmpty {
           HStack(spacing: 8) {
@@ -50,7 +50,7 @@ struct FeedEpisodesView: View {
             Text("Fetching episodes…").foregroundStyle(.secondary)
           }
         } else if loaded && !loading && episodes.isEmpty && error == nil && feed.lastError == nil {
-          Text("This feed has no episodes.").foregroundStyle(.secondary)
+          Text("No episodes").foregroundStyle(.secondary)
         }
         ForEach(episodes) { ep in
           EpisodeRow(episode: ep, showsShow: false) {
@@ -111,7 +111,7 @@ struct FeedEpisodesView: View {
   @ViewBuilder private func moreVideosRow(_ more: MoreVideos) -> some View {
     switch more.status {
     case "ended":
-      Text("That’s every video on this channel.").foregroundStyle(.secondary)
+      Text("All videos").foregroundStyle(.secondary)
     case "requested":
       HStack(spacing: 8) {
         ProgressView()
@@ -119,7 +119,7 @@ struct FeedEpisodesView: View {
       }
     default:
       if let problem = more.error {
-        Text("Couldn’t list more videos: \(problem)").font(.footnote).foregroundStyle(.red)
+        Text("More failed").font(.subheadline.weight(.medium)).foregroundStyle(.red).accessibilityHint(problem)
       }
       Button("More videos") {
         Task {
@@ -153,6 +153,7 @@ struct FeedEpisodesView: View {
               Label("Following", systemImage: "checkmark").frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .accessibilityHint("In your Library, with new episodes in Today")
           } else {
             Button {
               Task { await setFollowing(true) }
@@ -160,24 +161,31 @@ struct FeedEpisodesView: View {
               Label("Follow", systemImage: "plus").frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .accessibilityHint("Keeps this show in your Library and its new episodes in Today")
           }
         }
         .disabled(savingFollow)
       }
-      Text(note).font(.footnote).foregroundStyle(.secondary)
+      if let note {
+        Text(note).font(.subheadline.weight(.medium)).foregroundStyle(.secondary).accessibilityHint(noteHint)
+      }
     }
     .padding(.vertical, 4)
   }
 
-  private var note: String {
+  /// One or two words under the follow button, or nothing (the owner's rule: no sentences in the UI). The
+  /// explanation is VoiceOver's hint.
+  private var note: String? {
     // The Pasted links show is no subscription: each episode is a file the owner pasted or shared, downloaded and
     // transcribed when it was added.
-    if feed.kind == "links" { return "Links you pasted or shared, each downloaded and transcribed when it was added. Nothing to follow." }
-    let library =
-      following
-      ? "In your Library, with new episodes in Today."
-      : "Follow to keep this show in your Library and its new episodes in Today."
-    return feed.autoProcess ? library : "\(library) Manual: nothing is transcribed until you ask."
+    if feed.kind == "links" { return "Pasted links" }
+    return feed.autoProcess ? nil : "Manual"
+  }
+
+  private var noteHint: String {
+    feed.kind == "links"
+      ? "Each downloaded and transcribed when it was added"
+      : "Nothing is transcribed until you ask"
   }
 
   private var nowMs: Int { Int(Date.now.timeIntervalSince1970 * 1000) }
