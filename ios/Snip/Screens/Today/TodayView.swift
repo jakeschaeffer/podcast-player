@@ -27,39 +27,56 @@ struct TodayView: View {
       .max { ($0.resume?.updatedAt ?? 0) < ($1.resume?.updatedAt ?? 0) }
   }
 
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  @Environment(\.verticalSizeClass) private var verticalSizeClass
+  @State private var size = CGSize.zero
+
+  /// The iPhone Duo open and held wide: what is under way (Continue listening, the next few up) on the left page, new
+  /// episodes on the right, so no row runs across the fold.
+  private var spread: Bool { UnfoldedDisplay.isSpread(horizontal: horizontalSizeClass, vertical: verticalSizeClass, size: size) }
+
+  private var newEpisodes: [Episode] {
+    // The server lists an unfollowed show's episode only while it is in progress, for Continue listening.
+    Array(episodes.filter { $0.id != current?.id && !model.unfollowedFeeds.contains($0.feedId) && mediaFilter.includes($0.mediaKind) }.prefix(15))
+  }
+
   var body: some View {
-    List {
-      if let error {
-        Text(error).foregroundStyle(.secondary)
-      }
-      // With no connection, what is on the phone is what there is to play.
-      if error != nil, !model.downloads.items.isEmpty {
-        Section("On the phone") {
-          ForEach(model.downloads.items.sorted { $0.createdAt > $1.createdAt }) { d in
-            DownloadRow(download: d) {
-              engine.open(d.episodeID)
-              showPlayer = true
+    // One list on the phone; held wide the leading list keeps its place (and scroll) and the new episodes move right.
+    HingeSplit(split: spread, gapFill: Color(.systemGroupedBackground)) {
+      List {
+        if let error {
+          Text(error).foregroundStyle(.secondary)
+        }
+        // With no connection, what is on the phone is what there is to play.
+        if error != nil, !model.downloads.items.isEmpty {
+          Section("On the phone") {
+            ForEach(model.downloads.items.sorted { $0.createdAt > $1.createdAt }) { d in
+              DownloadRow(download: d) {
+                engine.open(d.episodeID)
+                showPlayer = true
+              }
             }
           }
         }
-      }
-      if let current {
-        Section("Continue listening") {
-          EpisodeRow(episode: current) { open(current) }
-            .episodeActions(current) { open(current, playing: true) }
+        if let current {
+          Section("Continue listening") {
+            EpisodeRow(episode: current) { open(current) }
+              .episodeActions(current) { open(current, playing: true) }
+          }
+        }
+        if spread {
+          upNextSection
+        } else {
+          newEpisodesSection
         }
       }
-      Section("New episodes") {
-        MediaFilter.picker($mediaFilter)
-        // The server lists an unfollowed show's episode only while it is in progress, for Continue listening.
-        ForEach(episodes.filter { $0.id != current?.id && !model.unfollowedFeeds.contains($0.feedId) && mediaFilter.includes($0.mediaKind) }.prefix(15)) { ep in
-          EpisodeRow(episode: ep) { open(ep) }
-            .episodeActions(ep) { open(ep, playing: true) }
-        }
-      }
+      .contentMargins(.trailing, spread ? 8 : 0, for: .scrollContent)
+    } trailing: {
+      List { newEpisodesSection }
+        .contentMargins(.leading, 8, for: .scrollContent)
     }
+    .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
     .overlay { if !loaded && error == nil { ProgressView() } }
-    .unfoldedReadableWidth()
     .navigationTitle("Today")
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
@@ -91,6 +108,33 @@ struct TodayView: View {
     .navigationDestination(for: ReadwiseRoute.self) { _ in ReadwiseView(summary: readwise) }
     .task { await load() }
     .refreshable { await load() }
+  }
+
+  private var newEpisodesSection: some View {
+    Section("New episodes") {
+      MediaFilter.picker($mediaFilter)
+      ForEach(newEpisodes) { ep in
+        EpisodeRow(episode: ep) { open(ep) }
+          .episodeActions(ep) { open(ep, playing: true) }
+      }
+    }
+  }
+
+  /// Held wide, the left page's second half: the next three up, and the way to the whole queue.
+  @ViewBuilder private var upNextSection: some View {
+    let next = model.queue.filter { $0.id != current?.id }.prefix(3)
+    if !next.isEmpty {
+      Section("Up Next") {
+        ForEach(next) { ep in
+          UpNextRow(episode: ep) { open(ep) }
+        }
+        Button("See all") { path.append(UpNextRoute()) }
+          .font(.body.weight(.semibold))
+      }
+    } else if current == nil, error == nil, loaded {
+      Text("Nothing in progress").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
+        .listRowBackground(Color.clear)
+    }
   }
 
   /// One line in the account menu when the server sends snips to Readwise: how many went this past month, and, only
