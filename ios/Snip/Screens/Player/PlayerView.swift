@@ -68,9 +68,9 @@ struct PlayerView: View {
     Group {
       if engine.status == .ready, let ep = engine.episode {
         if watchingSideways {
-          VideoSideways { pill }
+          VideoSideways { floatingPill }
         } else if readingAlong {
-          EpisodeKaraoke(episode: ep) { pill }
+          EpisodeKaraoke(episode: ep) { floatingPill }
         } else if sideways {
           wide(ep)
         } else if UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) {
@@ -183,7 +183,8 @@ struct PlayerView: View {
     .padding()
     // Every row is held to the sheet's width, so a long title wraps instead of widening the player.
     .frame(maxWidth: .infinity)
-    .overlay(alignment: .bottom) { pill.padding(.horizontal, 16).padding(.bottom, 8) }
+    // Docked under the reading, not over it: the transcript ends above the bar, so no line hides behind it.
+    .safeAreaInset(edge: .bottom, spacing: 0) { pill }
   }
 
   /// The iPhone Duo open and turned tall (669 × 951), split at the fold running across it: above, the cover whole and
@@ -226,7 +227,7 @@ struct PlayerView: View {
         panelContent(ep)
       }
       .padding(.horizontal, 16)
-      .overlay(alignment: .bottom) { pill.padding(.horizontal, 16).padding(.bottom, 8) }
+      .safeAreaInset(edge: .bottom, spacing: 0) { pill }
     }
   }
 
@@ -307,7 +308,7 @@ struct PlayerView: View {
         panelContent(ep)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .overlay(alignment: .bottom) { pill.padding(.bottom, 8) }
+      .safeAreaInset(edge: .bottom, spacing: 0) { pill }
     }
     .padding(.horizontal, 18)
     .padding(.top, 14)
@@ -356,7 +357,7 @@ struct PlayerView: View {
       }
       .padding(.trailing, 24)
       .padding(.top, 14)
-      .overlay(alignment: .bottom) { pill.padding(.trailing, 24).padding(.bottom, 8) }
+      .safeAreaInset(edge: .bottom, spacing: 0) { pill.padding(.trailing, 24) }
     }
   }
 
@@ -496,12 +497,16 @@ struct PlayerView: View {
     }
   }
 
-  /// The snip bar, while a snip tap is being followed.
-  @ViewBuilder private var pill: some View {
+  /// The snip bar, while a snip tap is being followed: docked at the foot of the reading.
+  private var pill: some View { snipBar(docked: true) }
+  /// The same over the sideways player, floating as a capsule.
+  private var floatingPill: some View { snipBar(docked: false) }
+
+  @ViewBuilder private func snipBar(docked: Bool) -> some View {
     if let card = model.snipCard {
-      SnipPill(card: card, onOpen: { model.openInPlayer(SnipRoute(id: $0)) }, onCancel: { model.cancelSnip(card) }) {
+      SnipPill(card: card, onOpen: { model.openInPlayer(SnipRoute(id: $0)) }, onCancel: { model.cancelSnip(card) }, onClose: {
         model.closeSnip(card)
-      }
+      }, docked: docked)
       .transition(.move(edge: .bottom).combined(with: .opacity))
     }
   }

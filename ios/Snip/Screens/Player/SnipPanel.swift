@@ -28,9 +28,9 @@ struct SnipPanel: View {
       Spacer(minLength: 0)
       HStack(spacing: 16) { buttons }
     }
-    .padding(24)
+    .padding(.vertical, 24)
+    // The flat half itself, not a card inset in it.
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(Color(.systemGray6), in: .rect(cornerRadius: 32, style: .continuous))
     .task(id: closesAfterAWhile) {
       guard closesAfterAWhile else { return }
       try? await Task.sleep(for: SnipPill.readyFor)

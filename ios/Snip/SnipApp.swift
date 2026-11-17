@@ -107,6 +107,9 @@ struct RootView: View {
         NavigationStack { SnipsView() }
       }
     }
+    // The floating glass tab bar let the last row's words show through it and run into its labels (the Duo open and
+    // turned tall most of all): a hard edge ends every list cleanly above the bar.
+    .scrollEdgeEffectStyle(.hard, for: .bottom)
     // Only with something to show: an empty "Nothing playing" bar was one more layer over every list, and a tap on it
     // opened an empty player.
     .modifier(MiniPlayerAccessory(showPlayer: $showPlayer, enabled: !model.readingSideways && hasEpisode))
