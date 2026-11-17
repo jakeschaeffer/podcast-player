@@ -192,7 +192,7 @@ struct EpisodeRow: View {
         Artwork(url: model.artwork(episodeImage: episode.imageUrl, feedID: episode.feedId), size: 52)
         VStack(alignment: .leading, spacing: 3) {
           if showsShow { Text(episode.showTitle ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1) }
-          Text(episode.title).font(.body.weight(.medium)).lineLimit(2)
+          Text(episode.title).font(.body.weight(.medium)).lineLimit(3)
           Text(detail).font(.caption).foregroundStyle(.secondary)
         }
       }

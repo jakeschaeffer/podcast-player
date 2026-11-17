@@ -39,6 +39,8 @@ struct SnipsView: View {
   @ScaledMetric(relativeTo: .title2) private var coverSize: CGFloat = 80
 
   /// The iPhone Duo open and held wide: the episodes beside the chosen one's snips.
+  private var unfolded: Bool { UnfoldedDisplay.isUnfolded(horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
+
   private var spread: Bool {
     UnfoldedDisplay.isSpread(horizontal: horizontalSizeClass, vertical: verticalSizeClass, size: size)
   }
@@ -121,7 +123,11 @@ struct SnipsView: View {
         Task { await load() }
       }
     }
-    .sheet(isPresented: $choosingShow) { showPicker }
+    // A sheet on the phone; the whole screen on the open Duo, where a sheet floats as a card across the fold.
+    .sheet(isPresented: Binding(get: { choosingShow && !unfolded }, set: { if !$0, !unfolded { choosingShow = false } })) { showPicker }
+    .fullScreenCover(isPresented: Binding(get: { choosingShow && unfolded }, set: { if !$0, unfolded { choosingShow = false } })) {
+      showPicker.unfoldedTypeScale().unfoldedReadableWidth()
+    }
     #if DEBUG
       // `-openSnip <id>` opens that snip's page at launch; `-openSnipsEpisode <id>` that episode's snips (chosen,
       // beside the list, when they share the screen); `-searchSnips <text>` search with those words. For scripted
@@ -274,8 +280,6 @@ struct SnipsView: View {
         Spacer(minLength: 8)
         if choice?.feedId == show?.feedId {
           Image(systemName: "checkmark").font(.title3.weight(.bold)).foregroundStyle(Color.accentColor)
-        } else if let choice {
-          Text("\(choice.episodeCount)").font(.body).foregroundStyle(.secondary)
         }
       }
       .padding(.vertical, 6)

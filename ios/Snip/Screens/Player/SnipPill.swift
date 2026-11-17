@@ -138,7 +138,7 @@ struct SnipPill: View {
           Button { model.editingWaiting = pending } label: {
             lines(
               pending.body.owner?.title ?? "Snipped at \(Format.clock(pending.body.anchorMs))",
-              "Not sent yet · \(Format.duration(pending.endMs - pending.startMs))"
+              "Not sent"
             ).contentShape(.rect)
           }
           .buttonStyle(.plain)
@@ -326,6 +326,6 @@ struct SnipPill: View {
       // The clip is cut within seconds; the title takes the model a while longer.
       return snip.revision?.clipUrl == nil ? "Preparing the clip" : "Clip ready · naming it…"
     }
-    return "Snip saved · \(Format.duration(rev.endMs - rev.startMs))"
+    return "Snip saved"
   }
 }

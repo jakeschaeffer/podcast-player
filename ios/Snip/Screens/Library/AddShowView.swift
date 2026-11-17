@@ -44,9 +44,16 @@ struct AddShowView: View {
   /// The iPhone Duo open and held wide: the search field and the results on the left page, the guide on the right,
   /// so no title runs across the fold.
   private var spread: Bool { UnfoldedDisplay.isSpread(horizontal: horizontal, vertical: vertical, size: size) }
-  private static let prompt = "Search shows, or paste a feed, YouTube or video link"
-  private static let guide =
-    "Find a show by name, or paste the address of its RSS feed, a YouTube channel or video, or a video file."
+  private static let prompt = "Show or link"
+  /// What the field takes, as labels (the owner's rule: no sentences in the UI).
+  private static let takes = ["Show name", "Feed link", "YouTube link", "Video file link"]
+  private var guide: some View {
+    VStack(alignment: .leading, spacing: 14) {
+      ForEach(Self.takes, id: \.self) { Text($0) }
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Find a show by name, or paste the address of its RSS feed, a YouTube channel or video, or a video file")
+  }
 
   var body: some View {
     Group {
@@ -61,8 +68,8 @@ struct AddShowView: View {
             list.scrollContentBackground(.hidden)
           }
         } trailing: {
-          Text(Self.guide)
-            .font(.title3)
+          guide
+            .font(.title2.weight(.semibold)).foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(.top, 16)
             .padding(.horizontal, 20)
@@ -168,7 +175,7 @@ struct AddShowView: View {
             addLink(feedURL)
           } label: {
             HStack {
-              Text("Not a feed? Add it as a one-off video")
+              Text("Add as one video")
               if opening == "link:\(feedURL)" { Spacer(); ProgressView() }
             }
           }
@@ -176,7 +183,7 @@ struct AddShowView: View {
         }
       } else if !searchable {
         // Held wide, the right-hand page says this.
-        if !spread { Text(Self.guide).foregroundStyle(.secondary) }
+        if !spread { guide.font(.title3.weight(.semibold)).foregroundStyle(.secondary) }
       } else if let results {
         // Not a show's name but what it talks about: the same words as a topic search, over episodes in any show.
         Section {
