@@ -239,10 +239,16 @@ final class AppModel {
     }
   }
 
-  /// Add an episode to the end of Up next.
-  func addToQueue(_ episode: Episode) {
+  /// Add an episode to Up next: at the top, to play next, or at the end. At the top it is shown there at once, and
+  /// the episode just left no longer goes above it.
+  func addToQueue(_ episode: Episode, atEnd: Bool = false) {
+    if !atEnd, episode.id != engine.episode?.id {
+      queue.removeAll { $0.id == episode.id }
+      queue.insert(episode, at: 0)
+      justLeft = nil
+    }
     Task {
-      if let items = try? await api.addToQueue(episode.id) { apply(items) }
+      if let items = try? await api.addToQueue(episode.id, atEnd: atEnd) { apply(items) } else { await refreshQueue() }
     }
   }
 

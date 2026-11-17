@@ -87,9 +87,10 @@ extension APIClient {
     return page.items
   }
 
-  /// Add an episode to the end of Up next; returns the new Up next.
-  public func addToQueue(_ episodeID: ULID) async throws -> [Episode] {
-    let page: QueuePage = try await send("POST", "/v1/queue/\(episodeID)")
+  /// Add an episode to Up next, at the top to play next or at the end; returns the new Up next.
+  public func addToQueue(_ episodeID: ULID, atEnd: Bool = false) async throws -> [Episode] {
+    let page: QueuePage = try await send(
+      "POST", "/v1/queue/\(episodeID)", query: [URLQueryItem(name: "at", value: atEnd ? "end" : "start")])
     return page.items
   }
 

@@ -235,21 +235,24 @@ export function setQueueOrder(ctx: AppContext, episodeIds: string[]): { items: E
 }
 
 /**
- * Add an episode to the end of Up next (again, if it was finished or removed). Adding is asking for it, like the
+ * Add an episode to Up next (again, if it was finished or removed): to the top, to play next, or to the end. At the
+ * top it goes in unplaced and just added, so it comes first, above the ones heard partway, the way the one left for
+ * another does; at the end it takes the place after the last placed one. Adding is asking for it, like the
  * Transcribe button: its recording is fetched and transcribed (and summarized) now, whatever the show's
  * auto_process, so that when the episode before it ends it can start at once with its transcript, and a phone that
  * has stopped playing is not left waiting on a download. Owner priority, so the monthly budget does not hold it back.
  */
-export function addToQueue(ctx: AppContext, episodeId: string): { items: EpisodeListItem[] } {
+export function addToQueue(ctx: AppContext, episodeId: string, at: "start" | "end" = "end"): { items: EpisodeListItem[] } {
   requestPipeline(ctx, getEpisodeRow(ctx, episodeId), PRIORITY.upNext);
   const now = ctx.now();
   const last = (ctx.db.prepare("SELECT MAX(position) AS p FROM up_next WHERE episode_id != ?").get(episodeId) as { p: number | null }).p;
+  const position = at === "start" ? null : (last ?? -1) + 1;
   ctx.db
     .prepare(
       `INSERT INTO up_next (episode_id, position, placed_at, added_at) VALUES (?, ?, ?, ?)
        ON CONFLICT (episode_id) DO UPDATE SET position = excluded.position, placed_at = excluded.placed_at, added_at = excluded.added_at, hidden_at = NULL`,
     )
-    .run(episodeId, (last ?? -1) + 1, now, now);
+    .run(episodeId, position, position === null ? null : now, now);
   return listQueue(ctx, { limit: 200 });
 }
 

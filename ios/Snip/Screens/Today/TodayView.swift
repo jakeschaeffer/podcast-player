@@ -188,8 +188,8 @@ struct TodayView: View {
 }
 
 extension View {
-  /// A list episode's other actions, beside tapping it to open it: swipe right, or press and hold, to play it now or
-  /// to add it to the end of Up next.
+  /// A list episode's other actions, beside tapping it to open it: swipe right, or press and hold, to play it now, to
+  /// add it to the top of Up next (to play next) or to its end, or to download it.
   func episodeActions(_ episode: Episode, play: @escaping () -> Void) -> some View {
     modifier(EpisodeActions(episode: episode, play: play))
   }
@@ -204,21 +204,24 @@ private struct EpisodeActions: ViewModifier {
   func body(content: Content) -> some View {
     content
       .swipeActions(edge: .leading) {
-        Button("Up Next", systemImage: "text.line.last.and.arrowtriangle.forward") { add() }
+        Button("Up Next", systemImage: "text.line.first.and.arrowtriangle.forward") { add() }
           .tint(.accentColor)
+        Button("End of Up Next", systemImage: "text.line.last.and.arrowtriangle.forward") { add(atEnd: true) }
+          .tint(.indigo)
         Button("Download", systemImage: "arrow.down.circle") { model.downloadEpisode(episode.id) }
           .tint(.gray)
       }
       .contextMenu {
         Button("Play", systemImage: "play.fill", action: play)
-        Button("Add to Up Next", systemImage: "text.line.last.and.arrowtriangle.forward") { add() }
+        Button("Add to Up Next", systemImage: "text.line.first.and.arrowtriangle.forward") { add() }
+        Button("Add to End of Up Next", systemImage: "text.line.last.and.arrowtriangle.forward") { add(atEnd: true) }
         Button("Download", systemImage: "arrow.down.circle") { model.downloadEpisode(episode.id) }
       }
       .sensoryFeedback(.success, trigger: added)
   }
 
-  private func add() {
-    model.addToQueue(episode)
+  private func add(atEnd: Bool = false) {
+    model.addToQueue(episode, atEnd: atEnd)
     added += 1
   }
 }

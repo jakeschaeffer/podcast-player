@@ -3368,11 +3368,32 @@
     },
     "/v1/queue/{id}": {
       "post": {
-        "summary": "Add an episode to the end of Up next, even one finished or removed, and fetch, transcribe and summarize it now at owner priority (ignores the monthly budget). Returns the new Up next",
+        "summary": "Add an episode to Up next, even one finished or removed: `at=start` to play it next (first, above the ones heard partway), `at=end` (the default) after the last. Fetches, transcribes and summarizes it now at owner priority (ignores the monthly budget). Returns the new Up next",
         "tags": [
           "episodes"
         ],
         "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "start"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "end"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "at",
+            "required": false
+          },
           {
             "schema": {
               "type": "string"
