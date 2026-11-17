@@ -58,7 +58,9 @@ extension UpNextView {
         Text(playing != nil ? "Playing" : "Next").font(.title3.weight(.bold)).foregroundStyle(.secondary)
         Button { open(id, playing: false) } label: {
           VStack(alignment: .leading, spacing: 12) {
-            Artwork(url: image ?? nil, size: 220)
+            // Whole, square or wide, never cropped (the owner's rule for covers).
+            FittedArtwork(url: image ?? nil, width: 380, height: 240)
+              .frame(maxWidth: .infinity, alignment: .leading)
             Text(title).font(.title2.weight(.bold)).lineLimit(4).multilineTextAlignment(.leading)
             if let show, !show.isEmpty {
               Text(show).font(.title3).foregroundStyle(.secondary).lineLimit(2)
