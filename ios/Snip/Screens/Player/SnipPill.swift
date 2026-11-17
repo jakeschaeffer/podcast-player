@@ -217,7 +217,14 @@ struct SnipPill: View {
     // Docked at the foot of the reading (PlayerView), part of the page rather than a card over it: a flat band
     // across the page with a rule above it. Over the sideways player, a capsule (a rounded box when a typed title wraps).
     .frame(maxWidth: docked ? .infinity : nil)
-    .background(Color(.systemGray5), in: .rect(cornerRadius: docked ? 0 : 34, style: .continuous))
+    .background {
+      // Docked, the band runs on under the home indicator, so no transcript shows below it.
+      if docked {
+        Rectangle().fill(Color(.systemGray5)).ignoresSafeArea(edges: .bottom)
+      } else {
+        RoundedRectangle(cornerRadius: 34, style: .continuous).fill(Color(.systemGray5))
+      }
+    }
     .overlay(alignment: .top) { if docked { Divider() } }
     .simultaneousGesture(
       DragGesture(minimumDistance: 0).onChanged { _ in touched = true }.onEnded { _ in touched = false }
