@@ -42,7 +42,7 @@ struct TodayView: View {
 
   var body: some View {
     // One list on the phone; held wide the leading list keeps its place (and scroll) and the new episodes move right.
-    HingeSplit(split: spread, gapFill: Color(.systemGroupedBackground)) {
+    HingeSplit(split: spread, gapFill: Color(.systemGroupedBackground), line: false) {
       List {
         if let error {
           Text(error).foregroundStyle(.secondary)

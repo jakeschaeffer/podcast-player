@@ -268,12 +268,13 @@ struct SnipPage: View {
           from
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.leading, 24)
+        .padding(.horizontal, 24)
         .padding(.top, 8)
         .padding(.bottom, 24)
       }
       .safeAreaInset(edge: .bottom) {
-        if mode == .reading, !typing { actions.padding(.trailing, -24) }
+        // The fold side takes the page's own margin, not the screen edge's.
+        if mode == .reading, !typing { actions.padding(.trailing, 24 - trailingMargin) }
       }
     } trailing: {
       ScrollView {
@@ -285,6 +286,7 @@ struct SnipPage: View {
           }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 24)
         .padding(.trailing, trailingMargin)
         .padding(.top, 8)
         .padding(.bottom, 32)
@@ -715,7 +717,7 @@ struct SnipPage: View {
           field(.note, compact: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.leading, 24)
+        .padding(.horizontal, 24)
         .padding(.top, 8)
         .padding(.bottom, 12)
       }
@@ -723,14 +725,14 @@ struct SnipPage: View {
         if !typing {
           adjustPlay
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 24)
+            .padding(.horizontal, 24)
             .padding(.top, 12)
             .padding(.bottom, 12)
             .background(Color(.systemBackground).ignoresSafeArea())
         }
       }
     } trailing: {
-      adjustWords.padding(.leading, -24)
+      adjustWords
     }
   }
 

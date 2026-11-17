@@ -48,7 +48,7 @@ struct LibraryView: View {
 
   var body: some View {
     // One list in either layout, so folding or turning keeps its scroll position.
-    HingeSplit(split: spread, gapFill: Color(.systemGroupedBackground)) {
+    HingeSplit(split: spread, gapFill: Color(.systemGroupedBackground), line: false) {
       // The grouped list's own margin stops at the safe area, and beside the show its edge is the gap at the fold.
       list.contentMargins(.trailing, spread ? 20 : 0, for: .scrollContent)
     } trailing: {
