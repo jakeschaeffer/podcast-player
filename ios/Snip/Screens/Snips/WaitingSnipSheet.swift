@@ -60,8 +60,6 @@ struct WaitingSnipSheet: View {
       .accessibilityHint(lengthSet ? "Kept; the ends are fitted to whole words when the snip is sent" : "The start is chosen from the transcript when the snip is sent")
     } header: {
       Text("Length")
-    } footer: {
-      Text(lengthSet ? "Yours" : "Automatic")
     }
   }
 
@@ -88,9 +86,6 @@ struct WaitingSnipSheet: View {
           dismiss()
         }
       }
-    } footer: {
-      Text("Not sent · \(Date(timeIntervalSince1970: Double(pending.body.capturedAt) / 1000).formatted(date: .omitted, time: .shortened))")
-        .accessibilityHint("Kept on this phone; it is sent when the server can be reached")
     }
   }
 
@@ -117,7 +112,8 @@ struct WaitingSnipSheet: View {
         }
       }
       .background(Color(.systemGroupedBackground))
-      .navigationTitle(pending.episodeTitle ?? "Snip")
+      // The episode's name is too long for the bar; the state is what matters here.
+      .navigationTitle("Not sent")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
