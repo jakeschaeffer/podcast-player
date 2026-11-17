@@ -10,23 +10,78 @@ struct UpNextRoute: Hashable {}
 /// dragging also does. The same list sits in the player as a panel (UpNextList), which is where it is reached while
 /// listening; it is not a tab, since the queue is part of playing rather than a place of its own.
 struct UpNextView: View {
+  @Environment(AppModel.self) private var model
   @Environment(PlayerEngine.self) private var engine
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  @Environment(\.verticalSizeClass) private var verticalSizeClass
   @Binding var showPlayer: Bool
   /// Held here so a scripted check can start in edit mode (`-editUpNext 1`, DEBUG).
   @State private var editMode = EditMode.inactive
+  @State private var size = CGSize.zero
+
+  /// The iPhone Duo open and held wide: the queue on the left page, what plays now (or next) large on the right.
+  private var spread: Bool { UnfoldedDisplay.isSpread(horizontal: horizontalSizeClass, vertical: verticalSizeClass, size: size) }
 
   var body: some View {
-    UpNextList { episode, playing in
-      engine.open(episode.id, autoplay: playing)
-      showPlayer = true
+    HingeSplit(split: spread, gapFill: Color(.systemBackground)) {
+      UpNextList { episode, playing in open(episode.id, playing: playing) }
+    } trailing: {
+      feature
     }
-    .unfoldedReadableWidth()
+    .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
     .navigationTitle("Up Next")
     .toolbar { EditButton() }
     .environment(\.editMode, $editMode)
     #if DEBUG
       .onAppear { if UserDefaults.standard.bool(forKey: "editUpNext") { editMode = .active } }
     #endif
+  }
+}
+
+extension UpNextView {
+  private func open(_ id: ULID, playing: Bool) {
+    engine.open(id, autoplay: playing)
+    showPlayer = true
+  }
+
+  /// Held wide, the right page: the episode playing, or else the first up, with its whole cover (never cropped),
+  /// its title and show in large type, and Play.
+  @ViewBuilder fileprivate var feature: some View {
+    let playing = engine.episode
+    let next = model.queue.first
+    if let id = playing?.id ?? next?.id {
+      let title = playing?.title ?? next?.title ?? ""
+      let show = playing?.showTitle ?? next?.showTitle
+      let image = playing.map { model.artwork(episodeImage: $0.imageUrl, feedID: $0.feedId) }
+        ?? next.map { model.artwork(episodeImage: $0.imageUrl, feedID: $0.feedId) }
+      VStack(alignment: .leading, spacing: 16) {
+        Text(playing != nil ? "Playing" : "Next").font(.title3.weight(.bold)).foregroundStyle(.secondary)
+        Button { open(id, playing: false) } label: {
+          VStack(alignment: .leading, spacing: 12) {
+            Artwork(url: image ?? nil, size: 220)
+            Text(title).font(.title2.weight(.bold)).lineLimit(4).multilineTextAlignment(.leading)
+            if let show, !show.isEmpty {
+              Text(show).font(.title3).foregroundStyle(.secondary).lineLimit(2)
+            }
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        if playing == nil {
+          Button { open(id, playing: true) } label: {
+            Label("Play", systemImage: "play.fill").font(.title3.weight(.bold)).frame(maxWidth: .infinity, minHeight: 44)
+          }
+          .buttonStyle(.borderedProminent)
+          .buttonBorderShape(.capsule)
+        }
+        Spacer(minLength: 0)
+      }
+      .padding(.horizontal, 24)
+      .padding(.top, 8)
+    } else {
+      Color.clear
+    }
   }
 }
 
