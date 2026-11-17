@@ -122,7 +122,7 @@ struct SnipSearchView: View {
       Artwork(url: snip.imageUrl, size: coverSize)
       VStack(alignment: .leading, spacing: 6) {
         Text(snip.revision?.title ?? (snip.isPending ? "Choosing the moment…" : "Snip"))
-          .font(.title.weight(.bold)).lineLimit(3).multilineTextAlignment(.leading)
+          .font(.title2.weight(.bold)).lineLimit(3).multilineTextAlignment(.leading)
         if let show = snip.showTitle {
           Text(show).font(.body).foregroundStyle(.secondary).lineLimit(1)
         }
