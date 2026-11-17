@@ -94,7 +94,7 @@ struct WaitingSnipSheet: View {
       GeometryReader { geo in
         // Open and held wide: the snip's two halves on the two pages, the fold between them, on one full screen.
         HingeSplit(split: UnfoldedDisplay.isSpread(horizontal: horizontalSizeClass, vertical: verticalSizeClass, size: geo.size),
-                   gapFill: Color(.systemGroupedBackground)) {
+                   gapFill: Color(.systemGroupedBackground), line: false) {
           Form {
             titleSection
             lengthSection

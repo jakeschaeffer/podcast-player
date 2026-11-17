@@ -347,7 +347,7 @@ struct PlayerView: View {
         if !controlsInBar { TransportRow() }
         loadError
       }
-      .padding(.leading, 24)
+      .padding(.horizontal, 24)
       .padding(.top, 8)
       .padding(.bottom, 12)
     } trailing: {
@@ -355,9 +355,9 @@ struct PlayerView: View {
         panelPicker(ep)
         panelContent(ep)
       }
-      .padding(.trailing, 24)
+      .padding(.horizontal, 24)
       .padding(.top, 14)
-      .safeAreaInset(edge: .bottom, spacing: 0) { pill.padding(.trailing, 24) }
+      .safeAreaInset(edge: .bottom, spacing: 0) { pill.padding(.horizontal, 24) }
     }
   }
 

@@ -50,7 +50,7 @@ struct TopicSearchView: View {
   var body: some View {
     Group {
       if spread {
-        HingeSplit(gapFill: Color(.systemGroupedBackground)) {
+        HingeSplit(gapFill: Color(.systemGroupedBackground), line: false) {
           List {
             ask
             if enabled == true { idle }

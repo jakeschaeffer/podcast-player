@@ -28,7 +28,7 @@ struct SnipSearchView: View {
   private var shown: Snip? { found?.first { $0.id == chosen } ?? found?.first }
 
   var body: some View {
-    HingeSplit(split: spread, gapFill: Color(.systemGroupedBackground)) {
+    HingeSplit(split: spread, gapFill: Color(.systemBackground)) {
       VStack(spacing: 0) {
         field
           .padding(.horizontal, 20)

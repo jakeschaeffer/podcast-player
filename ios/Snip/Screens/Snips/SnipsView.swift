@@ -71,7 +71,7 @@ struct SnipsView: View {
 
   var body: some View {
     // One list in either layout, so folding or turning keeps its scroll position.
-    HingeSplit(split: spread, gapFill: Color(.systemGroupedBackground)) {
+    HingeSplit(split: spread, gapFill: Color(.systemBackground)) {
       // Beside the episode, the list's edge is the gap at the fold.
       list.contentMargins(.trailing, spread ? 8 : 0, for: .scrollContent)
     } trailing: {
