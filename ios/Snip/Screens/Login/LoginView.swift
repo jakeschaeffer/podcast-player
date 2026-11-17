@@ -21,8 +21,7 @@ struct LoginView: View {
           SecureField("Password", text: $password)
             .textContentType(.password)
             .onSubmit(signIn)
-        } footer: {
-          Text("The owner password from the server's environment. This iPhone gets its own device token.")
+            .accessibilityHint("The owner password from the server's environment")
         }
         if let error {
           Section { Text(error).foregroundStyle(.red) }

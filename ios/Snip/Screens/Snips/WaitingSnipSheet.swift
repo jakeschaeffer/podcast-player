@@ -44,8 +44,7 @@ struct WaitingSnipSheet: View {
       Form {
         Section {
           box("Title", text: $title, oneLine: true)
-        } footer: {
-          Text("Left empty, the title is written when the snip is sent.")
+            .accessibilityHint("Left empty, the title is written when the snip is sent")
         }
         Section {
           Stepper(value: Binding(get: { lengthMs }, set: { lengthMs = $0; lengthSet = true }), in: min(Self.stepMs, mostMs)...mostMs, step: Self.stepMs) {
@@ -55,20 +54,20 @@ struct WaitingSnipSheet: View {
                 .font(.subheadline).foregroundStyle(.secondary).monospacedDigit()
             }
           }
+          .accessibilityHint(lengthSet ? "Kept; the ends are fitted to whole words when the snip is sent" : "The start is chosen from the transcript when the snip is sent")
         } header: {
           Text("Length")
         } footer: {
-          Text(lengthSet ? "Your length is kept. The ends are fitted to whole words when the snip is sent." : "Unchanged, the start is chosen from the transcript when the snip is sent.")
+          Text(lengthSet ? "Yours" : "Automatic")
         }
         Section("Note") {
           box("Why you kept it", text: $note)
         }
         Section {
           box("One point a line", text: $summary)
+            .accessibilityHint("Left empty, the summary is written when the snip is sent")
         } header: {
           Text("Summary")
-        } footer: {
-          Text("Left empty, the summary is written when the snip is sent. Yours is kept instead of it.")
         }
         Section {
           Button("Delete snip", role: .destructive) {
@@ -78,7 +77,8 @@ struct WaitingSnipSheet: View {
             }
           }
         } footer: {
-          Text("Kept on this phone since \(Date(timeIntervalSince1970: Double(pending.body.capturedAt) / 1000).formatted(date: .abbreviated, time: .shortened)). It is sent when the server can be reached.")
+          Text("Not sent · \(Date(timeIntervalSince1970: Double(pending.body.capturedAt) / 1000).formatted(date: .omitted, time: .shortened))")
+            .accessibilityHint("Kept on this phone; it is sent when the server can be reached")
         }
       }
       .navigationTitle(pending.episodeTitle ?? "Snip")
