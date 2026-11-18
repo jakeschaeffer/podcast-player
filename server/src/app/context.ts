@@ -57,7 +57,7 @@ export function createContext(config: Config, overrides: ContextOverrides = {}):
         ? new ElevenLabsForcedAligner({ apiKey: config.elevenLabsApiKey, centsPerHour: config.transcriptionCentsPerHour })
         : null;
   const textModel =
-    overrides.textModel !== undefined ? overrides.textModel : config.textModel === "codex-cli" ? new CodexCliTextModel({ model: config.codexModel, reasoningEffort: config.codexReasoningEffort }) : null;
+    overrides.textModel !== undefined ? overrides.textModel : config.textModel === "codex-cli" ? new CodexCliTextModel({ model: config.codexModel, reasoningEffort: config.codexReasoningEffort, serviceTier: config.codexServiceTier }) : null;
   const snipTextModel =
     overrides.snipTextModel !== undefined
       ? overrides.snipTextModel

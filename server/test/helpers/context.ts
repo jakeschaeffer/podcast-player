@@ -27,6 +27,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     textModel: "none",
     codexModel: "",
     codexReasoningEffort: "",
+    codexServiceTier: "",
     snipCodexReasoningEffort: "",
     snipCodexServiceTier: "",
     selectionModel: false,
