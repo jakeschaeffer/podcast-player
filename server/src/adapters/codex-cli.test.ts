@@ -76,6 +76,10 @@ describe("snip Codex settings", () => {
   it("fall back to the general effort and the standard tier", () => {
     expect(loadConfig(base)).toMatchObject({ codexReasoningEffort: "low", snipCodexReasoningEffort: "low", snipCodexServiceTier: "" });
   });
+  it("leave background work on the standard tier unless CODEX_BACKGROUND_SERVICE_TIER says otherwise", () => {
+    expect(loadConfig({ ...base, CODEX_SERVICE_TIER: "priority" })).toMatchObject({ codexServiceTier: "priority", codexBackgroundServiceTier: "" });
+    expect(loadConfig({ ...base, CODEX_BACKGROUND_SERVICE_TIER: "priority" })).toMatchObject({ codexBackgroundServiceTier: "priority" });
+  });
   it("take the general service tier unless their own is set", () => {
     expect(loadConfig({ ...base, CODEX_SERVICE_TIER: "priority" })).toMatchObject({ codexServiceTier: "priority", snipCodexServiceTier: "priority" });
     expect(loadConfig({ ...base, CODEX_SERVICE_TIER: "priority", CODEX_SNIP_SERVICE_TIER: "flex" })).toMatchObject({ codexServiceTier: "priority", snipCodexServiceTier: "flex" });

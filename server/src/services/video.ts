@@ -336,7 +336,9 @@ export function storeCaptions(ctx: AppContext, episodeId: string, json: Json3, m
   if (raw.words.length === 0) throw badRequest("the captions have no words");
   const normalized = normalize(raw, { duration_ms: asset.duration_ms });
   const current = asset.transcript_id === null;
-  const row = storeTranscript(ctx, asset.id, normalized, { source: "captions", make_current: current });
+  // The follow-ups take the priority the video was asked for at: Fast when the owner requested it.
+  const priority = ctx.queue.byKey(jobKey(ep.id))?.priority ?? PRIORITY.catalog;
+  const row = storeTranscript(ctx, asset.id, normalized, { source: "captions", make_current: current, priority });
   ctx.db.prepare("UPDATE episode SET captions_retry_at = NULL WHERE id = ?").run(ep.id);
   ctx.log("captions stored", { episode_id: ep.id, asset_id: asset.id, transcript_id: row.id, words: normalized.word_count, kind: meta.kind, current });
   return { transcript_id: row.id, word_count: normalized.word_count, current };

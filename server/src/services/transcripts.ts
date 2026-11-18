@@ -50,6 +50,9 @@ export type StoreTranscriptMeta = {
   loss?: number;
   /** Make this the asset's current transcript (default true). False stores it alongside for comparison. */
   make_current?: boolean;
+  /** The priority of the work that produced it (default catalog). The episode summary and speakers inherit it, so
+   * an episode the owner asked for stays on the requested Codex tier through its follow-ups. */
+  priority?: number;
 };
 
 export function storeTranscript(ctx: AppContext, assetId: string, t: NormalizedTranscript, meta: StoreTranscriptMeta): TranscriptRow {
@@ -76,8 +79,9 @@ export function storeTranscript(ctx: AppContext, assetId: string, t: NormalizedT
     if (!ctx.queue.wake(`select_snip:${revisionId}`)) ctx.queue.enqueue("select_snip", `select_snip:${revisionId}`, { revision_id: revisionId }, { priority: PRIORITY.snip });
   }
   attachWordsToEditedRevisions(ctx, assetId, id, t);
-  ctx.queue.enqueue("summarize_episode", `summarize_episode:${assetId}`, { asset_id: assetId }, { priority: PRIORITY.catalog });
-  queueSpeakers(ctx, id);
+  const priority = meta.priority ?? PRIORITY.catalog;
+  ctx.queue.enqueue("summarize_episode", `summarize_episode:${assetId}`, { asset_id: assetId }, { priority });
+  queueSpeakers(ctx, id, priority);
   // An episode being listened to (or snipped) gets its map now, so its next snip starts where a passage does.
   const listened = ctx.db.prepare("SELECT 1 FROM playback_state WHERE audio_asset_id = ? UNION SELECT 1 FROM snip WHERE audio_asset_id = ? AND deleted_at IS NULL").get(assetId, assetId);
   if (listened) queueEpisodeMap(ctx, id);
@@ -150,7 +154,7 @@ export async function transcribeJob(ctx: AppContext, job: Job<{ asset_id: string
     ...(keyterms.length > 0 ? { keyterms } : {}),
   });
   const normalized = normalize(raw, { duration_ms: asset.duration_ms });
-  const row = storeTranscript(ctx, asset.id, normalized, { cost_cents: raw.cost_cents, provider_request_id: raw.provider_request_id });
+  const row = storeTranscript(ctx, asset.id, normalized, { cost_cents: raw.cost_cents, provider_request_id: raw.provider_request_id, priority: job.priority });
   applyTextPolicyForAsset(ctx, asset.id); // a preferred publisher-text transcript that landed first stays current
   ctx.log("transcript stored", { asset_id: asset.id, transcript_id: row.id, words: normalized.word_count, segments: normalized.segments.length, cost_cents: raw.cost_cents ?? null, elapsed_ms: ctx.now() - started });
 }
