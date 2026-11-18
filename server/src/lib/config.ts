@@ -30,9 +30,11 @@ export type Config = {
   codexModel: string;
   /** Codex reasoning effort (low, medium, high). Empty uses the CLI default. */
   codexReasoningEffort: string;
+  /** Codex service tier for every call (`priority` is Codex's Fast mode). Empty uses the standard tier. */
+  codexServiceTier: string;
   /** The snip calls (the episode map that places a snip's start, the span picker, the snip's title, quote and
    * summary), which someone is waiting on: their own reasoning effort and service tier. Empty falls back to
-   * codexReasoningEffort and the standard tier. */
+   * codexReasoningEffort and codexServiceTier. */
   snipCodexReasoningEffort: string;
   snipCodexServiceTier: string;
   /** Whether the text model may adjust snip starts. Off by default: it scored below the deterministic snap on the owner's snips. */
@@ -87,7 +89,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     codexModel: env.CODEX_MODEL ?? "",
     codexReasoningEffort: env.CODEX_REASONING_EFFORT ?? "",
     snipCodexReasoningEffort: env.CODEX_SNIP_REASONING_EFFORT?.trim() || env.CODEX_REASONING_EFFORT || "",
-    snipCodexServiceTier: env.CODEX_SNIP_SERVICE_TIER?.trim() ?? "",
+    codexServiceTier: env.CODEX_SERVICE_TIER?.trim() ?? "",
+    snipCodexServiceTier: env.CODEX_SNIP_SERVICE_TIER?.trim() || env.CODEX_SERVICE_TIER?.trim() || "",
     selectionModel: env.SELECTION_MODEL === "on",
     episodeMaps: env.EPISODE_MAPS !== "off",
     emailSourceQuery: env.EMAIL_SOURCE_QUERY ?? "",

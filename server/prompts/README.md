@@ -15,7 +15,7 @@ In the app, the profile sheet's **Prompts** screen lists each prompt's versions 
 | [Speakers](#speakers) | On, once per transcript | [speakers/](speakers/) | the transcript's `speakers` JSON, with `model` |
 | [Title judge](#title-judge) | Evals only | [title-judge/](title-judge/) | each title eval's scorecard: `judge` (`judge_v1` for v1) |
 
-All three go through the Codex CLI. The production settings are in `.env.server.local` at the repository root, outside git: `TEXT_MODEL=codex-cli`, `CODEX_REASONING_EFFORT=low`, and Codex's default model unless `CODEX_MODEL` is set. The calls a snip waits on (the episode map that places its start, the span picker, and the snip's title, quote and summary) take `CODEX_SNIP_REASONING_EFFORT` and `CODEX_SNIP_SERVICE_TIER` instead when they are set; production runs them at `medium` on `priority`, Codex's Fast tier.
+All three go through the Codex CLI. The production settings are in `.env.server.local` at the repository root, outside git: `TEXT_MODEL=codex-cli`, `CODEX_REASONING_EFFORT=low`, `CODEX_MODEL=gpt-6.2-sol` and `CODEX_SERVICE_TIER=priority` (Codex's Fast tier, for every call). The calls a snip waits on (the episode map that places its start, the span picker, and the snip's title, quote and summary) take `CODEX_SNIP_REASONING_EFFORT` and `CODEX_SNIP_SERVICE_TIER` instead when they are set; production runs them at `medium`.
 
 ## Snip title and summary
 

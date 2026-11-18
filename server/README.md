@@ -26,8 +26,9 @@ In production the server runs as a systemd service behind nginx (`../deploy/READ
 | `TEXT_MODEL` | `none` or `codex-cli`. With `none`, snip summaries are skipped (the excerpt publishes with a derived title) and episode summaries are deferred | `none` |
 | `CODEX_MODEL` | Model name passed to `codex exec` when `TEXT_MODEL=codex-cli` | CLI default |
 | `CODEX_REASONING_EFFORT` | `low`, `medium`, or `high` for Codex calls | CLI default |
+| `CODEX_SERVICE_TIER` | Codex service tier for every Codex call. `priority` is Codex's Fast mode: quicker, and it uses more of the ChatGPT plan's Codex allowance | standard |
 | `CODEX_SNIP_REASONING_EFFORT` | Effort for the calls a snip waits on: the episode map that places its start, the span picker, and its title, quote and summary | `CODEX_REASONING_EFFORT` |
-| `CODEX_SNIP_SERVICE_TIER` | Codex service tier for those calls. `priority` is Codex's Fast mode: quicker, and it uses more of the ChatGPT plan's Codex allowance | standard |
+| `CODEX_SNIP_SERVICE_TIER` | Codex service tier for those calls | `CODEX_SERVICE_TIER` |
 | `SELECTION_MODEL` | `on` lets the text model adjust snip starts; off keeps selection deterministic (the measured default) | `off` |
 | `PUBLIC_BASE_URL` | Origin used in share and media URLs (`https://snip.example.com` in production). The login cookie's `Secure` flag follows the request's scheme, not this value | `http://127.0.0.1:PORT` |
 | `SHARE_BY_NAME` | The name on share cards and public pages ("10 clips from Jake"); empty leaves just the count | empty |
