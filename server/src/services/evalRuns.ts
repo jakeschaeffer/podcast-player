@@ -185,13 +185,15 @@ export function startRun(ctx: AppContext, id: EvalId, version: string): RunView 
 export async function evalRunJob(ctx: AppContext, job: Job<{ eval: EvalId; version: string; stamp: string }>): Promise<void> {
   const def = evalDef(job.payload.eval);
   const { version, stamp } = job.payload;
-  if (!ctx.textModel) throw new NonRetryable("no text model is configured");
+  // A run is dozens of calls nobody waits on: the background tier.
+  const model = ctx.backgroundTextModel;
+  if (!model) throw new NonRetryable("no text model is configured");
   const label = codexLabel(ctx.config.codexModel, ctx.config.codexReasoningEffort);
   const onProgress = (done: number, total: number) => progress.set(stamp, { done, total });
   progress.set(stamp, { done: 0, total: 0 });
   try {
-    if (def.id === "titles") await runTitleEval({ version, model: ctx.textModel, modelLabel: label, stamp, appEdits: appEditCases(ctx), onProgress });
-    else await runSelectionEval({ version, model: ctx.textModel, modelLabel: `snap-90+model (${label})`, stamp, app: appSnipCases(ctx), onProgress });
+    if (def.id === "titles") await runTitleEval({ version, model, modelLabel: label, stamp, appEdits: appEditCases(ctx), onProgress });
+    else await runSelectionEval({ version, model, modelLabel: `snap-90+model (${label})`, stamp, app: appSnipCases(ctx), onProgress });
   } catch (err) {
     // A failed run is not retried on its own: it may be dozens of model calls, and the cache keeps what finished.
     throw new NonRetryable(err instanceof Error ? err.message : String(err));

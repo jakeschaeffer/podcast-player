@@ -1,4 +1,4 @@
-import type { AppContext } from "../app/context.js";
+import { textModelFor, type AppContext } from "../app/context.js";
 import { summarizeEpisode } from "../core/summary/episode.js";
 import { readRegistry } from "../core/summary/prompts.js";
 import type { EpisodeRow, FeedRow } from "../db/rows.js";
@@ -14,7 +14,8 @@ import { queueAdDetection } from "./adBreaks.js";
 export async function summarizeEpisodeJob(ctx: AppContext, job: Job<{ asset_id: string }>): Promise<void> {
   const asset = getAssetRow(ctx, job.payload.asset_id);
   if (!asset.transcript_id) throw new DeferJob("no transcript yet");
-  if (!ctx.textModel) throw new DeferJob("no text model configured (set TEXT_MODEL=codex-cli)");
+  const model = textModelFor(ctx, job.priority);
+  if (!model) throw new DeferJob("no text model configured (set TEXT_MODEL=codex-cli)");
   const existing = asset.summary_id
     ? (ctx.db.prepare("SELECT prompt_version FROM episode_summary WHERE id = ?").get(asset.summary_id) as { prompt_version: string } | undefined)
     : undefined;
@@ -26,7 +27,7 @@ export async function summarizeEpisodeJob(ctx: AppContext, job: Job<{ asset_id: 
   const started = ctx.now();
   const result = await summarizeEpisode(
     { transcript, duration_ms: asset.duration_ms, metadata: { show_title: feed.title ?? "", episode_title: episode.title, description_text: htmlToText(episode.description_html), language: transcript.language } },
-    ctx.textModel,
+    model,
   );
   if (!result.ok) throw new NonRetryable(`episode summary rejected after ${result.attempts} attempts: ${result.problems.join("; ")}`);
   const id = newId();

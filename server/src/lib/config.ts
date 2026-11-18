@@ -30,8 +30,12 @@ export type Config = {
   codexModel: string;
   /** Codex reasoning effort (low, medium, high). Empty uses the CLI default. */
   codexReasoningEffort: string;
-  /** Codex service tier for every call (`priority` is Codex's Fast mode). Empty uses the standard tier. */
+  /** Codex service tier for work the owner asked for and is waiting on (a job above PRIORITY.catalog: Process,
+   * playing, Up Next, snips). `priority` is Codex's Fast mode. Empty uses the standard tier. */
   codexServiceTier: string;
+  /** Codex service tier for background work (PRIORITY.catalog: new episodes of auto_process feeds, eval runs).
+   * Empty, the default, uses the standard tier. */
+  codexBackgroundServiceTier: string;
   /** The snip calls (the episode map that places a snip's start, the span picker, the snip's title, quote and
    * summary), which someone is waiting on: their own reasoning effort and service tier. Empty falls back to
    * codexReasoningEffort and codexServiceTier. */
@@ -90,6 +94,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     codexReasoningEffort: env.CODEX_REASONING_EFFORT ?? "",
     snipCodexReasoningEffort: env.CODEX_SNIP_REASONING_EFFORT?.trim() || env.CODEX_REASONING_EFFORT || "",
     codexServiceTier: env.CODEX_SERVICE_TIER?.trim() ?? "",
+    codexBackgroundServiceTier: env.CODEX_BACKGROUND_SERVICE_TIER?.trim() ?? "",
     snipCodexServiceTier: env.CODEX_SNIP_SERVICE_TIER?.trim() || env.CODEX_SERVICE_TIER?.trim() || "",
     selectionModel: env.SELECTION_MODEL === "on",
     episodeMaps: env.EPISODE_MAPS !== "off",

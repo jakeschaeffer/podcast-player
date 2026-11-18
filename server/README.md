@@ -26,7 +26,8 @@ In production the server runs as a systemd service behind nginx (`../deploy/READ
 | `TEXT_MODEL` | `none` or `codex-cli`. With `none`, snip summaries are skipped (the excerpt publishes with a derived title) and episode summaries are deferred | `none` |
 | `CODEX_MODEL` | Model name passed to `codex exec` when `TEXT_MODEL=codex-cli` | CLI default |
 | `CODEX_REASONING_EFFORT` | `low`, `medium`, or `high` for Codex calls | CLI default |
-| `CODEX_SERVICE_TIER` | Codex service tier for every Codex call. `priority` is Codex's Fast mode: quicker, and it uses more of the ChatGPT plan's Codex allowance | standard |
+| `CODEX_SERVICE_TIER` | Codex service tier for work the owner asked for: a job above catalog priority (Process, playing, Up Next, snips), including the episode summary and speakers that follow its transcript. `priority` is Codex's Fast mode: quicker, and it uses more of the ChatGPT plan's Codex allowance | standard |
+| `CODEX_BACKGROUND_SERVICE_TIER` | Codex service tier for catalog work nobody waits on: new episodes of `auto_process` feeds, eval runs | standard |
 | `CODEX_SNIP_REASONING_EFFORT` | Effort for the calls a snip waits on: the episode map that places its start, the span picker, and its title, quote and summary | `CODEX_REASONING_EFFORT` |
 | `CODEX_SNIP_SERVICE_TIER` | Codex service tier for those calls | `CODEX_SERVICE_TIER` |
 | `SELECTION_MODEL` | `on` lets the text model adjust snip starts; off keeps selection deterministic (the measured default) | `off` |

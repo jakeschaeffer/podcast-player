@@ -3,7 +3,7 @@
  * New transcripts are queued when stored; older ones the first time their transcript is opened. The shared pages, the
  * apps' transcripts and snip summaries read the result; until it exists, voices are "Speaker 1", "Speaker 2".
  */
-import type { AppContext } from "../app/context.js";
+import { textModelFor, type AppContext } from "../app/context.js";
 import { identifySpeakers, speakerSamples, type SpeakerIdentity } from "../core/speakers/identify.js";
 import type { EpisodeRow, FeedRow } from "../db/rows.js";
 import { DeferJob, NonRetryable } from "../jobs/errors.js";
@@ -34,7 +34,8 @@ export function queueSpeakers(ctx: AppContext, transcriptId: string, priority: n
 export async function identifySpeakersJob(ctx: AppContext, job: Job<{ transcript_id: string }>): Promise<void> {
   const row = getTranscriptRow(ctx, job.payload.transcript_id);
   if (row.speakers) return;
-  if (!ctx.textModel) throw new DeferJob("no text model configured (set TEXT_MODEL=codex-cli)");
+  const model = textModelFor(ctx, job.priority);
+  if (!model) throw new DeferJob("no text model configured (set TEXT_MODEL=codex-cli)");
   const transcript = loadTranscript(ctx, row.id);
   const labels = speakerSamples(transcript);
   if (labels.length === 0) return; // no speaker labels: nothing to name
@@ -42,7 +43,7 @@ export async function identifySpeakersJob(ctx: AppContext, job: Job<{ transcript
   const feed = ctx.db.prepare("SELECT * FROM feed WHERE id = ?").get(episode.feed_id) as FeedRow;
   const result = await identifySpeakers(
     { show_title: feed.title ?? "", author: feed.author, episode_title: episode.title, description_text: htmlToText(episode.description_html), labels },
-    ctx.textModel,
+    model,
   );
   if (!result.ok && result.transport_error) throw new Error(result.problems.join("; "));
   if (!result.ok) throw new NonRetryable(`speakers rejected after ${result.attempts} attempts: ${result.problems.join("; ")}`);

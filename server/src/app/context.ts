@@ -9,7 +9,7 @@ import { ReadwiseApi, type Readwise } from "../adapters/readwise.js";
 import { ExaPodcastSearch, type PodcastSearch } from "../adapters/exa.js";
 import { showSearchFromEnv, type ShowSearch } from "../adapters/showSearch.js";
 import { openDb, type Db } from "../db/index.js";
-import { JobQueue } from "../jobs/queue.js";
+import { JobQueue, PRIORITY } from "../jobs/queue.js";
 import type { Config } from "../lib/config.js";
 import { Secrets } from "../lib/crypto.js";
 
@@ -24,7 +24,11 @@ export type AppContext = {
   paths: Paths;
   transcriber: Transcriber | null;
   aligner: ForcedAligner | null;
+  /** The text model for work the owner asked for (CODEX_SERVICE_TIER). Pick by job priority with textModelFor. */
   textModel: TextModel | null;
+  /** The same model on the background tier (CODEX_BACKGROUND_SERVICE_TIER), for catalog work nobody is waiting on.
+   * Null exactly when textModel is. */
+  backgroundTextModel: TextModel | null;
   /** The text model for the snip calls (episode map, span picker, snip summary): the same Codex with the snip
    * settings (CODEX_SNIP_*). Null exactly when textModel is. */
   snipTextModel: TextModel | null;
@@ -38,7 +42,7 @@ export type AppContext = {
   log: (msg: string, extra?: Record<string, unknown>) => void;
 };
 
-export type ContextOverrides = Partial<Pick<AppContext, "transcriber" | "aligner" | "textModel" | "snipTextModel" | "showSearch" | "readwise" | "podcastSearch" | "now" | "log">> & { dbPath?: string };
+export type ContextOverrides = Partial<Pick<AppContext, "transcriber" | "aligner" | "textModel" | "backgroundTextModel" | "snipTextModel" | "showSearch" | "readwise" | "podcastSearch" | "now" | "log">> & { dbPath?: string };
 
 export function createContext(config: Config, overrides: ContextOverrides = {}): AppContext {
   const paths = pathsFor(config.dataDir);
@@ -58,6 +62,14 @@ export function createContext(config: Config, overrides: ContextOverrides = {}):
         : null;
   const textModel =
     overrides.textModel !== undefined ? overrides.textModel : config.textModel === "codex-cli" ? new CodexCliTextModel({ model: config.codexModel, reasoningEffort: config.codexReasoningEffort, serviceTier: config.codexServiceTier }) : null;
+  const backgroundTextModel =
+    overrides.backgroundTextModel !== undefined
+      ? overrides.backgroundTextModel
+      : overrides.textModel !== undefined
+        ? overrides.textModel
+        : config.textModel === "codex-cli"
+          ? new CodexCliTextModel({ model: config.codexModel, reasoningEffort: config.codexReasoningEffort, serviceTier: config.codexBackgroundServiceTier })
+          : null;
   const snipTextModel =
     overrides.snipTextModel !== undefined
       ? overrides.snipTextModel
@@ -76,6 +88,7 @@ export function createContext(config: Config, overrides: ContextOverrides = {}):
     transcriber,
     aligner,
     textModel,
+    backgroundTextModel,
     snipTextModel,
     showSearch: overrides.showSearch ?? showSearchFromEnv(),
     readwise: overrides.readwise !== undefined ? overrides.readwise : config.readwiseToken ? new ReadwiseApi({ token: config.readwiseToken }) : null,
@@ -88,4 +101,10 @@ export function createContext(config: Config, overrides: ContextOverrides = {}):
 export function pathsFor(dataDir: string): Paths {
   const media = join(dataDir, "media");
   return { data: dataDir, db: join(dataDir, "app.db"), media, assets: join(media, "assets"), clips: join(media, "clips"), tmp: join(media, "tmp") };
+}
+
+/** The text model for a job of this priority: above PRIORITY.catalog the owner asked for it and is waiting (the
+ * requested tier, Fast in production); catalog work runs on the background tier. */
+export function textModelFor(ctx: AppContext, priority: number): TextModel | null {
+  return priority > PRIORITY.catalog ? ctx.textModel : ctx.backgroundTextModel;
 }

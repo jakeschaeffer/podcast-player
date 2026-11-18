@@ -131,6 +131,7 @@ export async function alignTextJob(ctx: AppContext, job: Job<{ text_id: string }
     text_id: row.id,
     loss: result.loss,
     make_current: false,
+    priority: job.priority,
   });
   ctx.db.prepare("UPDATE episode_text SET sections = ? WHERE id = ?").run(JSON.stringify(sections), row.id);
   const current = applyTextPolicyForAsset(ctx, asset.id);
@@ -138,7 +139,7 @@ export async function alignTextJob(ctx: AppContext, job: Job<{ text_id: string }
     // The same follow-ups a new current transcript gets: wake snips that waited for one, and queue the episode summary.
     const waiting = ctx.db.prepare("SELECT r.id FROM snip_revision r JOIN snip s ON s.id = r.snip_id WHERE s.audio_asset_id = ? AND s.current_revision_id = r.id AND r.status = 'waiting'").pluck().all(asset.id) as string[];
     for (const revisionId of waiting) if (!ctx.queue.wake(`select_snip:${revisionId}`)) ctx.queue.enqueue("select_snip", `select_snip:${revisionId}`, { revision_id: revisionId }, { priority: PRIORITY.snip });
-    ctx.queue.enqueue("summarize_episode", `summarize_episode:${asset.id}`, { asset_id: asset.id }, { priority: PRIORITY.catalog });
+    ctx.queue.enqueue("summarize_episode", `summarize_episode:${asset.id}`, { asset_id: asset.id }, { priority: job.priority });
   }
   const high = result.words.filter((w) => w.loss > 1).length;
   ctx.log("text aligned", { episode_id: episode.id, transcript_id: transcript.id, words: normalized.word_count, loss: Number(result.loss.toFixed(3)), high_loss_words: high, cost_cents: result.cost_cents, elapsed_ms: result.elapsed_ms, current });
