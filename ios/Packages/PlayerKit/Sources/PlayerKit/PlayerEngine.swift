@@ -45,7 +45,8 @@ public final class PlayerEngine {
   public private(set) var heardFromMs = 0
   /// Set when the recording itself fails to load; Play retries with a fresh signed URL.
   public private(set) var loadError: String?
-  public private(set) var speed: Double = UserDefaults.standard.object(forKey: "player.speed") as? Double ?? 1
+  public private(set) var speed: Double = 1
+  private let showSpeeds = ShowPlaybackSpeeds()
 
   /// The cover on the lock screen and in Control Center; the app sets it once the image has loaded.
   public var nowPlayingArtwork: MPMediaItemArtwork? {
@@ -86,6 +87,7 @@ public final class PlayerEngine {
   private var observations: [NSKeyValueObservation] = []
   private var itemStatus: NSKeyValueObservation?
   private var openTask: Task<Void, Never>?
+  private var openGeneration = 0
   private var lastReport = Date.distantPast
   private var audioURL: URL?
 
@@ -138,6 +140,7 @@ public final class PlayerEngine {
       if autoplay { return play() }
       return nil
     }
+    openGeneration += 1
     if let left = episode, status == .ready { onLeave?(left.id, positionMs, finished) }
     detach()
     openTask?.cancel()
@@ -212,6 +215,7 @@ public final class PlayerEngine {
     let start = (ep.resume?.finished ?? true) ? 0 : min(ep.resume?.positionMs ?? 0, asset.durationMs)
     heard.reset(startMs: start, assumeHeardBeforeMs: Self.resumeAssumedHeardMs)
     episode = ep
+    speed = showSpeeds.speed(for: ep.feedId)
     durationMs = asset.durationMs
     positionMs = start
     heardFromMs = heard.heardFrom(start)
@@ -303,7 +307,8 @@ public final class PlayerEngine {
     guard status == .ready else { return nil }
     // A signed URL that expired while paused (or failed) is swapped for a fresh one at the same spot.
     if !offline, player.currentItem?.status == .failed || audioURL.map({ SignedURL.needsRenewal($0) }) == true {
-      return Task { await renewURL(thenPlay: true) }
+      let generation = openGeneration
+      return Task { await renewURL(thenPlay: true, generation: generation) }
     }
     AudioSessionController.activate()
     player.playImmediately(atRate: Float(speed))
@@ -345,8 +350,9 @@ public final class PlayerEngine {
   public func skip(by deltaMs: Int) { seek(to: positionMs + deltaMs) }
 
   public func setSpeed(_ value: Double) {
+    guard status == .ready, let feedID = episode?.feedId else { return }
     speed = value
-    UserDefaults.standard.set(value, forKey: "player.speed")
+    showSpeeds.setSpeed(value, for: feedID)
     if playing { player.rate = Float(value) }
     report(force: true)
     NowPlaying.update(for: self)
@@ -365,11 +371,12 @@ public final class PlayerEngine {
 
   // MARK: Internals
 
-  private func renewURL(thenPlay: Bool) async {
-    guard let id = episode?.id else { return }
+  private func renewURL(thenPlay: Bool, generation: Int) async {
+    // A Play task belongs to the episode open that started it, even if the same episode is reopened later.
+    guard generation == openGeneration, let id = episode?.id else { return }
     do {
       let ep = try await api.episode(id)
-      guard let asset = ep.asset else { return }
+      guard generation == openGeneration, let asset = ep.asset else { return }
       video = wantsVideo && asset.videoUrl != nil
       guard let url = SignedURL.onServer(mediaURL(asset), base: api.baseURL) else { return }
       episode = ep
@@ -379,6 +386,7 @@ public final class PlayerEngine {
         player.playImmediately(atRate: Float(speed))
       }
     } catch {
+      guard generation == openGeneration else { return }
       status = .error(error.localizedDescription)
     }
   }
