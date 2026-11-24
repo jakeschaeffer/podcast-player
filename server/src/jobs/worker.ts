@@ -15,6 +15,7 @@ import { transcribeJob } from "../services/transcripts.js";
 import { DeferJob, NonRetryable } from "./errors.js";
 import type { Job, JobKind } from "./queue.js";
 import { fetchVideoJob, pruneVideoJob, pruneVideosToCap } from "../services/video.js";
+import { removeYouTubeShorts } from "../services/shorts.js";
 
 type Handler = (ctx: AppContext, job: Job<never>) => Promise<unknown>;
 
@@ -167,6 +168,8 @@ export function startWorker(ctx: AppContext, opts: { pollMs?: number; concurrenc
       if (feeds.length > 0) ctx.log("scheduled refresh queued", { feeds: feeds.length, every_minutes: ctx.config.refreshIntervalMinutes });
     }
   };
+  // Shorts from before channel refreshes skipped them; once they are gone this finds none.
+  void removeYouTubeShorts(ctx).catch((err) => ctx.log("removing youtube shorts failed", { error: String(err) }));
   const timer = setInterval(tick, pollMs);
   ctx.log("worker started", { pollMs, limits, refresh_every_minutes: ctx.config.refreshIntervalMinutes });
   return {
