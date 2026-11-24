@@ -63,6 +63,13 @@ Read it here: https://www.dwarkesh.com/p/automated-firms</media:description>
   </media:group>
  </entry>
  <entry>
+  <id>yt:video:QAE9nRTHtas</id>
+  <yt:videoId>QAE9nRTHtas</yt:videoId>
+  <title>A Short</title>
+  <link rel="alternate" href="https://www.youtube.com/shorts/QAE9nRTHtas"/>
+  <published>2026-05-01T15:00:00+00:00</published>
+ </entry>
+ <entry>
   <id>yt:video:bad</id>
   <yt:videoId>bad</yt:videoId>
   <title>Not a video id</title>
@@ -76,7 +83,7 @@ describe("parseYouTubeFeed", () => {
     expect(parsed.channel).toEqual({ channel_id: "UCXl4i9dYBrFOabk0xGmbkRA", title: "Dwarkesh Patel", author: "Dwarkesh Patel", site_url: "https://www.youtube.com/channel/UCXl4i9dYBrFOabk0xGmbkRA" });
   });
 
-  it("reads each video and skips malformed entries", () => {
+  it("reads each video, marks Shorts, and skips malformed entries", () => {
     expect(parsed.videos).toEqual([
       {
         video_id: "bJD1NpdMY5s",
@@ -85,6 +92,16 @@ describe("parseYouTubeFeed", () => {
         published_at: Date.parse("2026-04-30T15:00:12+00:00"),
         thumbnail_url: "https://i2.ytimg.com/vi/bJD1NpdMY5s/hqdefault.jpg",
         link: "https://www.youtube.com/watch?v=bJD1NpdMY5s",
+        short: false,
+      },
+      {
+        video_id: "QAE9nRTHtas",
+        title: "A Short",
+        description: null,
+        published_at: Date.parse("2026-05-01T15:00:00+00:00"),
+        thumbnail_url: null,
+        link: "https://www.youtube.com/shorts/QAE9nRTHtas",
+        short: true,
       },
     ]);
   });

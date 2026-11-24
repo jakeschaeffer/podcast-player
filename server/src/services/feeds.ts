@@ -274,7 +274,7 @@ export async function refreshFeed(ctx: AppContext, feedId: string): Promise<Refr
 /**
  * A YouTube channel's feed: its latest videos become episodes of kind video, each the YouTube video itself. Their
  * recordings come from the home fetcher when wanted (services/video.ts), so auto_process here means "fetch and
- * transcribe each new video" on the home connection, with YouTube's captions as the transcript.
+ * transcribe each new video" on the home connection, with YouTube's captions as the transcript. Shorts are left out.
  */
 async function refreshYouTubeFeed(ctx: AppContext, feed: FeedRow): Promise<RefreshReport> {
   // YouTube answers its feeds endpoint with 404 to an unfamiliar user agent, and with the feed to a browser's.
@@ -296,7 +296,7 @@ async function refreshYouTubeFeed(ctx: AppContext, feed: FeedRow): Promise<Refre
     );
     for (const v of parsed.videos) {
       const guid = `yt:video:${v.video_id}`;
-      if (existing.has(guid)) continue;
+      if (v.short || existing.has(guid)) continue;
       const id = newId();
       insert.run(id, feed.id, guid, v.title, sanitizeShowNotes(descriptionHtml(v.description)), v.published_at, now, ctx.secrets.encrypt(v.link), "video/youtube", v.thumbnail_url, v.link, v.video_id);
       inserted.push(ctx.db.prepare("SELECT * FROM episode WHERE id = ?").get(id) as EpisodeRow);
