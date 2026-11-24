@@ -50,13 +50,15 @@ export type YouTubeVideo = {
   published_at: number | null;
   thumbnail_url: string | null;
   link: string;
+  /** A Short: the feed links it as `/shorts/{id}` rather than `/watch?v={id}`. */
+  short: boolean;
 };
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_", textNodeName: "#text", isArray: (name) => name === "entry" || name === "link" });
 
 /**
- * A channel's feed, `https://www.youtube.com/feeds/videos.xml?channel_id=UC…`: the latest fifteen videos. The feed
- * says nothing about length, so Shorts can only be told apart later, from the video itself.
+ * A channel's feed, `https://www.youtube.com/feeds/videos.xml?channel_id=UC…`: the latest fifteen videos, Shorts
+ * included. The feed says nothing about length, but it links a Short as `/shorts/{id}`, which marks it `short`.
  */
 export function parseYouTubeFeed(xml: string): { channel: YouTubeChannel; videos: YouTubeVideo[] } {
   const doc = parser.parse(xml) as Record<string, unknown>;
@@ -79,13 +81,15 @@ export function parseYouTubeFeed(xml: string): { channel: YouTubeChannel; videos
     const thumb = group?.["media:thumbnail"] as Record<string, unknown> | undefined;
     const published = str(e["published"]);
     const t = published ? Date.parse(published) : NaN;
+    const link = alternate(e["link"]) ?? `https://www.youtube.com/watch?v=${video_id}`;
     videos.push({
       video_id,
       title: str(e["title"]) ?? str(group?.["media:title"]) ?? "(untitled)",
       description: str(group?.["media:description"]),
       published_at: Number.isFinite(t) ? t : null,
       thumbnail_url: typeof thumb?.["@_url"] === "string" ? thumb["@_url"] : null,
-      link: alternate(e["link"]) ?? `https://www.youtube.com/watch?v=${video_id}`,
+      link,
+      short: /^https?:\/\/(?:www\.|m\.)?youtube\.com\/shorts\//.test(link),
     });
   }
   return { channel, videos };
