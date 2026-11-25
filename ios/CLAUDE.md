@@ -27,6 +27,10 @@ bundle id are in ../CLAUDE.local.md and the gitignored `Config/Local.xcconfig` a
   "Owner" TestFlight group). It reads the team and App Store Connect key from `scripts/local.env` and refuses
   without them. Release builds start on `PODCAST_SERVER_URL` from `Config/Local.xcconfig`; a build with none set
   starts with a blank login screen.
+  A second app that installs beside the first with its own data: `APP_SUFFIX=<last part of the bundle id>
+  APP_DISPLAY_NAME="<name under the icon>" NO_SERVER=1 ios/scripts/testflight.sh` (the build settings of the same
+  names, `Config/Signing.xcconfig`). `NO_SERVER=1` names no server, so it opens on Start. Its first run registers
+  the bundle ids and then stops: the app's record in App Store Connect has to be made by hand.
 - **Media auth is signed URLs only.** Do not inject headers into AVPlayer (`AVURLAssetHTTPHeaderFieldsKey` is
   private API).
 - **Don't copy MPL-2.0 code from audiobooth-fork** (`PlayerManager`, `AudioPlayer`, `NowPlayingManager`, ...);

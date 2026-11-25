@@ -6,7 +6,7 @@
 	     token the app keeps there (PodcastAPI's SharedSession and TokenStore). Needs nothing in the developer portal. -->
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)$(ORG_IDENTIFIER).Snip</string>
+		<string>$(AppIdentifierPrefix)$(ORG_IDENTIFIER).$(APP_SUFFIX)</string>
 	</array>
 </dict>
 </plist>
