@@ -37,9 +37,11 @@ So the phone answers the same API:
   is to be transcribed it must be downloaded, and playback must use that same file: inserted ads differ between
   fetches, and every time in a transcript is a position in one file (`docs/core/README.md`).
 - **The pure core** (`server/src/core`: sentences, span selection, summary validation, ad detection) has to give the
-  same answers on the phone. Two ways, to be decided at step 2: port it to Swift against `contracts/golden/` (the
-  cross-repo plan's `snipkit`), or bundle the TypeScript and run it in JavaScriptCore, which cannot drift and keeps
-  the evals meaningful for both. Feed parsing is ported to Swift now (`XMLParser`), tested on the server's cases.
+  same answers on the phone. It is ported to Swift against `contracts/golden/` (the cross-repo plan's `snipkit`),
+  in `ios/Packages/SnipCore`; the other way, running the bundled TypeScript in JavaScriptCore, was not taken. In so
+  far: the transcript types and normalizer, sentences, word alignment and ad detection, each replaying its golden
+  file. Still to port: span selection, summary validation, speakers. Feed parsing is ported too (`XMLParser`), tested
+  on the server's cases.
 
 ## The model steps: the listener's own ChatGPT plan
 
@@ -101,5 +103,5 @@ plan's first; languages other than English.
 
 1. A license for the repository (the open-source sign-in path needs one).
 2. Send OpenAI's interest form now, since a paid tier is planned.
-3. Swift port or JavaScriptCore for the pure core (step 2).
+3. ~~Swift port or JavaScriptCore for the pure core (step 2).~~ Decided: a Swift port, `ios/Packages/SnipCore`.
 4. The store name: "Snip" may be taken.

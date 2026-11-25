@@ -14,6 +14,8 @@ Packages/
   PodcastAPI/         hand-written client, Codable models, Keychain token store; decode tests read ../contracts/api
   PlayerKit/          AVPlayer engine, lock-screen controls, HeardTracker port; golden tests read ../contracts/golden
   SyncKit/            offline playback reporter (per-device seq, latest per asset), RetryPolicy
+  OnDevice/           the server's API answered on the phone from SQLite, for the build with no server
+  SnipCore/           the server's pure core (server/src/core) in Swift, no dependencies; golden tests read ../contracts/golden
 scripts/              dev-build-run.sh (simulator), test.sh (all package tests on macOS)
 ```
 
