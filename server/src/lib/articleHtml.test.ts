@@ -143,3 +143,20 @@ describe("extractArticle on article-feed items", () => {
     expect(extractArticle(FEED_ARTICLE, { title: "An Interview with Someone About Things" }).kind).toBe("interview");
   });
 });
+
+describe("extractArticle on headings drawn as divs", () => {
+  // Tangle's shape: real h3s for the issue's parts, and role="heading" divs inside HTML cards for the main story's.
+  const html = `<h3>Quick hits.</h3><p>One. Two.</p><h3>Today’s topic.</h3><p>The story so far.</p>
+    <table role="presentation"><tbody><tr><td><div><div role="heading" aria-level="3" style="font-size:28px">What the left is saying.</div></div>
+    <div><ul><li><span>Many on the left say more is needed.</span></li></ul></div></td></tr></tbody></table>
+    <table><tbody><tr><td><div role="heading" aria-level="3">What the right is saying.</div><ul><li>Many on the right disagree.</li></ul></td></tr></tbody></table>
+    <table><tbody><tr><td><div role="heading" aria-level="1">My take.</div></td></tr></tbody></table><p>Here is mine.</p>
+    <h3>Have a nice day.</h3><p>A dog saved a baby.</p>`;
+  const a = extractArticle(html, { title: "The tech outages." });
+
+  it("adds them as sections beside the h3s, in order, and keeps every paragraph", () => {
+    expect(a.sections.map((s) => s.title)).toEqual(["Quick hits.", "Today’s topic.", "What the left is saying.", "What the right is saying.", "My take.", "Have a nice day."]);
+    expect(a.paragraphs.map((p) => p.text)).toEqual(["One. Two.", "The story so far.", "Many on the left say more is needed.", "Many on the right disagree.", "Here is mine.", "A dog saved a baby."]);
+    expect(a.paragraphs.map((p) => p.section)).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+});
