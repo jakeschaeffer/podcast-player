@@ -15,6 +15,7 @@ import { Chapters } from "../player/Chapters";
 import { useEngine, usePlayer } from "../player/PlayerContext";
 import { Scrubber } from "../player/Scrubber";
 import { TranscriptView } from "../player/TranscriptView";
+import { TranscribePrompt } from "../player/TranscribePrompt";
 import { VideoSurface } from "../player/VideoSurface";
 import { describeError } from "../api/client";
 import { requestVideo } from "../api/video";
@@ -283,6 +284,8 @@ export function Player({ episodeId }: { episodeId: string }) {
                 <UpNext currentId={episode.id} />
               ) : tab === "chapters" ? (
                 <Chapters chapters={chapters ?? []} positionMs={p.positionMs} onSeek={seek} />
+              ) : !transcriptId ? (
+                <TranscribePrompt episode={episode} />
               ) : (
                 <TranscriptView
                   transcript={transcript.data ?? null}
