@@ -104,6 +104,11 @@ bundle id are in ../CLAUDE.local.md and the gitignored `Config/Local.xcconfig` a
   that does. To check it: `-usePhone 1` opens straight on the phone's library, `-followFeed <feed address>` follows a
   show, `-playFirst 1` plays the newest episode, and `-firstScreen start|server` shows either face of the first
   screen (no debug sign-in happens for it). Follow real public feeds, and still pass `-muteAudio 1`.
+  The simulator has no speech model, so its transcription job fails there; `-transcriptFixtures <folder>` (DEBUG)
+  makes the job wait for `<folder>/<downloaded file name>.json` (`{"words":[{"text","start_ms","end_ms"}]}`), so a
+  script on the Mac can transcribe the very file the simulator downloaded (`Library/Application Support/library/
+  audio/` in its container) with Apple's model and everything after the speech step runs for real. A worktree with
+  no `Config/Local.xcconfig` builds `com.example.Snip`, a different app from the owner's: launch that bundle id.
 - **Nothing of one deployment in the code.** Identifiers derive from the bundle id (`TokenStore.defaultService`,
   `DownloadStore.sessionIdentifier`); the default server comes from Info.plist through the xcconfigs. A hostname,
   team or account that belongs to the owner goes in the gitignored files above, not in a Swift file, a script or a doc.

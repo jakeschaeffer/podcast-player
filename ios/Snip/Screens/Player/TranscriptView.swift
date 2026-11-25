@@ -214,14 +214,10 @@ private struct TranscribePrompt: View {
     }
   }
 
-  /// Re-read the episode. On the phone the job first downloads the recording, and the transcript's times are
-  /// positions in that file, not in the stream playing now (inserted ads differ): once it is there, play on from it.
+  /// Re-read the episode. On the phone, AppModel also follows the playing episode until its transcript and saved
+  /// file are in (`watchPhoneJobs`), however its transcription was started.
   private func refresh() async {
-    let playing = engine.episode?.id == episode.id ? engine.episode?.asset?.audioUrl : nil
     await engine.refreshEpisode()
-    if model.onPhone, let playing, let now = engine.episode?.asset?.audioUrl, now != playing, now.hasPrefix("file:") {
-      await engine.reload()
-    }
   }
 
   private var estimate: String {

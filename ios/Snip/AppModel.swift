@@ -123,6 +123,7 @@ final class AppModel {
     wireQueue()
     wireLiveActivity()
     restoreSaved()
+    watchPhoneJobs()
     Task { await refreshWaiting() }
     // Any 401 outside login means the device was revoked or the token is gone: back to the login screen.
     NotificationCenter.default.addObserver(forName: Self.unauthorized, object: nil, queue: .main) { [weak self] _ in
@@ -147,6 +148,33 @@ final class AppModel {
     Task { await refreshLibrary() }
   }
 
+  /// The phone's own transcription runs in the background, queued by playing as much as by Transcribe. Until the
+  /// episode playing has its transcript and plays its saved file, it is read again every few seconds: the transcript
+  /// then shows wherever the player is, and playback moves to the file the transcript's times belong to (inserted
+  /// ads make the stream a different recording). A server's episode is left alone; its screens poll for themselves.
+  @ObservationIgnored private var phoneWatch: Task<Void, Never>?
+
+  private func watchPhoneJobs() {
+    phoneWatch?.cancel()
+    guard onPhone else { return }
+    phoneWatch = Task { [weak self] in
+      while !Task.isCancelled {
+        try? await Task.sleep(for: .seconds(5))
+        guard let self, self.onPhone else { return }
+        await self.catchUpPlaying()
+      }
+    }
+  }
+
+  private func catchUpPlaying() async {
+    guard let playing = engine.episode else { return }
+    let before = playing.asset?.audioUrl
+    let local = before?.hasPrefix("file:") ?? false
+    guard playing.transcriptId == nil || !local else { return }
+    await engine.refreshEpisode()
+    if !local, let now = engine.episode?.asset?.audioUrl, now != before, now.hasPrefix("file:") { await engine.reload() }
+  }
+
   /// On a phone with no server, nothing else fetches the shows' feeds: read the ones not read lately. The server
   /// does this itself on a timer.
   func refreshLibrary() async {
@@ -167,6 +195,7 @@ final class AppModel {
     wireLiveActivity()
     queue = []
     restoreSaved()
+    watchPhoneJobs()
     signedIn = true
   }
 
@@ -567,8 +596,14 @@ final class AppModel {
     // The last lists read from this server, drawn at launch before it answers (SavedResponses).
     let saved = SavedResponses(folder: URL.cachesDirectory.appending(path: "lists/\(server.host() ?? "server")"))
     // With no server, the same requests are answered from a file on the phone.
+    var fixtureTranscriber: (any Transcriber)?
+    #if DEBUG
+      fixtureTranscriber = UserDefaults.standard.string(forKey: "transcriptFixtures").map { FixtureTranscriber(folder: URL(filePath: $0)) }
+    #endif
     let local = server == phoneServer
-      ? try? LocalBackend(folder: URL.applicationSupportDirectory.appending(path: "library"), deviceName: UIDevice.current.name)
+      ? try? LocalBackend(
+        folder: URL.applicationSupportDirectory.appending(path: "library"), deviceName: UIDevice.current.name,
+        transcriber: fixtureTranscriber)
       : nil
     let transport: any HTTPTransport = local.map { $0 as any HTTPTransport } ?? URLSession.shared
     let api = APIClient(baseURL: server, transport: transport, token: { tokens.load() }, saved: saved) {
