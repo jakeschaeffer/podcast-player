@@ -108,4 +108,18 @@ struct SignedURLTests {
     // A publisher's own file under /m/ on its host carries no signature: it is played where it is.
     #expect(SignedURL.onServer("https://cdn.example.com/m/show/ep1.mp3?x=1", base: base)?.absoluteString == "https://cdn.example.com/m/show/ep1.mp3?x=1")
   }
+
+  /// A phone with no server plays the recording it downloaded to transcribe (OnDevice's `audio_url` is a file URL):
+  /// it is played as it is, never moved onto the phone's stand-in base URL, and has no expiry to renew.
+  @Test func playsAFileOnThePhoneAsItIs() throws {
+    let base = try #require(URL(string: "http://this-phone.invalid"))
+    let file = URL(filePath: "/var/mobile/Containers/Data/Application/0A1B/Library/Application Support/library/audio/01K0ASSET.mp3")
+    let url = try #require(SignedURL.onServer(file.absoluteString, base: base))
+    #expect(url == file && url.isFileURL && url.host() == nil)
+    #expect(url.path(percentEncoded: false).hasSuffix("Application Support/library/audio/01K0ASSET.mp3"))
+    #expect(SignedURL.expiry(from: url) == nil && !SignedURL.needsRenewal(url))
+    // Even a folder that happens to be called m.
+    let underM = URL(filePath: "/m/audio/01K0ASSET.mp3")
+    #expect(SignedURL.onServer(underM.absoluteString, base: base) == underM)
+  }
 }

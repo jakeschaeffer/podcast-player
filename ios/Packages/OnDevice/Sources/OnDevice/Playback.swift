@@ -47,7 +47,8 @@ extension Store {
   /// The phone differs in two ways. The position is not capped at the recording's length: the server caps it at
   /// the measured length of its own file, and the phone has only the feed's figure, which is absent for some shows
   /// (it would cap every position to 0) and short of the real file wherever ads are inserted. And playing queues
-  /// nothing: on the server it starts transcription for an `auto_process` show, a summary and an episode map.
+  /// no summary or episode map (the phone makes neither); transcription is queued by `queueTranscriptionForPlay`,
+  /// which the route calls after this.
   ///
   /// Up next needs no write here: it is read from these rows (`listQueue`), where the newest observed report of an
   /// episode decides whether it is half-heard and when it was last listened to.
@@ -71,6 +72,18 @@ extension Store {
       throw HTTPError.notFound("audio asset")
     }
     return Self.ack(accepted: true, state)
+  }
+
+  /// Playing an untranscribed recording queues its transcription (the server's `reportPlayback`), at a priority
+  /// below an episode asked for (`JobPriority`). The server does this only for `auto_process` shows, because it
+  /// bills; on the phone it costs nothing and stays on the phone, so every show's episode is transcribed once played.
+  /// Only when it has no job yet: one that failed is not queued again by playing (the server would), so a recording
+  /// that cannot be transcribed is not fetched again at every report; Transcribe ("Try again") queues it again.
+  /// Returns whether a job was queued.
+  func queueTranscriptionForPlay(assetId: String) throws -> Bool {
+    let asset = try assetRow(assetId)
+    guard asset.transcriptId == nil, try db.get("SELECT 1 AS v FROM job WHERE key = ?", [Self.transcribeKey(assetId)]) == nil else { return false }
+    return try enqueueTranscription(assetId: assetId, priority: JobPriority.played)
   }
 
   private static func ack(accepted: Bool, _ state: Row) -> JSON {

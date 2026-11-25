@@ -6,17 +6,20 @@ import Foundation
 /// the result in.
 ///
 /// The service functions live in extensions, one file per server file they port:
-/// Feeds.swift (services/feeds.ts), Episodes.swift (services/episodes.ts), Playback.swift (services/playback.ts).
+/// Feeds.swift (services/feeds.ts), Episodes.swift (services/episodes.ts), Playback.swift (services/playback.ts),
+/// Transcripts.swift (services/transcripts.ts and adBreaks.ts), Jobs.swift (jobs/queue.ts).
 actor Store {
   static let fileName = "ondevice.sqlite"
 
   let db: Connection
+  /// Where the database is, and the downloaded recordings under `audio/`.
+  let folder: URL
   /// The one row of `device`: whose position `resume` reports, and whose name it carries.
   let deviceId: String
   private let clock: @Sendable () -> Date
   private var ids = ULIDGenerator()
 
-  init(folder: URL, deviceName: String, now: @escaping @Sendable () -> Date) throws {
+  init(folder: URL, deviceName: String, now: @escaping @Sendable () -> Date, runningHere: Set<String> = []) throws {
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     let db = try Connection(path: folder.appending(path: Self.fileName).path(percentEncoded: false))
     // The pragmas the server opens with (server/src/db/index.ts).
@@ -37,7 +40,9 @@ actor Store {
       deviceId = id
     }
     self.db = db
+    self.folder = folder
     self.clock = now
+    try Self.recoverInterruptedJobs(db, nowMs: nowMs, runningHere: runningHere)
   }
 
   /// Unix ms, the server's `ctx.now()`.

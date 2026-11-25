@@ -1,8 +1,8 @@
 import Foundation
 
 // A port of server/src/services/episodes.ts: the episode lists, Up next, and one episode as the player needs it.
-// The SQL and the ordering rules are the server's. What the server derives from its job queue, transcripts,
-// summaries, snips and video files has one fixed answer here, since the phone has none of those yet.
+// The SQL and the ordering rules are the server's. Transcripts and their job states are read as the server reads
+// them; what it derives from summaries, snips and video files has one fixed answer here, since the phone has none.
 
 struct EpisodeRow: Sendable {
   let id: String
@@ -38,6 +38,9 @@ struct AssetRow: Sendable {
   let bytes: Int
   let durationMs: Int
   let mime: String
+  /// The downloaded file, relative to the backend's folder; empty until downloaded.
+  let path: String
+  let transcriptId: String?
 
   init(_ row: Row) {
     id = row.string("id") ?? ""
@@ -45,6 +48,8 @@ struct AssetRow: Sendable {
     bytes = row.int("bytes") ?? 0
     durationMs = row.int("duration_ms") ?? 0
     mime = row.string("mime") ?? "audio/mpeg"
+    path = row.string("path") ?? ""
+    transcriptId = row.string("transcript_id")
   }
 }
 
@@ -61,8 +66,9 @@ extension Store {
 
   /// One episode as lists show it (`toListItem`).
   ///
-  /// The phone's fixed answers: the recording is `ready` from the start (it is the publisher's file), and
-  /// transcript, text and summary are `none`. The video fields are an audio episode's, whatever the feed carries:
+  /// The phone's fixed answers: the recording is `ready` from the start (it plays from the publisher until the
+  /// file is downloaded), text and summary are `none`, and `has_summary` is false. The transcript's id and state
+  /// are the server's: its job's status, `ready` once a speech transcript exists. The video fields are an audio episode's, whatever the feed carries:
   /// the phone fetches no video, and `available` would offer a button that cannot work.
   ///
   /// `duration_ms` is the feed's figure, or null when the feed gives none. The server's is its own file's measured
@@ -78,9 +84,14 @@ extension Store {
       "duration_ms": JSON(asset.flatMap { $0.durationMs > 0 ? $0.durationMs : nil } ?? ep.durationHintMs),
       "image_url": JSON(ep.imageUrl),
       "asset_id": JSON(asset?.id),
-      "transcript_id": nil,
+      "transcript_id": JSON(asset?.transcriptId),
       "has_summary": false,
-      "processing": ["audio": asset == nil ? "none" : "ready", "transcript": "none", "text": "none", "summary": "none"],
+      "processing": [
+        "audio": asset == nil ? "none" : "ready",
+        "transcript": .string(
+          try asset.map { try jobState(key: Self.transcribeKey($0.id), readyWhen: try hasSpeechTranscript(assetId: $0.id)) } ?? "none"),
+        "text": "none", "summary": "none",
+      ],
       "resume": try asset.map { try resume(assetId: $0.id) } ?? .null,
       "media_kind": "audio",
       "youtube_id": nil,
@@ -206,8 +217,9 @@ extension Store {
   /// At the top it goes in unplaced and just added, so it comes first, above the ones heard partway; at the end it
   /// takes the place after the last placed one.
   ///
-  /// On the server, adding also asks for the episode's recording, transcript and summary at once. The phone's
-  /// recording is already there and it transcribes nothing, so adding only places the episode.
+  /// On the server, adding also asks for the episode's recording, transcript and summary at once. On the phone
+  /// adding only places the episode: playing it transcribes it (`queueTranscriptionForPlay`), and a download of
+  /// every episode merely added would fill the phone.
   func addToQueue(_ episodeId: String, atStart: Bool) throws -> JSON {
     _ = try episodeRow(episodeId)
     let now = now()
@@ -234,12 +246,14 @@ extension Store {
 
   /// `GET /v1/episodes/{id}`: the list fields plus what the player needs.
   ///
-  /// The phone differs: `asset.audio_url` is the publisher's enclosure URL, as the feed gave it, where the server
-  /// signs a link to its own copy. It does not expire and needs no signature, and what it plays can differ between
-  /// fetches (inserted ads). `asset.bytes`, `mime` and `duration_ms` are the feed's claims, 0 when it makes none;
-  /// the player should trust the file over them. Chapters are the publisher's (the feed's, else the show notes')
-  /// or none: there is no summary to take the model's from. `text` and `summary` are null, `snip_count` 0 and
-  /// `ad_breaks` empty until the steps that make them exist on the phone.
+  /// The phone differs: where the server signs a link to its own copy, `asset.audio_url` is the downloaded file's
+  /// `file://` URL once transcription has fetched it, and the publisher's enclosure URL until then (or if the file
+  /// has gone). The file is the one that was transcribed, so the transcript's times are positions in what plays;
+  /// the enclosure can carry other inserted ads at each fetch. Before the download, `asset.bytes`, `mime` and
+  /// `duration_ms` are the feed's claims, 0 when it makes none; after, `bytes` and `duration_ms` are the file's.
+  /// Chapters are the publisher's (the feed's, else the show notes') or none: there is no summary to take the
+  /// model's from. `text` and `summary` are null and `snip_count` 0. `ad_breaks` are the server's: found in the
+  /// speech transcript (`adBreaks(assetId:)`), empty before one.
   func episode(_ id: String) throws -> JSON {
     let ep = try episodeRow(id)
     let feed = try feedRow(ep.feedId)
@@ -255,12 +269,19 @@ extension Store {
       asset.map {
         [
           "id": .string($0.id), "duration_ms": .int($0.durationMs), "mime": .string($0.mime), "bytes": .int($0.bytes),
-          "audio_url": .string(ep.enclosureUrl), "video_url": nil, "video_width": nil, "video_height": nil, "video_bytes": nil,
+          "audio_url": .string(audioFile($0)?.absoluteString ?? ep.enclosureUrl), "video_url": nil, "video_width": nil, "video_height": nil, "video_bytes": nil,
         ]
       } ?? .null
     out["summary"] = nil
     out["snip_count"] = 0
-    out["ad_breaks"] = []
+    out["ad_breaks"] = try asset.map { try adBreaks(assetId: $0.id) } ?? []
     return .object(out)
+  }
+
+  /// The asset's downloaded recording, when it is on the phone.
+  func audioFile(_ asset: AssetRow) -> URL? {
+    guard !asset.path.isEmpty else { return nil }
+    let file = folder.appending(path: asset.path)
+    return FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) ? file : nil
   }
 }

@@ -369,13 +369,11 @@ struct FeedRoutesTests {
   @Test func anythingElseIsNotAvailableOnThisPhone() async throws {
     let phone = try Phone()
     let missing = APIError(status: 404, code: "not_found", message: "Not available on this phone")
-    #expect(await #expect(throws: APIError.self) { try await phone.api.transcript("01AAAAAAAAAAAAAAAAAAAAAAAA") } == missing)
     #expect(await #expect(throws: APIError.self) { try await phone.api.snip("01AAAAAAAAAAAAAAAAAAAAAAAA") } == missing)
     #expect(await #expect(throws: APIError.self) { try await phone.api.readwise() } == missing)
     #expect(await #expect(throws: APIError.self) { try await phone.api.topicSearches() } == missing)
     #expect(await #expect(throws: APIError.self) { try await phone.api.prompts() } == missing)
     #expect(await #expect(throws: APIError.self) { try await phone.api.login(password: "x", deviceName: "y") } == missing)
-    #expect(await #expect(throws: APIError.self) { try await phone.api.processEpisode("01AAAAAAAAAAAAAAAAAAAAAAAA") } == missing)
     #expect(await #expect(throws: APIError.self) { try await phone.api.requestVideo("01AAAAAAAAAAAAAAAAAAAAAAAA") } == missing)
     #expect(await #expect(throws: APIError.self) { try await phone.api.addPastedLink("https://example.com/a.mp3") } == missing)
     #expect(await #expect(throws: APIError.self) { try await phone.api.sendIgnoringBody("GET", "/somewhere/else") } == missing)

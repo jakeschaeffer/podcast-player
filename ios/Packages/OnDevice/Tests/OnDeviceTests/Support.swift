@@ -1,5 +1,7 @@
 import Foundation
 import PodcastAPI
+import SnipCore
+import Testing
 
 @testable import OnDevice
 
@@ -56,19 +58,34 @@ final class TestClock: @unchecked Sendable {
   var date: Date { Date(timeIntervalSince1970: Double(ms) / 1000) }
 }
 
-/// A phone: a backend on a fresh folder, and the app's own client talking to it.
+/// A phone: a backend on a fresh folder, and the app's own client talking to it. Its transcriber, downloader and
+/// duration probe are fakes, so nothing is fetched or heard. Its jobs wait to be run by hand (`runJobs`) unless
+/// `startsJobs`, so a test that plays an episode (which queues it) sees `queued`, not a race. Each phone is its own
+/// process (`host`) unless one is shared, so a second phone on the same folder stands for a relaunch.
 struct Phone {
   let folder: URL
   let http: StubHTTP
   let clock: TestClock
+  let transcriber: FakeTranscriber
+  let downloader: StubDownloader
+  let durations: StubDurations
   let backend: LocalBackend
   let api: APIClient
 
-  init(folder: URL? = nil, http: StubHTTP = StubHTTP(), clock: TestClock = TestClock(), deviceName: String = "Test Phone") throws {
+  init(
+    folder: URL? = nil, http: StubHTTP = StubHTTP(), clock: TestClock = TestClock(), deviceName: String = "Test Phone",
+    transcriber: FakeTranscriber = FakeTranscriber(), downloader: StubDownloader = StubDownloader(),
+    durations: StubDurations = StubDurations(), host: JobHost = JobHost(), startsJobs: Bool = false
+  ) throws {
     self.folder = folder ?? FileManager.default.temporaryDirectory.appending(path: "ondevice-\(UUID().uuidString)")
     self.http = http
     self.clock = clock
-    backend = try LocalBackend(folder: self.folder, deviceName: deviceName, http: http, now: { clock.date })
+    self.transcriber = transcriber
+    self.downloader = downloader
+    self.durations = durations
+    backend = try LocalBackend(
+      folder: self.folder, deviceName: deviceName, http: http, now: { clock.date }, transcriber: transcriber, downloader: downloader,
+      durations: durations, host: host, startsJobs: startsJobs)
     // The base URL only has to be a URL: nothing is sent to it.
     api = APIClient(baseURL: URL(string: "http://phone.invalid")!, transport: backend, token: { nil })
   }
@@ -81,6 +98,100 @@ struct Phone {
   func value(_ statement: String, _ args: [SQLValue] = []) async throws -> SQLValue {
     try await backend.store.testValue(statement, args)
   }
+
+  /// Run every queued job to the end, in this task.
+  func runJobs() async { await backend.drainJobs() }
+}
+
+/// A transcriber that hears what the test says it does. Each call is logged; `handler` can wait, throw, or answer.
+final class FakeTranscriber: Transcriber, @unchecked Sendable {
+  let name = "apple"
+  let model = "speechtranscriber"
+  private let lock = NSLock()
+  private var log: [(file: URL, language: String?)] = []
+  private var handler: @Sendable (URL, String?) async throws -> RawTranscript
+
+  init(_ handler: @escaping @Sendable (URL, String?) async throws -> RawTranscript = { _, language in
+    RawTranscript(provider: "apple", model: "speechtranscriber", language: language, words: spoken("Hello from the harbour.", from: 1_000))
+  }) {
+    self.handler = handler
+  }
+
+  var calls: [(file: URL, language: String?)] { lock.withLock { log } }
+
+  func answer(_ handler: @escaping @Sendable (URL, String?) async throws -> RawTranscript) { lock.withLock { self.handler = handler } }
+
+  func answer(_ words: [RawWord]) {
+    answer { _, language in RawTranscript(provider: "apple", model: "speechtranscriber", language: language, words: words) }
+  }
+
+  func transcribe(file: URL, language: String?) async throws -> RawTranscript {
+    let handler = lock.withLock {
+      log.append((file, language))
+      return self.handler
+    }
+    return try await handler(file, language)
+  }
+}
+
+/// Recordings served from memory, written to the file asked for. An address never set up fails like a dead network.
+final class StubDownloader: Downloader, @unchecked Sendable {
+  struct Reply {
+    var status = 200
+    var body = Data()
+    var headers: [String: String] = [:]
+  }
+
+  private let lock = NSLock()
+  private var replies: [String: Reply] = [:]
+  private var log: [URLRequest] = []
+
+  var requests: [URLRequest] { lock.withLock { log } }
+
+  func serve(_ address: String, status: Int = 200, bytes: Int = 4_096, headers: [String: String] = [:]) {
+    lock.withLock { replies[address] = Reply(status: status, body: Data(repeating: 0x55, count: bytes), headers: headers) }
+  }
+
+  func download(_ request: URLRequest, to file: URL) async throws -> HTTPURLResponse {
+    let reply = lock.withLock {
+      log.append(request)
+      return replies[request.url?.absoluteString ?? ""]
+    }
+    guard let reply else { throw URLError(.notConnectedToInternet) }
+    try reply.body.write(to: file)
+    return HTTPURLResponse(url: request.url!, statusCode: reply.status, httpVersion: "HTTP/1.1", headerFields: reply.headers)!
+  }
+}
+
+/// Every downloaded file is this long.
+final class StubDurations: DurationProbe, @unchecked Sendable {
+  private let lock = NSLock()
+  private var value: Int
+
+  init(_ ms: Int = 120_000) { value = ms }
+
+  var ms: Int {
+    get { lock.withLock { value } }
+    set { lock.withLock { value = newValue } }
+  }
+
+  func durationMs(of file: URL) async throws -> Int { ms }
+}
+
+/// Words spoken one after another, `wordMs` apart, from `startMs`: an invented script, as a recognizer would time it.
+func spoken(_ script: String, from startMs: Double, wordMs: Double = 400) -> [RawWord] {
+  script.split(separator: " ").enumerated().map { i, word in
+    RawWord(text: String(word), startMs: startMs + Double(i) * wordMs, endMs: startMs + Double(i) * wordMs + wordMs - 60)
+  }
+}
+
+/// Wait for `condition`, a few seconds at most.
+func eventually(_ condition: () async throws -> Bool) async throws {
+  for _ in 0..<400 {
+    if try await condition() { return }
+    try await Task.sleep(for: .milliseconds(10))
+  }
+  Issue.record("timed out waiting")
 }
 
 extension Store {
