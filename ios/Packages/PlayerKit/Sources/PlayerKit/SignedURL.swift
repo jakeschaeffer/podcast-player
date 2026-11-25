@@ -16,12 +16,14 @@ public enum SignedURL {
   /// Signed media URLs come back absolute, built from the server's PUBLIC_BASE_URL. Like the web app's
   /// `mediaPath`, play `/m/...` by path on the server the app talks to, so the dev server, the tailnet and an SSH
   /// tunnel work too. The signature covers id, expiry and device, not the host, so this changes nothing about
-  /// authorization. Anything outside `/m/` is left alone.
+  /// authorization. Anything else is left alone: a path outside `/m/`, and a publisher's own file that happens to
+  /// live under `/m/` on its host (a phone with no server plays those), which carries no signature.
   public static func onServer(_ string: String, base: URL) -> URL? {
     guard let url = URL(string: string, relativeTo: base)?.absoluteURL else { return nil }
-    guard url.path().hasPrefix("/m/"), var components = URLComponents(url: base, resolvingAgainstBaseURL: false)
-    else { return url }
     let parsed = URLComponents(url: url, resolvingAgainstBaseURL: false)
+    let signed = parsed?.queryItems?.contains { $0.name == "s" } ?? false
+    guard url.path().hasPrefix("/m/"), signed, var components = URLComponents(url: base, resolvingAgainstBaseURL: false)
+    else { return url }
     components.percentEncodedPath = parsed?.percentEncodedPath ?? url.path()
     components.percentEncodedQuery = parsed?.percentEncodedQuery
     return components.url

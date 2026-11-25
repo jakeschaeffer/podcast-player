@@ -12,7 +12,11 @@ struct TodayView: View {
   @Binding var path: NavigationPath
   @AppStorage(TranscriptTextSize.key) private var transcriptTextSize = TranscriptTextSize.large
   @AppStorage(SidewaysPlayer.key) private var sideways = SidewaysPlayer.karaoke
-  @AppStorage(MediaFilter.key) private var mediaFilter = MediaFilter.all
+  @AppStorage(MediaFilter.key) private var chosenFilter = MediaFilter.all
+  /// A phone with no server has no videos, and so no filter to choose.
+  private var mediaFilter: MediaFilter { model.hasServer ? chosenFilter : .all }
+  /// Find a show, opened from the empty first screen of a phone with no server.
+  @State private var finding = false
   /// Read by the player itself (PlayerEngine.skipsAdsAutomatically), so it holds with the app out of sight too.
   @AppStorage(AdSkip.automaticKey) private var skipsAds = false
   @State private var episodes: [Episode] = []
@@ -84,10 +88,12 @@ struct TodayView: View {
       }
       ToolbarItem(placement: .topBarTrailing) {
         Menu {
-          Text(model.serverURL.host() ?? "")
+          Text(model.onPhone ? "On this phone" : model.serverURL.host() ?? "")
           Button("Downloads", systemImage: "arrow.down.circle") { path.append(DownloadsRoute()) }
-          Button("Prompts", systemImage: "text.quote") { path.append(PromptRoute.list) }
-          readwiseItem
+          if model.hasServer {
+            Button("Prompts", systemImage: "text.quote") { path.append(PromptRoute.list) }
+            readwiseItem
+          }
           Divider()
           TranscriptTextSize.picker($transcriptTextSize).pickerStyle(.menu)
           SidewaysPlayer.picker($sideways).pickerStyle(.menu)
@@ -96,7 +102,8 @@ struct TodayView: View {
             Label("Auto-skip ads", systemImage: "forward.end")
             Text("With a sound")
           }
-          Button("Sign out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) { model.signOut() }
+          // On the phone there is no account to leave: this goes back to the first screen, and the library stays.
+          Button(model.onPhone ? "Use a server" : "Sign out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) { model.signOut() }
         } label: {
           Image(systemName: "person.crop.circle")
         }
@@ -106,13 +113,27 @@ struct TodayView: View {
     .navigationDestination(for: DownloadsRoute.self) { _ in DownloadsView(showPlayer: $showPlayer) }
     .navigationDestination(for: UpNextRoute.self) { _ in UpNextView(showPlayer: $showPlayer) }
     .navigationDestination(for: ReadwiseRoute.self) { _ in ReadwiseView(summary: readwise) }
+    .navigationDestination(isPresented: $finding) { AddShowView(showPlayer: $showPlayer, query: "") }
+    // Back from finding a show: its episodes are new here.
+    .onChange(of: finding) { _, now in if !now { Task { await load() } } }
     .task { await load() }
     .refreshable { await load() }
   }
 
   private var newEpisodesSection: some View {
     Section("New episodes") {
-      MediaFilter.picker($mediaFilter)
+      if model.hasServer { MediaFilter.picker($chosenFilter) }
+      // A new phone has no shows: one button, to the only thing there is to do.
+      if model.onPhone, loaded, episodes.isEmpty, error == nil {
+        Button { finding = true } label: {
+          Text("Find a show").font(.title2.weight(.bold)).frame(maxWidth: .infinity, minHeight: 64)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.capsule)
+        .listRowBackground(Color.clear)
+        // This list's rows run to the trailing edge; a button is held in from it as far as it is from the leading one.
+        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 16))
+      }
       ForEach(newEpisodes) { ep in
         EpisodeRow(episode: ep) { open(ep) }
           .episodeActions(ep) { open(ep, playing: true) }

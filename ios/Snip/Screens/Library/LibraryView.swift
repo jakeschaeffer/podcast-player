@@ -35,7 +35,9 @@ struct LibraryView: View {
   private var shown: Feed? { feeds.first { $0.id == chosen } ?? shows.first }
 
   /// Shows opened from search without following them aren't in the library.
-  @AppStorage(MediaFilter.key) private var mediaFilter = MediaFilter.all
+  @AppStorage(MediaFilter.key) private var chosenFilter = MediaFilter.all
+  /// A phone with no server has no videos, and so no filter to choose.
+  private var mediaFilter: MediaFilter { model.hasServer ? chosenFilter : .all }
   /// Podcasts and YouTube channels the owner follows, as the filter allows, and the Pasted links show, which holds
   /// videos and audio alike and so stays under either filter.
   private var shows: [Feed] {
@@ -76,7 +78,8 @@ struct LibraryView: View {
     }
     .navigationTitle("Library")
     .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
+      // Topic search runs on a server.
+      if model.hasServer { ToolbarItem(placement: .topBarTrailing) {
         Button {
           searchText = ""
           startTopic = false
@@ -85,7 +88,7 @@ struct LibraryView: View {
           // A word, not a second magnifying glass beside Find a show's.
           Text("Topics").font(.body.weight(.semibold)).accessibilityLabel("Find episodes about a topic")
         }
-      }
+      } }
       ToolbarItem(placement: .topBarTrailing) {
         Button {
           searchText = ""
@@ -124,7 +127,7 @@ struct LibraryView: View {
       if let error {
         Text(error).foregroundStyle(.secondary)
       }
-      MediaFilter.picker($mediaFilter)
+      if model.hasServer { MediaFilter.picker($chosenFilter) }
       ForEach(shows) { feed in
         if spread {
           let marked = feed.id == shown?.id
@@ -166,7 +169,8 @@ struct LibraryView: View {
       feed.episodeCount == 1 ? "1 episode" : "\(feed.episodeCount) episodes",
       feed.kind == "youtube" ? "YouTube" : feed.kind == "links" ? "One-offs" : nil,
       showsWithText.contains(feed.id) ? "Publisher text" : nil,
-      feed.autoProcess ? nil : "Manual",
+      // "Manual" is a server's word: it transcribes this show only when asked.
+      feed.autoProcess || model.onPhone ? nil : "Manual",
     ].compactMap { $0 }.joined(separator: " · ")
   }
 

@@ -179,7 +179,7 @@ struct FeedEpisodesView: View {
     // The Pasted links show is no subscription: each episode is a file the owner pasted or shared, downloaded and
     // transcribed when it was added.
     if feed.kind == "links" { return "Pasted links" }
-    return feed.autoProcess ? nil : "Manual"
+    return feed.autoProcess || model.onPhone ? nil : "Manual"
   }
 
   private var noteHint: String {

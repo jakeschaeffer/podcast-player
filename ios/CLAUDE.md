@@ -80,6 +80,15 @@ bundle id are in ../CLAUDE.local.md and the gitignored `Config/Local.xcconfig` a
   revision, so nothing typed offline is overridden. To test: stop only the server's listener
   (`lsof -ti tcp:8080 -sTCP:LISTEN | xargs kill`; without `-sTCP:LISTEN` that also kills the simulator app, which
   holds a connection on the port), tap Snip, edit, start the server, and bring the app to the front to flush.
+- **With no server, the phone answers the API itself** (docs/store-app-plan.md). `AppModel.phoneServer` stands for
+  "this phone": `APIClient` then sends through `OnDevice.LocalBackend` (Packages/OnDevice), which answers the same
+  paths from an SQLite file in Application Support and plays the publisher's own audio. `server/src/services` is the
+  reference for its rules; a route it lacks answers 404, and the controls that need one are hidden with
+  `model.hasServer` (snips, transcripts, topics, video, Readwise, prompts) until the phone can do them. The first
+  screen (LoginView) offers Start on a build that names no server, and "This phone" beside the server fields on one
+  that does. To check it: `-usePhone 1` opens straight on the phone's library, `-followFeed <feed address>` follows a
+  show, `-playFirst 1` plays the newest episode, and `-firstScreen start|server` shows either face of the first
+  screen (no debug sign-in happens for it). Follow real public feeds, and still pass `-muteAudio 1`.
 - **Nothing of one deployment in the code.** Identifiers derive from the bundle id (`TokenStore.defaultService`,
   `DownloadStore.sessionIdentifier`); the default server comes from Info.plist through the xcconfigs. A hostname,
   team or account that belongs to the owner goes in the gitignored files above, not in a Swift file, a script or a doc.

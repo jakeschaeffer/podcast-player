@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		5A1000000000000000000B01 /* PodcastAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1000000000000000000D01 /* PodcastAPI */; };
 		5A1000000000000000000B02 /* PlayerKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1000000000000000000D02 /* PlayerKit */; };
+		5A10000000000000000AAB01 /* OnDevice in Frameworks */ = {isa = PBXBuildFile; productRef = 5A10000000000000000AAD01 /* OnDevice */; };
 		5A1000000000000000000B03 /* SyncKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1000000000000000000D03 /* SyncKit */; };
 		5A1000000000000000000B04 /* SnipActivity in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1000000000000000000D04 /* SnipActivity */; };
 		5A1000000000000000000B05 /* SnipActivity in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1000000000000000000D05 /* SnipActivity */; };
@@ -56,6 +57,7 @@
 		5A1000000000000000000F04 /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Local.xcconfig.example; sourceTree = "<group>"; };
 		5A1000000000000000000F05 /* PodcastAPI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = PodcastAPI; sourceTree = "<group>"; };
 		5A1000000000000000000F06 /* PlayerKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = PlayerKit; sourceTree = "<group>"; };
+		5A10000000000000000AAF01 /* OnDevice */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = OnDevice; sourceTree = "<group>"; };
 		5A1000000000000000000F07 /* SyncKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = SyncKit; sourceTree = "<group>"; };
 		5A1000000000000000000F08 /* SnipLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SnipLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A1000000000000000000F09 /* SnipLiveActivity-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "SnipLiveActivity-Info.plist"; sourceTree = "<group>"; };
@@ -91,6 +93,7 @@
 			files = (
 				5A1000000000000000000B01 /* PodcastAPI in Frameworks */,
 				5A1000000000000000000B02 /* PlayerKit in Frameworks */,
+				5A10000000000000000AAB01 /* OnDevice in Frameworks */,
 				5A1000000000000000000B03 /* SyncKit in Frameworks */,
 				5A1000000000000000000B04 /* SnipActivity in Frameworks */,
 			);
@@ -156,6 +159,7 @@
 			children = (
 				5A1000000000000000000F05 /* PodcastAPI */,
 				5A1000000000000000000F06 /* PlayerKit */,
+				5A10000000000000000AAF01 /* OnDevice */,
 				5A1000000000000000000F07 /* SyncKit */,
 				5A1000000000000000000F0A /* SnipActivity */,
 			);
@@ -187,6 +191,7 @@
 			packageProductDependencies = (
 				5A1000000000000000000D01 /* PodcastAPI */,
 				5A1000000000000000000D02 /* PlayerKit */,
+				5A10000000000000000AAD01 /* OnDevice */,
 				5A1000000000000000000D03 /* SyncKit */,
 				5A1000000000000000000D04 /* SnipActivity */,
 			);
@@ -273,6 +278,7 @@
 			packageReferences = (
 				5A1000000000000000000E01 /* XCLocalSwiftPackageReference "Packages/PodcastAPI" */,
 				5A1000000000000000000E02 /* XCLocalSwiftPackageReference "Packages/PlayerKit" */,
+				5A10000000000000000AAE01 /* XCLocalSwiftPackageReference "Packages/OnDevice" */,
 				5A1000000000000000000E03 /* XCLocalSwiftPackageReference "Packages/SyncKit" */,
 				5A1000000000000000000E04 /* XCLocalSwiftPackageReference "Packages/SnipActivity" */,
 			);
@@ -612,6 +618,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlayerKit;
 		};
+		5A10000000000000000AAE01 /* XCLocalSwiftPackageReference "Packages/OnDevice" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/OnDevice;
+		};
 		5A1000000000000000000E03 /* XCLocalSwiftPackageReference "Packages/SyncKit" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/SyncKit;
@@ -630,6 +640,10 @@
 		5A1000000000000000000D02 /* PlayerKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = PlayerKit;
+		};
+		5A10000000000000000AAD01 /* OnDevice */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OnDevice;
 		};
 		5A1000000000000000000D03 /* SyncKit */ = {
 			isa = XCSwiftPackageProductDependency;

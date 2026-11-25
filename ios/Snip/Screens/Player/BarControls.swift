@@ -26,7 +26,7 @@ struct BarControls: ViewModifier {
           ToolbarSpacer(.fixed, placement: .bottomBar)
           ToolbarItem(placement: .bottomBar) { skip(30_000, "goforward.30", "Forward 30 seconds") }.axisBehavior(.verticalPreferred)
           ToolbarSpacer(.fixed, placement: .bottomBar)
-          ToolbarItem(placement: .bottomBar) { snip }.axisBehavior(.verticalPreferred)
+          ToolbarItem(placement: .bottomBar) { snip.available(model.hasServer) }.axisBehavior(.verticalPreferred)
         }
         // Without a vertical bar these would make a bottom toolbar under the page's own row of controls.
         .toolbar(enabled ? .visible : .hidden, for: .bottomBar)

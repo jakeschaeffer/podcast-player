@@ -153,6 +153,8 @@ struct TransportRow: View {
         }
         .accessibilityLabel("Snip")
         .sensoryFeedback(.impact, trigger: model.snipCard.map(ObjectIdentifier.init))
+        // Its slot stays, so play keeps the middle of the row.
+        .available(model.hasServer)
       }
     }
     .buttonStyle(.plain)
