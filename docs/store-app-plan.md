@@ -6,7 +6,12 @@ summaries) are paid for by their own ChatGPT plan. The owner's build keeps talki
 
 Status: tests run 2026-11-25 (below). Step 1 is in: `ios/Packages/OnDevice` and the app's on-phone mode
 (`AppModel.usePhone`). Not yet in it: background refresh of feeds while the app is closed, the share sheet, and
-the Live Activity's Snip button, which still shows and does nothing.
+the Live Activity's Snip button, which still shows and does nothing. Step 2 is in as far as speech goes
+(2026-11-25): Transcribe, or playing an episode, queues a job on the phone that downloads the recording to the
+phone, transcribes that file with Apple's `SpeechTranscriber`, and stores it as the server would (SnipCore's
+`normalize`); the file then plays, and Skip ad comes from sponsor phrases in it (`detectAds`, speech only). Untested
+on an iPhone so far. Not yet: background downloads (a download stops while the app is suspended and starts over if
+iOS ends it), removing downloaded files once heard, and the summary chapters that find most ad breaks (step 3).
 
 ## What a friend gets, in order
 
@@ -33,9 +38,11 @@ So the phone answers the same API:
   in this mode (`AppModel.mode`).
 - The phone's tables mirror the server's (`feed`, `episode`, `playback_state`, `up_next`), so its queries are the
   server's queries. A rule that changes on the server changes here too; `server/src/services` stays the reference.
-- **Audio is the publisher's file.** `asset.audio_url` is the enclosure URL (or the downloaded file). Once an episode
-  is to be transcribed it must be downloaded, and playback must use that same file: inserted ads differ between
-  fetches, and every time in a transcript is a position in one file (`docs/core/README.md`).
+- **Audio is the publisher's file.** `asset.audio_url` is the enclosure URL until the episode is transcribed, then
+  the downloaded file (`file://`, under `audio/` beside the database). Transcription downloads it first, and playback
+  uses that same file: inserted ads differ between fetches, and every time in a transcript is a position in one file
+  (`docs/core/README.md`). The transcript screen switches a playing stream to the file once it is there; an episode
+  transcribed out of sight plays from the file the next time it is opened.
 - **The pure core** (`server/src/core`: sentences, span selection, summary validation, ad detection) has to give the
   same answers on the phone. It is ported to Swift against `contracts/golden/` (the cross-repo plan's `snipkit`),
   in `ios/Packages/SnipCore`; the other way, running the bundled TypeScript in JavaScriptCore, was not taken. In so
@@ -68,6 +75,12 @@ Apple's `SpeechTranscriber` (iOS 26, no download in the app) behind the server's
 start and end times. It gives no speaker labels and no music or laughter events. If its accuracy is not enough,
 Parakeet (about 600 MB) is the upgrade behind the same interface. Cloud transcription with the owner's key needs the
 relay: a key cannot ship inside an App Store app.
+
+Built (`OnDevice`: `Transcriber`, `AppleSpeechTranscriber`, Jobs.swift, Transcription.swift): a `transcribe` job per
+recording in the server's `job` table, one at a time, the episode asked for first. Because it is free, playing any
+show's episode queues it (the server does that only for `auto_process` shows). The feed's language is used (`en`
+when it gives none); one the recognizer does not support fails the job, and the screen offers Try again. A job cut
+short by iOS ending the app is resumed at the next launch, and given up after three.
 
 ## Ads
 

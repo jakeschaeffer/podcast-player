@@ -9,29 +9,64 @@ import os
 /// place the phone must differ says so where it does.
 ///
 /// What is answered: health, feeds (list, add, read, change, remove, refresh), show search, episodes (list, one,
-/// audio), Up next, playback reports, and the three snip lists (empty). Everything else is a 404 in the server's
-/// error envelope with the message "Not available on this phone".
+/// audio, process), transcripts (one, its speakers), Up next, playback reports, and the three snip lists (empty).
+/// Everything else is a 404 in the server's error envelope with the message "Not available on this phone".
 ///
 /// Where the phone differs from the server, in general:
 /// - **No login.** There is one listener and no network between the app and its data, so `Authorization` is
 ///   ignored and nothing answers 401. `deviceName` is the name `resume.device_name` carries.
-/// - **No jobs.** The server answers at once and works in the background; the phone does the work before it
-///   answers. Adding a feed fetches and reads it first, so the answer already has its title and episodes.
-/// - **Audio is the publisher's file.** Every episode has its recording from the moment it is listed
-///   (`asset.audio_url` is the enclosure URL), and nothing is transcribed, summarized or billed.
+/// - **One kind of job.** The server answers at once and works in the background; the phone does most work before
+///   it answers (adding a feed fetches and reads it first, so the answer already has its title and episodes).
+///   Transcription is the exception: it is a job in the `job` table, run one at a time in a background task, the
+///   episode asked for (`POST /v1/episodes/{id}/process`) ahead of the ones queued by playing them. A job left
+///   running by an ended app is queued again at the next launch (Jobs.swift).
+/// - **Audio is the publisher's file until it is transcribed.** Every episode has its recording from the moment
+///   it is listed (`asset.audio_url` is the enclosure URL). Transcription downloads it to `audio/` in `folder`
+///   first, and from then on that file is what plays (a `file://` URL), since the transcript's times are positions
+///   in it. Downloaded files are kept; nothing removes them yet, not even once an episode is finished.
+/// - **Transcription is free and stays on the phone** (`Transcriber`, by default Apple's speech recognition), so
+///   playing any episode queues it, where the server does that only for `auto_process` shows because it bills.
+///   Nothing is summarized, and the recognizer labels no speakers.
 public final class LocalBackend: HTTPTransport, Sendable {
   let store: Store
   let http: any HTTPTransport
+  let transcriber: any Transcriber
+  let downloader: any Downloader
+  let durations: any DurationProbe
+  /// This process's jobs (tests make one per backend, to stand for separate launches).
+  let host: JobHost
+  let jobs: JobRunner
+  /// False in tests that step the jobs by hand (`drainJobs`).
+  let startsJobs: Bool
   static let log = Logger(subsystem: "snip.ondevice", category: "backend")
 
-  /// `folder` holds the SQLite file (made if missing). `http` is what feeds and show search are fetched through
-  /// (tests pass a stub). `now` is the clock every stored time comes from.
-  public init(
+  /// `folder` holds the SQLite file (made if missing) and the downloaded recordings. `http` is what feeds and show
+  /// search are fetched through (tests pass a stub). `now` is the clock every stored time comes from.
+  /// `transcriber` turns a recording into words (nil: `AppleSpeechTranscriber`), `downloader` fetches recordings
+  /// to files. Jobs left from an earlier launch start at once.
+  public convenience init(
     folder: URL, deviceName: String, http: any HTTPTransport = URLSession.shared,
-    now: @escaping @Sendable () -> Date = { Date() }
+    now: @escaping @Sendable () -> Date = { Date() }, transcriber: (any Transcriber)? = nil,
+    downloader: any Downloader = URLSessionDownloader()
   ) throws {
-    store = try Store(folder: folder, deviceName: deviceName, now: now)
+    try self.init(
+      folder: folder, deviceName: deviceName, http: http, now: now, transcriber: transcriber ?? AppleSpeechTranscriber(),
+      downloader: downloader, durations: AVDurationProbe(), host: .shared, startsJobs: true)
+  }
+
+  init(
+    folder: URL, deviceName: String, http: any HTTPTransport, now: @escaping @Sendable () -> Date, transcriber: any Transcriber,
+    downloader: any Downloader, durations: any DurationProbe, host: JobHost, startsJobs: Bool
+  ) throws {
+    store = try Store(folder: folder, deviceName: deviceName, now: now, runningHere: host.running)
+    self.host = host
+    jobs = host.runner(for: folder)
     self.http = http
+    self.transcriber = transcriber
+    self.downloader = downloader
+    self.durations = durations
+    self.startsJobs = startsJobs
+    kickJobs()
   }
 
   /// Answer a request for a `/v1/…` path with an `HTTPURLResponse` carrying the server's status codes. Never
@@ -48,7 +83,8 @@ public final class LocalBackend: HTTPTransport, Sendable {
     }
     let url = request.url ?? URL(string: "http://localhost/")!
     let data = answer.body?.data() ?? Data()
-    let headers = answer.body == nil ? [:] : ["Content-Type": "application/json; charset=utf-8", "Content-Length": String(data.count)]
+    var headers = answer.body == nil ? [:] : ["Content-Type": "application/json; charset=utf-8", "Content-Length": String(data.count)]
+    headers.merge(answer.headers) { $1 }
     let response = HTTPURLResponse(url: url, statusCode: answer.status, httpVersion: "HTTP/1.1", headerFields: headers)!
     return (data, response)
   }
@@ -79,6 +115,7 @@ public final class LocalBackend: HTTPTransport, Sendable {
     var status = 200
     /// Nil for 204.
     var body: JSON?
+    var headers: [String: String] = [:]
   }
 
   private func route(_ call: Call) async throws -> Answer {
@@ -124,6 +161,19 @@ public final class LocalBackend: HTTPTransport, Sendable {
       _ = try await store.episodeRow(p[1])
       await fetchFeedChapters(episodeId: p[1])
       return Answer(status: 202, body: try await store.episode(p[1]))
+    case ("POST", "episodes", 3) where p[2] == "process":
+      // The server queues every step the episode lacks and answers 202 with the detail; the phone's one step is
+      // transcription (download, then speech), queued at the listener's priority. Idempotent: a job queued or
+      // running is left as it is, a failed one is queued again.
+      return Answer(status: 202, body: try await processEpisode(p[1]))
+
+    // Transcripts (server/src/http/routes/episodes.ts)
+    case ("GET", "transcripts", 2):
+      return Answer(body: try await store.transcriptApi(p[1]), headers: ["Cache-Control": "private, max-age=31536000, immutable"])
+    case ("GET", "transcripts", 3) where p[2] == "speakers":
+      // Never identified on the phone, so never cached, as the server answers a transcript not yet identified.
+      return Answer(body: try await store.speakers(transcriptId: p[1]), headers: ["Cache-Control": "no-store"])
+
     case ("GET", "queue", 1):
       return Answer(body: try await store.listQueue(limit: try call.int("limit", 1...200)))
     case ("PUT", "queue", 1):
@@ -140,7 +190,10 @@ public final class LocalBackend: HTTPTransport, Sendable {
 
     // Playback (server/src/http/routes/playback.ts)
     case ("PUT", "playback", 2):
-      return Answer(body: try await store.reportPlayback(assetId: p[1], try Self.playbackInput(try call.body())))
+      let input = try Self.playbackInput(try call.body())
+      let ack = try await store.reportPlayback(assetId: p[1], input)
+      if input.playing, try await store.queueTranscriptionForPlay(assetId: p[1]) { kickJobs() }
+      return Answer(body: ack)
 
     // Snips: none can be made on the phone yet, so the Snips tab's three lists are empty rather than errors.
     case ("GET", "snips", 1):
@@ -153,6 +206,15 @@ public final class LocalBackend: HTTPTransport, Sendable {
     default:
       throw HTTPError.notOnThisPhone
     }
+  }
+
+  /// `POST /v1/episodes/{id}/process` (`processEpisode`).
+  private func processEpisode(_ id: String) async throws -> JSON {
+    let episode = try await store.episodeRow(id)
+    if let assetId = episode.currentAssetId, try await !store.hasSpeechTranscript(assetId: assetId) {
+      if try await store.enqueueTranscription(assetId: assetId, priority: JobPriority.asked) { kickJobs() }
+    }
+    return try await store.episode(id)
   }
 
   /// `POST /v1/feeds`. The server inserts the feed, queues its first refresh and answers before the feed has been

@@ -2,7 +2,7 @@ import Foundation
 
 /// The phone's tables, kept the same as the server's (`server/src/db/migrations/`) so that the queries in
 /// `server/src/services` port line for line: same names, same columns, same meanings. Only the tables the phone's
-/// routes read are here; a later step that needs `transcript` or `snip` adds them as a new entry in `migrations`.
+/// routes read are here; a later step that needs `snip` adds it as a new entry in `migrations`.
 ///
 /// Where the phone's columns mean something else:
 /// - `feed.url_enc`, `episode.enclosure_url_enc`, `chapters_url_enc`, `video_url_enc` hold the URL's UTF-8 bytes,
@@ -11,10 +11,15 @@ import Foundation
 ///   container under iOS data protection. The names stay so the SQL is the server's.
 /// - `feed.url_hash` is the SHA-256 of the normalized URL (the server's is keyed with its secret). It only ever
 ///   answers "is this feed already here".
-/// - `audio_asset` is the publisher's file, not a download: one row per episode, made with the episode, whose
-///   `bytes`, `mime` and `duration_ms` are what the feed says (0 when it says nothing) and whose `sha256` and `path`
-///   are empty until a later step downloads the file.
+/// - `audio_asset` is one row per episode, made with the episode. Until its file is downloaded (transcription does
+///   that first) its `bytes`, `mime` and `duration_ms` are what the feed says (0 when it says nothing) and its
+///   `sha256` and `path` are empty; after, they are the file's, and `path` is relative to the backend's folder
+///   ("audio/<asset id>.mp3"), since an app's container moves when the app is updated.
 /// - `device` has one row: this phone.
+/// - `transcript` is only ever speech recognition (`source` 'asr'): the phone has no publisher text to align.
+///   `transcript_fts` is left out: nothing on the phone searches transcripts yet.
+/// - `job` holds transcription only, one row per asset (`transcribe:<asset id>`), run one at a time by
+///   `LocalBackend`'s runner. `locked_until` stays empty: there is one process, so no lease to renew.
 enum Schema {
   /// Applied in order; `PRAGMA user_version` is how many have run. Never edit one that has shipped: add another.
   static let migrations: [String] = [
@@ -104,7 +109,60 @@ enum Schema {
       added_at   INTEGER,
       hidden_at  INTEGER
     );
+    """,
+    // 2: transcripts and ad breaks (server/src/db/migrations/0001_init.sql, 0002, 0008, 0012), and the job queue
+    // transcription runs from. `audio_asset.transcript_id` is in the first migration already.
     """
+    CREATE TABLE transcript (
+      id             TEXT PRIMARY KEY,
+      audio_asset_id TEXT NOT NULL REFERENCES audio_asset(id),
+      provider       TEXT NOT NULL, model TEXT NOT NULL,
+      language       TEXT,
+      word_count     INTEGER NOT NULL,
+      events         TEXT NOT NULL DEFAULT '[]',
+      cost_cents     INTEGER,
+      provider_request_id TEXT,
+      created_at     INTEGER NOT NULL,
+      source         TEXT NOT NULL DEFAULT 'asr',
+      text_id        TEXT,
+      loss           REAL,
+      speakers       TEXT
+    );
+    CREATE INDEX transcript_asset ON transcript(audio_asset_id, created_at DESC);
+
+    CREATE TABLE transcript_segment (
+      transcript_id TEXT NOT NULL REFERENCES transcript(id),
+      idx           INTEGER NOT NULL,
+      start_ms      INTEGER NOT NULL, end_ms INTEGER NOT NULL,
+      speaker       TEXT,
+      first_word    INTEGER NOT NULL,
+      text          TEXT NOT NULL,
+      words         TEXT NOT NULL,
+      PRIMARY KEY (transcript_id, idx)
+    );
+
+    CREATE TABLE ad_detection (
+      audio_asset_id TEXT PRIMARY KEY REFERENCES audio_asset(id),
+      detector       TEXT NOT NULL,
+      inputs         TEXT NOT NULL,
+      breaks         TEXT NOT NULL,
+      created_at     INTEGER NOT NULL
+    );
+
+    CREATE TABLE job (
+      id          TEXT PRIMARY KEY,
+      kind        TEXT NOT NULL,
+      key         TEXT NOT NULL UNIQUE,
+      payload     TEXT NOT NULL,
+      priority    INTEGER NOT NULL DEFAULT 0,
+      status      TEXT NOT NULL,
+      attempts    INTEGER NOT NULL DEFAULT 0,
+      run_after   INTEGER NOT NULL, locked_until INTEGER,
+      last_error  TEXT,
+      created_at  INTEGER NOT NULL, updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX job_claim ON job(status, run_after, priority DESC, created_at);
+    """,
   ]
 
   /// Bring a database up to date. A database from a newer build (a downgrade) is left as it is.

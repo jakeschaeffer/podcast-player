@@ -34,10 +34,7 @@ struct TranscriptView: View {
 
   var body: some View {
     Group {
-      if transcriptID == nil, !model.hasServer {
-        // The phone can't transcribe yet (docs/store-app-plan.md, step 2).
-        ContentUnavailableView("No transcript", systemImage: "text.quote")
-      } else if transcriptID == nil {
+      if transcriptID == nil {
         TranscribePrompt(episode: episode)
       } else if failed {
         ContentUnavailableView("The transcript could not be loaded", systemImage: "exclamationmark.triangle")
@@ -161,8 +158,10 @@ struct TranscriptSettingsButton: View {
   }
 }
 
-/// No transcript yet: say where it stands, and offer to transcribe it. Transcription bills per audio hour, so the
-/// button asks first and says roughly what it costs. While it runs, the episode is re-read until the transcript lands.
+/// No transcript yet: say where it stands, and offer to transcribe it. On a server transcription bills per audio
+/// hour, so the button asks first and says roughly what it costs. On the phone it is free and stays on the phone
+/// (OnDevice's speech recognition), so the button starts it at once and nothing speaks of cost. While it runs, the
+/// episode is re-read until the transcript lands.
 private struct TranscribePrompt: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerEngine.self) private var engine
@@ -180,8 +179,15 @@ private struct TranscribePrompt: View {
       if working {
         ProgressView()
         Text("Transcribing…").font(.headline)
-        Text("The transcript appears here when it's ready, usually within a few minutes.")
-          .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        if !model.onPhone {
+          Text("The transcript appears here when it's ready, usually within a few minutes.")
+            .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        }
+      } else if model.onPhone {
+        Image(systemName: "text.quote").font(.largeTitle).foregroundStyle(.secondary)
+        Text(state == .failed ? "Transcription failed" : "No transcript").font(.headline)
+        Button(state == .failed ? "Try again" : "Transcribe") { Task { await transcribe() } }
+          .buttonStyle(.borderedProminent)
       } else {
         Image(systemName: "text.quote").font(.largeTitle).foregroundStyle(.secondary)
         Text(state == .failed ? "Transcription failed" : state == .deferred ? "Transcription is waiting" : "No transcript yet")
@@ -203,8 +209,18 @@ private struct TranscribePrompt: View {
     .task(id: working) {
       while working && !Task.isCancelled {
         try? await Task.sleep(for: .seconds(5))
-        await engine.refreshEpisode()
+        await refresh()
       }
+    }
+  }
+
+  /// Re-read the episode. On the phone the job first downloads the recording, and the transcript's times are
+  /// positions in that file, not in the stream playing now (inserted ads differ): once it is there, play on from it.
+  private func refresh() async {
+    let playing = engine.episode?.id == episode.id ? engine.episode?.asset?.audioUrl : nil
+    await engine.refreshEpisode()
+    if model.onPhone, let playing, let now = engine.episode?.asset?.audioUrl, now != playing, now.hasPrefix("file:") {
+      await engine.reload()
     }
   }
 
@@ -218,7 +234,7 @@ private struct TranscribePrompt: View {
     do {
       _ = try await model.api.processEpisode(episode.id)
       error = nil
-      await engine.refreshEpisode()
+      await refresh()
     } catch {
       self.error = error.localizedDescription
     }
