@@ -53,8 +53,9 @@ Whether a session may merge its own PRs and deploy is the owner's standing instr
 - `pnpm install` at the root, then `pnpm -r typecheck` and `pnpm -r test` (server tests need no network and no
   API keys: adapters are faked; web tests cover the pure player and editor rules).
 - `contracts/golden/` holds the shared algorithms' golden cases (heard tracking, In/Out rules, span selection,
-  summary validation) that the Swift ports must reproduce. The TypeScript tests fail when a reference's behaviour
-  changes; that means a new version string and file, not an edit (contracts/golden/README.md).
+  summary validation, transcript normalization, word alignment, ad detection) that the Swift ports must reproduce.
+  The TypeScript tests fail when a reference's behaviour changes; that means a new version string and file, not an
+  edit (contracts/golden/README.md).
 - `scripts/dev-server.sh` (paid services off; prefer it) or `pnpm --dir server dev` (whatever `.env.local` says) runs API + worker on `127.0.0.1:8080`; `pnpm --dir web dev` proxies `/v1`, `/m`, `/s`,
   `/e` to it.
 - After any change to route schemas: `pnpm --dir server openapi:update` rewrites the committed contract

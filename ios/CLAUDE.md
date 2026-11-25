@@ -11,6 +11,12 @@ bundle id are in ../CLAUDE.local.md and the gitignored `Config/Local.xcconfig` a
   you which model to change. A new recording in contracts/api/ needs an entry in that test's table.
 - **HeardTracker is a port, not a design.** It must match contracts/golden/heard/heard_v1.json. A behaviour change
   starts in web/src/player/heard.ts under a new version. It moves to the shared SnipCore package once that exists.
+- **So is all of Packages/SnipCore**: server/src/core in Swift, file for file (transcript types, `normalize`,
+  `sentencize`, `alignTokens`, `detectAds`), so the phone stores the transcript and finds the ad breaks the server
+  would. It imports nothing but Foundation and must reproduce contracts/golden exactly; JavaScript.swift holds
+  what JavaScript does differently from Swift (rounding, `trim`, string equality), and contracts/golden/README.md
+  lists the traps. To change a rule, change the TypeScript under a new version and re-record
+  (`UPDATE_GOLDEN=1 pnpm --dir server test`); never fix a reference's bug in the port alone.
 - **Prefer the local server.** The simulator against production plays real episodes (paid transcription on
   `auto_process` feeds) and creates real, public snips. Locally: `scripts/dev-snapshot.sh` once, then
   `scripts/dev-server.sh` (paid services forced off), then launch the app with `-server.url http://localhost:8080`

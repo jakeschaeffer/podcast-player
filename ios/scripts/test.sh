@@ -4,7 +4,7 @@
 # SnipActivity is iOS only (ActivityKit): its tests run in the simulator, with `xcodebuild test -scheme Snip`.
 set -euo pipefail
 cd "$(dirname "$0")/../Packages"
-for pkg in PodcastAPI PlayerKit SyncKit OnDevice; do
+for pkg in PodcastAPI PlayerKit SyncKit OnDevice SnipCore; do
   echo "==> $pkg"
   swift test --package-path "$pkg" 2>&1 | grep -E "error:|✘|Test run with"
 done

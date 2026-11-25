@@ -1,5 +1,5 @@
 import { normalize } from "../../src/core/transcript/normalize.js";
-import type { NormalizedTranscript, RawWord } from "../../src/core/transcript/types.js";
+import type { ApiTranscript, NormalizedTranscript, RawWord } from "../../src/core/transcript/types.js";
 
 export type Turn = {
   speaker?: string;
@@ -67,4 +67,19 @@ export function conversation(seed: number, minutes: number): NormalizedTranscrip
     if (rand() < 0.6) speaker = speaker === "A" ? "B" : "A";
   }
   return buildTranscript(turns);
+}
+
+/**
+ * A transcript read back from the API shape (`GET /v1/transcripts/{id}`), which is how the golden files hold one.
+ * Golden generators compute their answers from this, so a file's inputs are exactly what a port reads.
+ */
+export function fromApiTranscript(api: ApiTranscript, meta: { provider?: string; model?: string } = {}): NormalizedTranscript {
+  return {
+    provider: meta.provider ?? "test",
+    model: meta.model ?? "golden",
+    language: api.language,
+    word_count: api.word_count,
+    segments: api.segments.map((s, idx) => ({ idx, start_ms: s.s, end_ms: s.e, speaker: s.spk, first_word: s.w0, text: s.words.map((w) => w[2]).join(" "), words: s.words })),
+    events: api.events,
+  };
 }
