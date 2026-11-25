@@ -62,6 +62,17 @@ export function parseSubject(subject: string): { title: string; kind: ArticleTex
 
 type Block = { tag: string; text: string; quote: boolean };
 
+/**
+ * An element that declares itself a heading (`role="heading" aria-level="3"`), as the h-tag it stands for. Tangle's
+ * newsletter draws "What the left is saying.", "What the right is saying." and "My take." as styled divs marked this
+ * way, between its real h3s. Level 1 is read as 2, so a styled title can never be taken for the email's h1.
+ */
+function headingRole(el: Element): string | null {
+  if (el.attribs["role"] !== "heading") return null;
+  const level = Number(el.attribs["aria-level"] ?? 3);
+  return `h${Number.isInteger(level) ? Math.min(6, Math.max(2, level)) : 3}`;
+}
+
 /** Flatten the HTML into ordered text blocks, each with its tag and whether it sits inside a blockquote. */
 export function htmlBlocks(html: string): Block[] {
   const handler = new DomHandler();
@@ -83,7 +94,7 @@ export function htmlBlocks(html: string): Block[] {
         buffer.push(node.data);
       } else if (node.type === "tag" || node.type === "script" || node.type === "style") {
         const el = node as Element;
-        const tag = el.name.toLowerCase();
+        const tag = headingRole(el) ?? el.name.toLowerCase();
         if (SKIP_TAGS.has(tag)) continue;
         if (BLOCK_TAGS.has(tag)) {
           flush();

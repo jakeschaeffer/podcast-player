@@ -71,11 +71,20 @@ export async function refreshTextFeed(ctx: AppContext, feed: FeedRow): Promise<R
     .run(parsed.feed.title, parsed.feed.author, parsed.feed.image_url, parsed.feed.site_url, parsed.feed.language, fetched.etag, fetched.lastModified, ctx.now(), feed.id);
 
   const episodes = ctx.db.prepare("SELECT * FROM episode WHERE feed_id = ?").all(feed.text_for_feed_id) as EpisodeRow[];
-  const exists = ctx.db.prepare("SELECT 1 FROM episode_text WHERE source = 'rss' AND source_ref = ?");
+  const exists = ctx.db.prepare("SELECT id, word_count, (SELECT 1 FROM transcript t WHERE t.text_id = episode_text.id) AS aligned FROM episode_text WHERE source = 'rss' AND source_ref = ?");
+  const reExtract = ctx.db.prepare("UPDATE episode_text SET kind = ?, text = ?, paragraphs = ?, sections = ?, word_count = ? WHERE id = ?");
   const report = { ...empty, texts: { new: 0, unmatched: [] as string[], align_enqueued: 0 } };
   let waiting = false;
   for (const item of parsed.items) {
-    if (exists.get(item.identity)) continue;
+    const stored = exists.get(item.identity) as { id: string; word_count: number; aligned: number | null } | undefined;
+    if (stored) {
+      // Not aligned yet: read it again, so an extractor that learned more (headings drawn as divs) reaches it before alignment.
+      if (!stored.aligned) {
+        const again = extractArticle(item.html, { title: item.title, date: item.published_at ? new Date(item.published_at).toISOString().slice(0, 10) : null });
+        if (again.word_count >= 50) reExtract.run(again.kind, again.text, JSON.stringify(again.paragraphs), JSON.stringify(again.sections), again.word_count, stored.id);
+      }
+      continue;
+    }
     const ep = findEpisodeByTitle(episodes, item.title, (e) => e.published_at !== null && item.published_at !== null && Math.abs(e.published_at - item.published_at) < TEXT_MATCH_WINDOW_MS);
     if (!ep) {
       report.texts.unmatched.push(item.title);
@@ -84,9 +93,9 @@ export async function refreshTextFeed(ctx: AppContext, feed: FeedRow): Promise<R
     }
     const article = extractArticle(item.html, { title: item.title, date: item.published_at ? new Date(item.published_at).toISOString().slice(0, 10) : null });
     if (article.word_count < 50) { report.skipped.push({ title: item.title, reason: "no article body" }); continue; }
-    const stored = storeEpisodeText(ctx, { episode: ep, source: "rss", source_ref: item.identity, article, received_at: item.published_at, align: feed.auto_process === 1 });
+    const added = storeEpisodeText(ctx, { episode: ep, source: "rss", source_ref: item.identity, article, received_at: item.published_at, align: feed.auto_process === 1 });
     report.texts.new++;
-    if (stored.align_enqueued) report.texts.align_enqueued++;
+    if (added.align_enqueued) report.texts.align_enqueued++;
   }
   if (waiting) ctx.db.prepare("UPDATE feed SET etag = NULL, last_modified = NULL WHERE id = ?").run(feed.id);
   ctx.log("text feed refreshed", { feed_id: feed.id, url: redact(fetched.url), items: parsed.items.length, new_texts: report.texts.new, unmatched: report.texts.unmatched.length, align_enqueued: report.texts.align_enqueued, waiting_for_episode: waiting });
