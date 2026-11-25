@@ -2,11 +2,16 @@
 // (gitignored; copy Local.xcconfig.example). These defaults build and run in the simulator and nothing else.
 DEVELOPMENT_TEAM =
 CODE_SIGN_STYLE = Automatic
-// The app is $(ORG_IDENTIFIER).Snip, its Live Activity $(ORG_IDENTIFIER).Snip.LiveActivity and its share sheet
-// $(ORG_IDENTIFIER).Snip.Share. Fixed once a phone has it installed: the Keychain token (and its access group, which
+// The app is $(ORG_IDENTIFIER).$(APP_SUFFIX) (Snip unless set otherwise below), its Live Activity that plus
+// .LiveActivity and its share sheet that plus .Share. Fixed once a phone has it installed: the Keychain token (and its access group, which
 // the share sheet reads) and the background download session are keyed by the bundle id.
 ORG_IDENTIFIER = com.example
-PRODUCT_BUNDLE_IDENTIFIER = $(ORG_IDENTIFIER).Snip
+// Which app this build is: the last part of its bundle id, and the name under its icon. Another pair makes a second
+// app that installs beside the first with its own data (ios/scripts/testflight.sh, APP_SUFFIX and APP_DISPLAY_NAME):
+// a build with no server, say, to try without touching the one in daily use.
+APP_SUFFIX = Snip
+APP_DISPLAY_NAME = Snip
+PRODUCT_BUNDLE_IDENTIFIER = $(ORG_IDENTIFIER).$(APP_SUFFIX)
 
 // The server the login screen starts with. Empty: the field waits to be typed. `//` starts a comment in xcconfig,
 // hence the $(). Debug builds start on the local dev server (scripts/dev-server.sh), so the simulator never plays a

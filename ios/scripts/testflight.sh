@@ -3,6 +3,12 @@
 # Apple Distribution certificate and App Store profiles minted through the API (scripts/asc.mjs): one each for the
 # app, its Live Activity and its share extension. Then altool.
 #   ios/scripts/testflight.sh
+# A second app beside the first, with its own icon name and its own data (the build with no server, to try without
+# touching the one in daily use):
+#   APP_SUFFIX=SnipSolo APP_DISPLAY_NAME="Snip Solo" NO_SERVER=1 ios/scripts/testflight.sh
+# APP_SUFFIX is the last part of the bundle id (default Snip); NO_SERVER=1 names no server, so a fresh install
+# opens on Start and keeps everything on the phone. The first run registers the bundle ids, then stops and says how
+# to make the app's record in App Store Connect, which only a person can do.
 # Your team, org id and App Store Connect key come from scripts/local.env (gitignored; copy local.env.example).
 # TestFlight builds expire after 90 days; rerun this to replace one.
 set -euo pipefail
@@ -13,17 +19,23 @@ set -a; . scripts/local.env; set +a
 for v in TEAM_ID ORG_IDENTIFIER ASC_KEY_ID ASC_ISSUER; do
   [ -n "${!v:-}" ] || { echo "error: $v is not set in ios/scripts/local.env" >&2; exit 1; }
 done
-APP_BUNDLE_ID="$ORG_IDENTIFIER.Snip"
+APP_SUFFIX="${APP_SUFFIX:-Snip}"
+APP_DISPLAY_NAME="${APP_DISPLAY_NAME:-Snip}"
+APP_BUNDLE_ID="$ORG_IDENTIFIER.$APP_SUFFIX"
 EXTENSION_BUNDLE_ID="$APP_BUNDLE_ID.LiveActivity"
 SHARE_BUNDLE_ID="$APP_BUNDLE_ID.Share"
 export SNIP_BUNDLE_ID="$APP_BUNDLE_ID" SNIP_ASC_KEY_ID="$ASC_KEY_ID" SNIP_ASC_ISSUER="$ASC_ISSUER"
 
-node scripts/asc.mjs app >/dev/null  # fails early with instructions when the app record is missing
+# The bundle ids are registered first: a new app's record can only be made for an id the account already has.
 PROFILE=$(node scripts/asc.mjs ensure-profile)
 EXTENSION_PROFILE=$(node scripts/asc.mjs ensure-profile "$EXTENSION_BUNDLE_ID")  # the Live Activity widget
 SHARE_PROFILE=$(node scripts/asc.mjs ensure-profile "$SHARE_BUNDLE_ID")  # the share sheet extension
+node scripts/asc.mjs app >/dev/null  # fails early with instructions when the app record is missing
 node scripts/asc.mjs ensure-beta-group >/dev/null  # internal group "Owner": every build reaches your phone
 BUILD=$(date -u +%y%m%d%H%M)  # always increasing, which App Store Connect requires
+# NO_SERVER=1: the build names no server whatever Local.xcconfig says (a command-line setting wins).
+SERVER_SETTING=()
+if [ "${NO_SERVER:-}" = 1 ]; then SERVER_SETTING=("PODCAST_SERVER_URL="); fi
 OUT="${TMPDIR:-/tmp}/snip-testflight-$BUILD"
 mkdir -p "$OUT"
 
@@ -32,6 +44,7 @@ xcodebuild archive \
   -project Snip.xcodeproj -scheme Snip -configuration Release \
   -destination 'generic/platform=iOS' -archivePath "$OUT/Snip.xcarchive" \
   CURRENT_PROJECT_VERSION="$BUILD" DEVELOPMENT_TEAM="$TEAM_ID" ORG_IDENTIFIER="$ORG_IDENTIFIER" \
+  APP_SUFFIX="$APP_SUFFIX" APP_DISPLAY_NAME="$APP_DISPLAY_NAME" ${SERVER_SETTING[@]+"${SERVER_SETTING[@]}"} \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" \
   SNIP_APP_PROFILE="$PROFILE" SNIP_EXTENSION_PROFILE="$EXTENSION_PROFILE" SNIP_SHARE_PROFILE="$SHARE_PROFILE" \
   -quiet
