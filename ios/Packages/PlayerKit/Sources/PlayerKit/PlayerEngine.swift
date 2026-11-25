@@ -209,7 +209,10 @@ public final class PlayerEngine {
       guard let streamed = SignedURL.onServer(mediaURL(asset), base: api.baseURL) else { return }
       url = streamed
     }
-    let start = (ep.resume?.finished ?? true) ? 0 : min(ep.resume?.positionMs ?? 0, asset.durationMs)
+    // A recording with no stated length (a publisher's file whose feed gives none: 0) has no end to hold the place
+    // within; its length comes from the player once it has loaded (`tick`).
+    let resumeAt = ep.resume?.positionMs ?? 0
+    let start = (ep.resume?.finished ?? true) ? 0 : asset.durationMs > 0 ? min(resumeAt, asset.durationMs) : resumeAt
     heard.reset(startMs: start, assumeHeardBeforeMs: Self.resumeAssumedHeardMs)
     episode = ep
     durationMs = asset.durationMs

@@ -60,6 +60,7 @@ struct SidewaysControls<Pill: View>: ViewModifier {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Snip")
+        .available(model.hasServer)
       }
     }
   }

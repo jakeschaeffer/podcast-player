@@ -32,8 +32,9 @@ struct AddShowView: View {
   }
 
   private var trimmed: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
-  private var youtube: YouTubeLink? { YouTubeLink.parse(query) }
-  private var mediaURL: String? { youtube == nil ? MediaLink.parse(query) : nil }
+  // Videos and one-off links are fetched by a server; a phone without one offers neither.
+  private var youtube: YouTubeLink? { model.hasServer ? YouTubeLink.parse(query) : nil }
+  private var mediaURL: String? { youtube == nil && model.hasServer ? MediaLink.parse(query) : nil }
   private var feedURL: String? { youtube == nil && mediaURL == nil ? FeedAddress.parse(query) : nil }
   private var searchable: Bool { youtube == nil && mediaURL == nil && feedURL == nil && trimmed.count >= 2 }
 
@@ -186,7 +187,7 @@ struct AddShowView: View {
         if !spread { guide.font(.title3.weight(.semibold)).foregroundStyle(.secondary) }
       } else if let results {
         // Not a show's name but what it talks about: the same words as a topic search, over episodes in any show.
-        Section {
+        if model.hasServer { Section {
           Button {
             topic = trimmed
           } label: {
@@ -202,7 +203,7 @@ struct AddShowView: View {
           }
           .buttonStyle(.plain)
           .disabled(opening != nil)
-        }
+        } }
         if results.results.isEmpty {
           Text("No shows match “\(trimmed)”.").foregroundStyle(.secondary)
         }

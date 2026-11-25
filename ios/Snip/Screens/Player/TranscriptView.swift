@@ -34,7 +34,10 @@ struct TranscriptView: View {
 
   var body: some View {
     Group {
-      if transcriptID == nil {
+      if transcriptID == nil, !model.hasServer {
+        // The phone can't transcribe yet (docs/store-app-plan.md, step 2).
+        ContentUnavailableView("No transcript", systemImage: "text.quote")
+      } else if transcriptID == nil {
         TranscribePrompt(episode: episode)
       } else if failed {
         ContentUnavailableView("The transcript could not be loaded", systemImage: "exclamationmark.triangle")

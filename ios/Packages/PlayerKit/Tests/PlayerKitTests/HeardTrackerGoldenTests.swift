@@ -105,5 +105,7 @@ struct SignedURLTests {
     // Share links and other hosts' files stay as they are.
     #expect(SignedURL.onServer("https://snip.example.com/s/abc", base: base)?.absoluteString == "https://snip.example.com/s/abc")
     #expect(SignedURL.onServer("/m/clips/Y?e=1", base: base)?.absoluteString == "http://localhost:8081/m/clips/Y?e=1")
+    // A publisher's own file under /m/ on its host carries no signature: it is played where it is.
+    #expect(SignedURL.onServer("https://cdn.example.com/m/show/ep1.mp3?x=1", base: base)?.absoluteString == "https://cdn.example.com/m/show/ep1.mp3?x=1")
   }
 }

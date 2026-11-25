@@ -4,7 +4,9 @@ A plan for a build of the iOS app that friends can install from the App Store. T
 is stored on the phone, transcription runs on the phone, and the model steps (snip titles and summaries, episode
 summaries) are paid for by their own ChatGPT plan. The owner's build keeps talking to their server; both are one app.
 
-Status: tests run 2026-11-25 (below); step 1 in progress.
+Status: tests run 2026-11-25 (below). Step 1 is in: `ios/Packages/OnDevice` and the app's on-phone mode
+(`AppModel.usePhone`). Not yet in it: background refresh of feeds while the app is closed, the share sheet, and
+the Live Activity's Snip button, which still shows and does nothing.
 
 ## What a friend gets, in order
 

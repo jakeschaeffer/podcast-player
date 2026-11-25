@@ -26,6 +26,8 @@
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
+		<key>NSAllowsArbitraryLoadsForMedia</key>
+		<true/>
 	</dict>
 </dict>
 </plist>

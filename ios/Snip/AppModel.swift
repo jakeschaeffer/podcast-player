@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OnDevice
 import PlayerKit
 import PodcastAPI
 import SnipActivity
@@ -14,7 +15,19 @@ final class AppModel {
   static let serverKey = "server.url"
   nonisolated static let unauthorized = Notification.Name("AppModel.unauthorized")
 
+  /// The address that stands for "this phone": a build with no server keeps its shows, episodes, place and Up Next
+  /// in a file on the phone, and `OnDevice.LocalBackend` answers the same API from it (docs/store-app-plan.md).
+  /// Nothing is ever sent to it.
+  static let phoneServer = URL(string: "http://this-phone.invalid")!
+
   private(set) var serverURL: URL
+  /// Everything is kept on this phone; there is no server.
+  var onPhone: Bool { serverURL == Self.phoneServer }
+  /// What needs a server for now: snips, transcripts, summaries, topic search, video, Readwise, prompts. Their
+  /// controls are hidden on a phone without one, each until the phone can do it itself.
+  var hasServer: Bool { !onPhone }
+  /// The backend on the phone, when there is no server.
+  @ObservationIgnored private var local: LocalBackend?
   private(set) var signedIn: Bool
   private(set) var api: APIClient
   private(set) var engine: PlayerEngine
@@ -80,7 +93,8 @@ final class AppModel {
   }
   /// What the login screen offers: the server last signed in to on this phone, else the build's default.
   var suggestedServer: String? {
-    UserDefaults.standard.string(forKey: Self.serverKey) ?? Self.defaultServer?.absoluteString
+    let last = UserDefaults.standard.string(forKey: Self.serverKey)
+    return (last == Self.phoneServer.absoluteString ? nil : last) ?? Self.defaultServer?.absoluteString
   }
 
   init() {
@@ -88,16 +102,23 @@ final class AppModel {
     // With nothing to offer, the model still needs a client to hold; nothing is called before sign-in.
     var server = saved ?? Self.defaultServer ?? URL(string: "http://localhost:8080")!
     #if DEBUG
-      if TokenStore(server: server).load() == nil, let dev = DevAuth.load() {
+      // `-usePhone 1`: open on the library kept on this phone, past the first screen (scripted checks).
+      if UserDefaults.standard.bool(forKey: "usePhone") {
+        server = Self.phoneServer
+        TokenStore(server: server).save("this-phone")
+      }
+      // `-firstScreen start|server` shows the first screen (LoginView), so nothing signs in for it.
+      if UserDefaults.standard.string(forKey: "firstScreen") == nil, TokenStore(server: server).load() == nil, let dev = DevAuth.load() {
         server = dev.server
         TokenStore(server: server).save(dev.token)
       }
     #endif
     let parts = Self.connect(to: server)
-    (serverURL, tokens, api, reporter, engine, snips, downloads) = (server, parts.tokens, parts.api, parts.reporter, parts.engine, parts.snips, parts.downloads)
+    (serverURL, tokens, api, reporter, engine, snips, downloads, local) = (server, parts.tokens, parts.api, parts.reporter, parts.engine, parts.snips, parts.downloads, parts.local)
     signedIn = parts.tokens.load() != nil
     // The share sheet reads the server from the Keychain (SharedSession); a build from before it wrote nothing there.
-    if signedIn { SharedSession.rememberServer(server) }
+    // It has no way to reach the phone's own library, so there it is told of none.
+    if signedIn, server != Self.phoneServer { SharedSession.rememberServer(server) }
     listenForDeliveredSnips()
     wireQueue()
     wireLiveActivity()
@@ -114,13 +135,31 @@ final class AppModel {
   func signIn(server: URL, password: String) async throws {
     let login = try await APIClient(baseURL: server, token: { nil })
       .login(password: password, deviceName: UIDevice.current.name)
+    adopt(server, token: login.token)
+    SharedSession.rememberServer(server)
+  }
+
+  /// Start, or go back to, the library kept on this phone: no server, no account, nothing to sign in to.
+  func usePhone() {
+    // Nothing checks this token; it marks the phone as set up, as a server's token marks a sign-in.
+    adopt(Self.phoneServer, token: "this-phone")
+    SharedSession.forgetServer()
+    Task { await refreshLibrary() }
+  }
+
+  /// On a phone with no server, nothing else fetches the shows' feeds: read the ones not read lately. The server
+  /// does this itself on a timer.
+  func refreshLibrary() async {
+    await local?.refreshFeeds(olderThan: 15 * 60)
+  }
+
+  private func adopt(_ server: URL, token: String) {
     UserDefaults.standard.set(server.absoluteString, forKey: Self.serverKey)
     engine.pause()
     downloads.invalidate()
     let parts = Self.connect(to: server)
-    parts.tokens.save(login.token)
-    SharedSession.rememberServer(server)
-    (serverURL, tokens, api, reporter, engine, snips, downloads) = (server, parts.tokens, parts.api, parts.reporter, parts.engine, parts.snips, parts.downloads)
+    parts.tokens.save(token)
+    (serverURL, tokens, api, reporter, engine, snips, downloads, local) = (server, parts.tokens, parts.api, parts.reporter, parts.engine, parts.snips, parts.downloads, parts.local)
     snipPages = []
     playerSnip = nil
     listenForDeliveredSnips()
@@ -403,6 +442,8 @@ final class AppModel {
   /// The server picks the span, renders the clip and writes the title; the card follows it. `at` names another place
   /// in the loaded recording (the Live Activity's, after a relaunch).
   func snip(at place: (assetID: ULID, anchorMs: Int, heardFromMs: Int)? = nil) async {
+    // No server, no snips yet: the phone has no transcript to cut one from (docs/store-app-plan.md, step 3).
+    guard hasServer else { return }
     guard let point = place ?? engine.snipPoint(), let episodeID = engine.episode?.id else { return }
     sounds.requested()
     liveActivity.snipStarted(SnipProgress(step: .choosing, anchorMs: point.anchorMs), engine: engine)
@@ -520,12 +561,17 @@ final class AppModel {
   // MARK: Wiring
 
   private static func connect(to server: URL)
-    -> (tokens: TokenStore, api: APIClient, reporter: PlaybackReporter, engine: PlayerEngine, snips: SnipOutbox, downloads: DownloadStore)
+    -> (tokens: TokenStore, api: APIClient, reporter: PlaybackReporter, engine: PlayerEngine, snips: SnipOutbox, downloads: DownloadStore, local: LocalBackend?)
   {
     let tokens = TokenStore(server: server)
     // The last lists read from this server, drawn at launch before it answers (SavedResponses).
     let saved = SavedResponses(folder: URL.cachesDirectory.appending(path: "lists/\(server.host() ?? "server")"))
-    let api = APIClient(baseURL: server, token: { tokens.load() }, saved: saved) {
+    // With no server, the same requests are answered from a file on the phone.
+    let local = server == phoneServer
+      ? try? LocalBackend(folder: URL.applicationSupportDirectory.appending(path: "library"), deviceName: UIDevice.current.name)
+      : nil
+    let transport: any HTTPTransport = local.map { $0 as any HTTPTransport } ?? URLSession.shared
+    let api = APIClient(baseURL: server, transport: transport, token: { tokens.load() }, saved: saved) {
       NotificationCenter.default.post(name: unauthorized, object: nil)
     }
     let outbox = URL.applicationSupportDirectory.appending(path: "playback-outbox.json")
@@ -546,6 +592,6 @@ final class AppModel {
     let snips = SnipOutbox(file: URL.applicationSupportDirectory.appending(path: "snip-outbox.json")) { body in
       try await api.createSnip(body)
     }
-    return (tokens, api, reporter, engine, snips, downloads)
+    return (tokens, api, reporter, engine, snips, downloads, local)
   }
 }

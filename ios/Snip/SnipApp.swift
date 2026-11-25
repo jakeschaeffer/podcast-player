@@ -1,3 +1,4 @@
+import PodcastAPI
 import SnipActivity
 import SwiftUI
 import SyncKit
@@ -38,6 +39,7 @@ struct SnipApp: App {
         if phase == .active {
           model.downloads.dropFinished()
           model.refreshLiveActivity()
+          Task { await model.refreshLibrary() }
         }
       }
     }
@@ -103,8 +105,11 @@ struct RootView: View {
       Tab("Library", systemImage: "square.stack", value: 1) {
         NavigationStack { LibraryView(showPlayer: $showPlayer) }
       }
-      Tab("Snips", systemImage: "scissors", value: 2) {
-        NavigationStack { SnipsView() }
+      // With no server there are no snips yet (docs/store-app-plan.md, step 3).
+      if model.hasServer {
+        Tab("Snips", systemImage: "scissors", value: 2) {
+          NavigationStack { SnipsView() }
+        }
       }
     }
     // The floating glass tab bar let the last row's words show through it and run into its labels (the Duo open and
@@ -145,8 +150,17 @@ struct RootView: View {
       // opens that field for typing (several, comma-separated, in turn), `-typeText <text>` fills it (`\n` for a new line,
       // `|` between fields) and `-saveFieldAfter <s>` presses its Save. `-openSnipFromBarAfter <s>` presses the snip bar's
       // round arrow that long after the server has the tap (SnipPill), to write on a snip that is still being made.
+      // With no server (`-usePhone 1`, AppModel.init): `-followFeed <feed address>` follows that show first, and
+      // `-playFirst 1` opens the player on the newest episode, since the phone's ids are its own.
       .task {
         let defaults = UserDefaults.standard
+        if let feed = defaults.string(forKey: "followFeed") {
+          _ = try? await model.api.createFeed(CreateFeed(url: feed, followed: true))
+        }
+        if defaults.bool(forKey: "playFirst"), let first = try? await model.api.episodes(limit: 1).items.first {
+          model.engine.open(first.id, autoplay: true)
+          showPlayer = true
+        }
         switch defaults.string(forKey: "openTab") {
         case "library": tab = 1
         case "snips": tab = 2
