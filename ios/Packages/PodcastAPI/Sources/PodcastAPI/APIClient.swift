@@ -30,11 +30,22 @@ public struct APIError: Error, Sendable, Equatable, LocalizedError {
   }
 }
 
+/// What `APIClient` sends a request through: the network, or a backend on the phone that answers the same API
+/// (`OnDevice.LocalBackend`, for a build with no server). A transport that never got an answer throws; one that got
+/// one returns it whatever its status.
+public protocol HTTPTransport: Sendable {
+  func respond(to request: URLRequest) async throws -> (Data, URLResponse)
+}
+
+extension URLSession: HTTPTransport {
+  public func respond(to request: URLRequest) async throws -> (Data, URLResponse) { try await data(for: request) }
+}
+
 /// A thin client over the server's JSON API. Sends the device token as a Bearer header; any 401 except at login
 /// calls `onUnauthorized`, which signs the app out.
 public final class APIClient: Sendable {
   public let baseURL: URL
-  private let session: URLSession
+  private let transport: any HTTPTransport
   private let token: @Sendable () -> String?
   private let onUnauthorized: @Sendable () -> Void
   /// Where the last answer to each remembered GET is kept (`send(remember:)`, `lastSeen`); nil keeps nothing.
@@ -54,14 +65,14 @@ public final class APIClient: Sendable {
 
   public init(
     baseURL: URL,
-    session: URLSession = .shared,
+    transport: any HTTPTransport = URLSession.shared,
     token: @escaping @Sendable () -> String?,
     saved: SavedResponses? = nil,
     onUnauthorized: @escaping @Sendable () -> Void = {}
   ) {
     self.saved = saved
     self.baseURL = baseURL
-    self.session = session
+    self.transport = transport
     self.token = token
     self.onUnauthorized = onUnauthorized
   }
@@ -134,7 +145,7 @@ public final class APIClient: Sendable {
     let data: Data
     let response: URLResponse
     do {
-      (data, response) = try await session.data(for: request)
+      (data, response) = try await transport.respond(to: request)
     } catch {
       throw APIError(status: 0, code: "network", message: error.localizedDescription)
     }
