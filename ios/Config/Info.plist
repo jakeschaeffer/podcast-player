@@ -16,6 +16,11 @@
 			</array>
 		</dict>
 	</array>
+	<!-- A build with no server transcribes on the phone with the Speech framework (OnDevice's AppleSpeechTranscriber).
+	     Apple documents SpeechAnalyzer as needing no permission, but the key costs nothing and an app that uses the
+	     framework without it can be closed by iOS. -->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Transcripts are made on this phone.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIBackgroundModes</key>
