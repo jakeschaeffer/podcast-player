@@ -27,7 +27,7 @@ import Testing
     config.protocolClasses = [Stub.self]
     let folder = FileManager.default.temporaryDirectory.appending(path: "saved-\(UUID().uuidString)")
     return APIClient(
-      baseURL: URL(string: "http://server.test")!, session: URLSession(configuration: config), token: { "t" },
+      baseURL: URL(string: "http://server.test")!, transport: URLSession(configuration: config), token: { "t" },
       saved: SavedResponses(folder: folder))
   }
 
